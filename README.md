@@ -25,3 +25,219 @@ unpack it; `bin\neojac.exe` finds its runtime beside it.
 
 Every release here is published by neojac's release workflow, and its notes
 name the source commit it was built from.
+
+## Experience NeoJac
+
+[diffwalker](https://github.com/marsninja/diffwalker) is an agentic code
+reviewer written in Jac. It is one project with four apps (a web app, a desktop
+app, an Android phone app and a command-line app), and neojac builds all of
+them with nothing else installed. Working through it uses almost every
+`neojac` command. Each step below was run on neojac 0.3.1.
+
+You need neojac 0.3.1 or later, and `git`. An Anthropic API key is optional:
+without one, a review's deterministic stages still run and give a verdict, but
+the model's stages and the Copilot don't run. Any command explains itself with
+`neojac help <command>`.
+
+### 1. Get the project and its packages
+
+```sh
+git clone https://github.com/marsninja/diffwalker
+cd diffwalker
+neojac install
+```
+
+`neojac install` installs what `jac.toml` lists, for every ecosystem, and
+records it in `jac.lock`. The site's and the phone app's npm packages are
+installed with neojac's own Node into `eco/`. Because `jac.toml` has an
+`[android]` table, it also fetches a pinned Android SDK, JDK and emulator into
+neojac's cache. Nothing is installed globally. `neojac install --frozen`
+installs exactly what `jac.lock` pins.
+
+### 2. Read the documentation offline
+
+```sh
+neojac docs                   # the map: every page, and what it covers
+neojac docs start/primer      # the whole language in one page
+neojac docs visit             # what defines a keyword
+neojac docs '++>'             # ... or an operator
+neojac docs apps/crossings    # how a page's call reaches the server
+neojac docs E1307             # what a diagnostic code means, and the fix
+neojac docs search stream     # the pages that mention a text
+neojac skills                 # playbooks for coding agents
+neojac skills install         # ... copied into .agents/skills
+```
+
+The documentation ships inside the release and matches its version.
+
+### 3. See the architecture
+
+diffwalker's modules write no imports. Every import is a wire in
+[`archwire.jac`](https://github.com/marsninja/diffwalker/blob/main/archwire.jac),
+which also declares the spaces code runs in and the apps made of them.
+`neojac arch` draws all of that:
+
+```sh
+neojac arch --text                        # the packages and the wires between them
+neojac arch core --text                   # one package, opened
+neojac arch --view spaces --text          # the spaces, their hosts, the apps, what crosses
+neojac arch core.review.engine --json     # one module: what it takes and gives
+neojac arch --mermaid                     # a flowchart for a README or a pull request
+neojac arch --view spaces --svg spaces.svg
+neojac arch                               # a viewer at 127.0.0.1:8090 that follows your edits
+```
+
+### 4. Check every program
+
+```sh
+neojac check --app web --space api            # the server, as the web app builds it
+neojac check --space site                     # the pages, on a browser
+neojac check --space phone                    # the phone app, on Hermes
+neojac check --app cli                        # the command-line app
+neojac check --app desktop --profile local    # the desktop app with its server inside
+neojac fmt --check .                          # every file in the one layout
+neojac precommit --all --verify               # fixes, layout and lint rules, as the commit hook runs them
+neojac precommit --install                    # install it as git's pre-commit hook
+```
+
+Each check takes a few seconds and reports every error it finds.
+
+### 5. Run the web app
+
+diffwalker includes a small payments service whose `feat/refunds` branch has
+real bugs in it:
+
+```sh
+docs/demo/make-demo-repo.sh ~/payments-demo
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env       # optional; .env is gitignored
+DIFFWALKER_REPO=~/payments-demo neojac run web
+```
+
+Open <http://127.0.0.1:8000/>, create an account, open the refunds branch and
+press **Run review**. The server streams each of the review's eight stages to
+the page as it finishes. `neojac run web --fresh` starts with no data and sets
+aside what the app kept in `.jac/data/web`.
+
+### 6. Drive the browser from the terminal
+
+`neojac browse` drives a headless Chrome. neojac fetches it the first time and
+keeps it beside its build cache. In a second terminal, while the web app runs:
+
+```sh
+neojac browse open 127.0.0.1:8000
+neojac browse snapshot -i                    # what can be acted on, each with a ref
+neojac browse click @e4                      # "New here? Create an account"
+neojac browse fill @e1 ann
+neojac browse fill @e2 a-long-password
+neojac browse click 'button[type=submit]'
+neojac browse wait --text feat/refunds
+neojac browse screenshot dashboard.png
+neojac browse errors                         # what the page reported, if anything
+neojac browse close
+```
+
+A ref names an element of the last snapshot, so read the refs from your own.
+
+### 7. Work on it live
+
+```sh
+DIFFWALKER_REPO=~/payments-demo neojac dev web
+```
+
+Edit a page, such as the sign-in text in `core/site/auth/SignIn.jac`. Only what
+the edit touches is rebuilt, in about a second, and the open page shows the
+change by itself. A build that fails says why and leaves the running app
+alone.
+
+### 8. Run the command-line app
+
+Whatever follows `--` goes to the app:
+
+```sh
+neojac run cli -- --repo ~/payments-demo prs    # the pull requests it can review
+neojac run cli -- --help                        # the rest of its commands
+```
+
+### 9. Open the desktop app
+
+```sh
+DIFFWALKER_REPO=~/payments-demo neojac run desktop
+```
+
+The app opens in a native window using the system's webview. Today that window
+exists on Linux only (GTK 3 with WebKitGTK 4.1). One artifact holds two
+arrangements of the app, the archwire's profiles. At first launch you choose
+**On this computer**, which runs the server inside the window's own program
+with passwordless local profiles, or **A diffwalker server**.
+
+### 10. Put the phone app on Android
+
+```sh
+neojac build mobile    # dist/mobile/mobile.apk, and Hermes bundles for Android and iOS
+neojac run mobile      # install it on a connected phone, or on an emulator it starts, and open it
+```
+
+If `neojac run web` is running, the phone app signs in to it:
+`neojac run mobile` forwards the server's port from the phone to this machine.
+A review started on the phone shows up in the web app, and the other way round.
+
+### 11. Build everything
+
+```sh
+neojac build            # every app, into dist/
+neojac build web cli    # just these two
+```
+
+Each artifact runs without anything installed where it runs. Builds compile
+each module on its own and cache the result, so an edit recompiles only what it
+touched, and a build with nothing changed does nothing.
+
+### 12. Ask what your editor would
+
+`neojac lsp` is the language server an editor runs, and `neojac query` asks it
+the same questions from the command line. The positions below are from
+diffwalker's `main`; any name in any file works.
+
+```sh
+neojac query hover core/review/engine.jac:1071:21          # the walker a review runs as
+neojac query references core/review/engine.jac:318:13      # where it is spawned
+neojac query definition core/site/review/ReviewWorkspace.jac:187:24
+                                                           # a page's server call lands in core/api.jac
+neojac query symbols core/review/agents.jac                # a file's outline
+neojac query arch core/api.jac                             # what a module takes and gives, as JSON
+```
+
+### 13. Read what the compiler writes
+
+```sh
+neojac emit-js site -o site-js --app web
+grep -n pr_detail site-js/core/site/review/ReviewWorkspace.jsx
+neojac parse --tree archwire.jac
+```
+
+The page's `await pr_detail(...)` becomes a typed request to the `api` space.
+`emit-js` writes the JavaScript the web app's build bundles; `emit-py` does the
+same for a space on CPython.
+
+### 14. Port code into Jac
+
+```sh
+neojac port --check ~/payments-demo/payments    # what would translate, and what is refused, and why
+neojac port --mapping python                    # what each Python construct becomes
+```
+
+`neojac port` reads C, C++, Rust, Python and JavaScript with each language's own
+compiler. A file ports whole or not at all, and the source is never changed.
+
+### 15. Use the toolchains inside
+
+```sh
+neojac node --version
+(cd eco/web && neojac npx vite --version)
+neojac python -c "import sys; print(sys.version)"
+neojac version
+```
+
+One download holds Node and npm, CPython, Clang and LLD (`neojac cc`,
+`neojac c++`), and Rust (`neojac cargo`, `neojac rustc`). That is what lets
+diffwalker build with nothing else installed.
