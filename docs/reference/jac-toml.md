@@ -1,5 +1,5 @@
 ---
-description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
+description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, extensions, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
 keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
@@ -173,6 +173,31 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 | E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
 
 `[pypi."<directory>"]` holds a Python project's manifest and no more yet: `neojac install` installs the packages `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies`.
+
+## [extensions."\<path\>"]
+
+A module that a build makes from native code and an interpreter loads: a CPython extension module, a Node-API addon. The table is named by the module's path from the project's root, without its file's ending (`tiktoken/_tiktoken` is the module Python imports as `tiktoken._tiktoken`), and names the unit of the project it is built from.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `extensions."<path>".cargo` | string | The crate it is built from, by the directory of its `[cargo."<directory>"]` table |
+| `extensions."<path>".features` | list of strings | The crate's features it is built with |
+| `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
+
+```toml
+[cargo."."]
+# Cargo.toml, as it stands
+
+[extensions."tiktoken/_tiktoken"]
+cargo = "."
+features = ["python"]
+```
+
+An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). neojac does not build one yet.
+
+| Code | Cause |
+|---|---|
+| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, or has another key |
 
 ## [packages]
 

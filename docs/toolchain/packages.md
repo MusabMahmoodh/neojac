@@ -457,6 +457,26 @@ dependencies = ["fastapi>=0.141"]
 A program with no `jac.toml` above it keeps its manifests as files: a loose `main.jac` beside a
 `geom/cmodule.toml` builds as it did.
 
+## Extension modules
+
+A Python package's module may be native code that a build makes: tiktoken's `tiktoken._tiktoken`
+is a Rust crate, psutil's `psutil._psutil` a C library. No file of the project is that module, so
+`jac.toml` says which unit is:
+
+```toml
+[extensions."tiktoken/_tiktoken"]
+cargo = "."
+features = ["python"]
+```
+
+- **It is named by the module's path** from the project's root, and names the crate
+  (`cargo`, with the `features` it is built with) or the C module (`c`) of the project it is built
+  from, by the directory of that unit's table.
+- **It is a module of the project.** A file that imports it is wired from it, and until the table
+  is there the import names nothing: `neojac absorb` reports it (E1145).
+- **neojac does not build one yet**, and does not write the table itself yet: it comes from what
+  the repository's own build does, which `neojac absorb` lists as a `build` open item.
+
 ## Running npm
 
 `neojac npm` and `neojac npx` run in a tree: the one whose directory they are run in or under

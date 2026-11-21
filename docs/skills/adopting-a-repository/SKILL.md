@@ -66,7 +66,7 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 
 | Diagnostic | Usually means |
 |---|---|
-| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is: an extension module a build makes. It is the `build` open item's |
+| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is: an extension module a build makes. Say which unit it is built from, `[extensions."pkg/_ext"]` with `cargo = "<directory>"` or `c = "<directory>"` (`neojac docs toolchain/packages`, "Extension modules"), and absorb again |
 | E2224 | Two files of one name and two languages in one directory |
 | E1575, E1147 | A wire and a source that disagree: `neojac fmt --fix archwire.jac` |
 
@@ -76,7 +76,7 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 |---|---|---|
 | `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
 | `form` | A manifest form npm does not read (`workspace:` links, `pnpm.*`, `pnpm-workspace.yaml`) | Not yet rewritten by neojac. Do not hand-edit the table to make npm take it: say what you found |
-| `build` | A program that builds native code (`setup.py`, `binding.gyp`) | Not yet recorded by neojac. Leave the program in place |
+| `build` | A program that builds native code (`setup.py`, `binding.gyp`) | Not yet recorded by neojac. Leave the program in place. Where it builds an extension module from a crate or a C module `jac.toml` holds, find which in the program and write `[extensions."<path>"]` |
 | `tests` | No manifest says how a Python project's tests are run | Find the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command`. Report it; `jac.toml` has no key for it yet |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
