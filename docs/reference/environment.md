@@ -47,11 +47,11 @@ These are neojac's own plumbing: a program you run under neojac sees them, and y
 
 ## Names an app may not take
 
-`JAC_<NAME>` is how an app's own settings are given where it runs: `JAC_<APP>_LISTEN`, `JAC_<APP>_DATA` and `JAC_<APP>_ARRANGEMENT` for an app, `JAC_REMOTE_<SPACE>` and `JAC_<SPACE>_CODE` for a space, `JAC_<ABSTRACTION>` and `JAC_<SPACE>_<ABSTRACTION>` for the plugin picked, and `JAC_<ABSTRACTION>_<FIELD>` for a plugin's setting ([Plugins](../apps/plugins.md)). neojac's own variables are `NEOJAC_<NAME>` and can't be one of these, but a few variables with this prefix are read by neojac or by a program's runtime for themselves. They are reserved, and an app or a space whose name would form one of them is refused where it is declared (E2231):
+`JAC_<NAME>` is how an app's own settings are given where it runs: `JAC_<APP>_LISTEN`, `JAC_<APP>_DATA` and `JAC_<APP>_ARRANGEMENT` for an app, `JAC_REMOTE_<SPACE>` and `JAC_<SPACE>_CODE` for a space, `JAC_<ABSTRACTION>` and `JAC_<SPACE>_<ABSTRACTION>` for the plugin picked, and `JAC_<ABSTRACTION>_<FIELD>` for a plugin's setting ([Plugins](../apps/plugins.md)). neojac's own variables are `NEOJAC_<NAME>` and can't be one of these, but a few variables with this prefix are read by neojac or by a program's runtime for themselves. They are reserved, and an app or a space whose name would form one of them is refused where it is declared (E2232):
 
 `JAC_THREADS`, `JAC_GC`, `JAC_CUDA`, `JAC_FRESH`, `JAC_APP`, `JAC_DEV_PAGE`, `JAC_DEV_SERVED`, `JAC_DEV_LISTEN`, `JAC_DEPLOY_KEY`, `JAC_TICKS_OFF` and `JAC_REMOTE_TOKEN` (each is in the tables on this page).
 
-An app named `dev` would be given its address by `JAC_DEV_LISTEN`, which `neojac dev` sets for itself, and a space named `token` its remote by `JAC_REMOTE_TOKEN`: each is E2231. No abstraction has a name that one of these starts with, so no plugin's setting can form one.
+An app named `dev` would be given its address by `JAC_DEV_LISTEN`, which `neojac dev` sets for itself, and a space named `token` its remote by `JAC_REMOTE_TOKEN`: each is E2232. No abstraction has a name that one of these starts with, so no plugin's setting can form one.
 
 ## Read by a program neojac built
 

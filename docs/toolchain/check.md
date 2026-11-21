@@ -75,6 +75,7 @@ A program of another language is refused (E5090): its own compiler checks it whe
 |---|---|
 | Syntax, of every file the program loads | A missing `;`, an unexpected token, a spelling the language rejects ([Lint rules](lint.md)) |
 | That every import names a module | W1100 |
+| The project's wiring, whole | Every file under the project's `archwire.jac`, whether this program loads it or not: a module in no layer (E2201), an import written where a wire belongs (E1144), an import no wire declares (E1575), a rule nothing uses (E2205) ([What a command judges](../language/modules-wiring.md#what-a-command-judges)) |
 | Declarations | What a declaration itself gets wrong: an edge that names no endpoints (E2086) |
 | Names and types | An unknown name (W2001), a value of the wrong type (E1001), an operator its operands do not support (E1110), a call's arguments |
 | Ownership | A value used after it was moved (E1301), a borrow that outlives its owner |

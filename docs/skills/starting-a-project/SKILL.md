@@ -1,12 +1,12 @@
 ---
 name: starting-a-project
-description: Use when creating a new Jac project or adding structure to a loose .jac file: from an empty directory to a project with jac.toml, modules with impl and test annexes, lint and format settings, that checks, builds, tests and formats with neojac.
+description: Use when creating a new Jac project or adding structure to a loose .jac file: from an empty directory to a project with jac.toml and archwire.jac, modules with impl and test annexes, lint and format settings, that checks, builds, tests and formats with neojac.
 ---
 # Starting a neojac project
 
 ## When to use this
 
-Use it to start a project from nothing, or to turn one `.jac` file into a project that has tests and settings. It assumes `writing-jac`. A project whose code runs in several places (a server and a browser, a CPython space) also needs an `archwire.jac`: continue in `building-an-app` once the layout below is in place. Python packages are `using-python-packages`.
+Use it to start a project from nothing, or to turn one `.jac` file into a project that has tests and settings. It assumes `writing-jac`. A project whose code runs in several places (a server and a browser, a CPython space) declares its spaces in the same `archwire.jac`: continue in `building-an-app` once the layout below is in place. Python packages are `using-python-packages`.
 
 ## Before you start
 
@@ -38,7 +38,7 @@ ignore = ["strip-comments", "strip-docstrings"]
 directories = ["."]
 ```
 
-- `[project]` is for people and other tools; no neojac command reads it.
+- `[project]` names the project. Its `exclude` lists what in the tree is not the project's source (`neojac docs toolchain/projects`).
 - `[check.lint]` chooses the lint rules `neojac check` reports. With none named they are `"clean"`, and that is intended: the style rules, every body in an `impl` in `impl/`, and no comment or docstring, where `neojac fmt --fix` takes the code. This project keeps its comments and docstrings, so it ignores the two rules that strip them; choose other rules by name from `neojac docs toolchain/lint`.
 - `[test] directories` is where `neojac test` looks when it is given no paths.
 - Add `[fmt] exclude = ["gen/*"]` for generated code or programs meant not to compile.
@@ -104,14 +104,12 @@ test "adds accumulate" {
 }
 ```
 
-### 4. Write the main module
+### 4. Write the main module, and wire it to what it uses
 
-`main.jac`, the program's entry. Modules of the project import each other by name, looked for beside the importing file and then in each directory up to the root:
+`main.jac`, the program's entry. It writes no import of `store`: a project's modules take their imports of each other from the project's `archwire.jac`.
 
-<!-- example: not checked: imports store.jac of the project above -->
+<!-- example: not checked: a module of the project above, wired `Shelf` by its archwire.jac -->
 ```jac
-import from store { Shelf }
-
 with entry {
     s = Shelf();
     s.add("pen", 3);
@@ -120,7 +118,25 @@ with entry {
 }
 ```
 
-A subdirectory is a dotted path: `lib/money.jac` is `import lib.money;` or `import from lib.money { Price }`.
+`archwire.jac`, at the root, puts every module in a layer and states each import as a wire:
+
+<!-- example: not checked: a graph layers block is valid only in a file named archwire.jac, beside the modules it groups -->
+```jac
+graph layers {
+    """The shelf, and the program that fills it."""
+    layer shelf { main | store; }
+}
+
+graph import {
+    store ++> main { Shelf }
+}
+```
+
+- Every project has one, and every command holds the whole project to it: a module in no layer is E2201, and an import of a project module written in a module is E1144, which gives the wire to add.
+- A subdirectory is a dotted path: `lib/money.jac` is `lib.money`, as in `lib.money ++> main { Price }`.
+- Imports of anything else stay in the module: `import os;`, a Python or npm package.
+- Wires between two layers need an edge rule (`neojac docs language/modules-layers`). One layer needs none, which is enough to start.
+- `neojac arch` draws the project from it.
 
 ### 5. Ignore what neojac writes
 
@@ -161,6 +177,10 @@ store.jac: 2 passed
 | W3010 | An impl's signature differs from its declaration's | Copy the declaration's signature |
 | E2016, E2017 | An impl for a body written inline, or a second impl | One body per declaration |
 | W3056 `[impls-in-annex]` | An impl in the module, or an annex beside it | `neojac fmt --fix .` |
+| E2231 | The project has no `archwire.jac` | Write it at the root (step 4) |
+| E1144 | A module imports another module of the project | Delete the import and add the wire the message gives to `archwire.jac` |
+| E2201 | A module, or a `.py` or `.js` file, that no layer names | Name it in a layer, or list what is not source under `[project] exclude` |
+| E1146 | A wire brings a name its module never uses | Remove the name from the wire |
 | W1100 | An import names no module | Check the name, and that the file is under the root |
 | `no tests found`, status 5 | Nothing under the paths has a `test` block | Check `[test] directories`, or name the module |
 | A setting seems ignored | It is in a `jac.toml` that is not the root's | One `jac.toml`, at the top |
@@ -176,4 +196,5 @@ store.jac: 2 passed
 | Imports, packages, how a module is found | `neojac docs language/modules` |
 | The lint rules to select | `neojac docs toolchain/lint` |
 | Tests and `neojac test` | `neojac docs language/tests`, `neojac docs toolchain/test` |
+| Layers and wires (`archwire.jac`) | `neojac docs language/modules-wiring` |
 | Spaces and apps (`archwire.jac`) | `neojac docs apps/index` |

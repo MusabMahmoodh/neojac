@@ -333,11 +333,11 @@ graph import {
 - A C module is the project's own where `jac.toml` holds its table (`[c."geom"]`). One with a
   `cmodule.toml` that `jac.toml` does not hold is a dependency, one module whole, and so are a
   system's and a library's headers.
-- These wires are checked by `neojac arch` and the editor, and mended by `neojac fmt --fix`.
+- These wires are checked by every command ([What a command judges](../language/modules-wiring.md#what-a-command-judges)), whether the program at hand uses the module or not, and mended by `neojac fmt --fix`.
 
 ## Declaring a C module's functions yourself
 
-A module of another top-level package, or of a project with no archwire, may also bind a C
+A module of another top-level package, or of a project that says `archwire = false`, may also bind a C
 module's functions by declaring them, in the form that binds a [C library](c-libraries.md). The
 dotted name names the C module, which the program then builds. Under an `archwire.jac` this is a
 dependency's form alone: for a C module of the project's own it is E1144, since a wire from the

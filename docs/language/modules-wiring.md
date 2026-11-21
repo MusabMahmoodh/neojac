@@ -10,9 +10,12 @@ other module. Each import is a **wire**, and **edge rules** say which
 [layers](modules-layers.md) may feed which. The modules it governs then write no imports of each
 other: the names a wire gives a module are in scope there as if the module had imported them.
 
-Wiring is optional. A project without an `archwire.jac` writes ordinary `import` statements; see
-[Modules](modules.md). A project with one declares its layers there too: every module an
-`archwire.jac` governs is in a layer ([Layers](modules-layers.md)).
+Every project has an `archwire.jac`, and every command holds the whole project to it
+([What a command judges](#what-a-command-judges)). It declares the project's layers too: every
+module an `archwire.jac` governs is in a layer ([Layers](modules-layers.md)). A module that is
+of no project, and one of a project that says `archwire = false` in `jac.toml`, writes ordinary
+`import` statements instead; see [Modules](modules.md) and
+[Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports).
 
 ## Syntax
 
@@ -54,6 +57,40 @@ For the modules it governs:
   target is held to it too, in that target's file, whichever system the check runs on.
 - The file is checked when the first module it governs loads. If it has syntax errors, the wires
   that parsed still apply and E2093 says the wiring may be incomplete.
+
+### What a command judges
+
+Every command that loads a program (`neojac check`, `build`, `run` and `test`, and the editor)
+judges the `archwire.jac` of the project it runs on, and judges it whole, as
+[`neojac arch`](../toolchain/arch.md) does. What the program at hand loads makes no difference:
+
+- **Every module under the archwire is in a layer** (E2201), and every file under it in a language
+  whose imports are wires is a module: `.jac`, `.py`, the JavaScript and TypeScript extensions,
+  and the files of a crate or a C module whose table `jac.toml` holds. What is
+  [not the project's source](../toolchain/projects.md#what-is-not-the-projects-source) is left
+  out.
+- **Every import between the project's files is held to its wire, in both directions.** A Jac
+  module the program does not load is read for the imports it writes and the names it uses; a
+  file in another language is read by its own engine ([Declared wires](#declared-wires---)).
+- **Every edge rule and every layer is judged over all of it.**
+
+So a mistake in a module is reported by every command, whichever program it was run for, and an
+`archwire.jac` that one command takes, every command takes.
+
+- **A module no program loads is read, not compiled.** Its imports and the names it spells are
+  held to the wires. Its types, and a wired name its provider does not declare (E1145 between two
+  Jac modules), are reported by a command on a program that loads it.
+- **The judgment is made once.** It is of the project, not of a program, so it is recorded, and
+  stands until something of the wiring changes: an import, a wired name, a file added or removed,
+  `archwire.jac` itself. A change to a function's body judges nothing again
+  ([The archwire's record](../toolchain/cache.md#the-archwires-record)).
+- **A dependency's archwire is its own project's.** A [library](../toolchain/packages.md#jac-packages)
+  and a [plugin](../apps/plugins.md) are projects with an `archwire.jac` of their own, judged
+  whole by the commands run on them. A program that loads their modules holds those modules to it
+  and does not judge the rest again. The runtime's and the standard library's are neojac's.
+
+A project has an `archwire.jac`, or says in `jac.toml` that it has none
+([Projects](../toolchain/projects.md#archwirejac), E2231).
 
 ## Wires
 
@@ -151,9 +188,8 @@ graph import {
 - `neojac fmt --fix archwire.jac` mends the declared wires to the sources: it writes the wire an
   import lacks and removes the wire, or the name, that no source writes
   ([fmt](../toolchain/fmt.md#--fix)).
-- A build holds to their wires the files its program reaches through a wire: a `.py` or a
-  JavaScript file a Jac module is wired, and what that file imports in turn. `neojac arch`, the
-  editor and `neojac fmt --fix` judge every file under the archwire.
+- Every command judges every such file under the archwire, whether a Jac module is wired it or
+  not ([What a command judges](#what-a-command-judges)).
 - Only imports between the project's own files are wires. An import of a package, or of the
   language's own library, stays in the file and is no wire.
 
@@ -218,11 +254,9 @@ A rule that admits more than the project does is a statement nobody checks, so i
 - **A flow two rules admit** (E2208): a wire at one level of the layers it crosses, or an import
   from outside. One rule admits each, so each arrow has one name to be called by.
 
-These are judged once everything a rule could admit has been read. A rule over wires is judged in
-every build. A rule over imports written in modules (below) is judged when every module of the
-layers it targets was loaded, which a build knows of layers that name their modules one by one,
-and by [`neojac arch`](../toolchain/arch.md), which reads them all. An `archwire.jac` with other
-errors is not judged at all: what its rules admit is not known yet.
+These are judged by every command, over every module the `archwire.jac` governs
+([What a command judges](#what-a-command-judges)). An `archwire.jac` with other errors is not
+judged at all: what its rules admit is not known yet.
 
 ### Rules over imports written in modules
 

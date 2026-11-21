@@ -74,9 +74,10 @@ patterns match it.
 - **An `archwire.jac` that declares no layer is E2213.** It is reported once, and not once for
   each module. A project that has no layering to state yet declares one layer that holds
   everything, `layer all { *; }`: none of its wires crosses a layer, so none needs a rule.
-- **A module in no layer is E2201.** It is reported for every module a wire names, and for every
-  module a build loads. [`neojac arch`](../toolchain/arch.md) reports it for every module
-  `archwire.jac` names anywhere.
+- **A module in no layer is E2201.** It is reported by every command for every module under the
+  `archwire.jac`, whether the program at hand loads it or not, and for a file in Python,
+  JavaScript, TypeScript, Rust, C or C++ as for a Jac module
+  ([What a command judges](modules-wiring.md#what-a-command-judges)).
 - **A module two layers hold is E2202.** `core.*` in one layer and `core.clock` in another is two
   layers holding `core.clock`: the more specific pattern does not win.
 

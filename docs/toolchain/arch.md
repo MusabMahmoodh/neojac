@@ -96,9 +96,9 @@ lays its flowchart out itself, so it looks different and says the same.
 
 ## The whole project is checked
 
-A build checks the modules its program loads. `neojac arch` reads **every** module `archwire.jac`
-names, in a wire, a rule, a layer or a space, whether or not any program loads it, and every
-target's files. So before it draws, it has held the whole project to the wiring's rules:
+`neojac arch` reads **every** file under `archwire.jac`, whether or not any program loads it,
+and every target's files, as [every command does](../language/modules-wiring.md#what-a-command-judges).
+So before it draws, it has held the whole project to the wiring's rules:
 
 - a wired name its module never spells, on any target (E1146);
 - an import of a project module written where a wire belongs (E1144);

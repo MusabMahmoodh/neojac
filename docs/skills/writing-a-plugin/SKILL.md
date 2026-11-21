@@ -68,6 +68,16 @@ class = "window_limits.limits.WindowLimits"
    directory. `interface_ver` is the version of the abstraction's interface you wrote the plugin
    for, which `neojac docs plugins` gives: 1 for every interface of this neojac. It is required.
 
+   The package is a project, so it has an `archwire.jac` beside its `jac.toml` that puts its
+   modules in a layer; without one, a program that takes the plugin is refused (E2231):
+
+<!-- example: not checked: a graph layers block is valid only in a file named archwire.jac, beside the modules it groups -->
+```jac
+graph layers {
+    layer limits { limits; }
+}
+```
+
 2. **Write the class**, inheriting the abstraction's interface and defining every method it has.
 
 <!-- example: not checked: a plugin is a package of its own, with a jac.toml that names this class -->
@@ -125,7 +135,7 @@ obj WindowLimits(Limits) {
      variable holds: `host.secret(self.key)`, `""` where it is not set. It is not in the program,
      and cannot be written in `jac.toml` (E1053).
    - **Import the abstraction's contract, `common.contract`, your libraries and the standard
-     library**: nothing of stdjac, no other abstraction's contract (E2232), and never a plugin
+     library**: nothing of stdjac, no other abstraction's contract (E2233), and never a plugin
      (E2218). A Jac library goes in the plugin's own `[packages]`: neojac's `sqlfile`, whose
      `open_db` opens a SQLite file at a layout, is one, in `libraries/sqlfile` of its tree.
    - **It is compiled for every host its abstraction runs on**, a `cpython` space among them.
@@ -240,7 +250,7 @@ minify = true
 | E1050 at the plugin's table | A field with no default is given no value | Give it in `jac.toml`, or give the field a default |
 | E2218 in a module | A module imports the plugin | Delete the import: use the abstraction (`root`, `by llm()`, `consume_limit`) |
 | E2217 | The plugin's `jac.toml` declares an abstraction (`kind = "abstraction"`, or an `[abstraction]` table) | Remove it: a plugin fills an abstraction and adds none |
-| E2232 in the plugin, or in a library it declares | An import of a stdjac module, or of another abstraction's contract | Take it from the plugin's own contract or `common.contract`, or ask the host `open` was given |
+| E2233 in the plugin, or in a library it declares | An import of a stdjac module, or of another abstraction's contract | Take it from the plugin's own contract or `common.contract`, or ask the host `open` was given |
 | E5158 in a space's `ui` or `bundler` table | A second plugin's table there, or a setting the plugin's `settings` does not list | One plugin for a space; list the setting in the plugin's `jac.toml` |
 | E2018 `unknown type` in the plugin, only in an app with a `cpython` space | A class of a Python module used as a type there | Leave such a value unannotated |
 | The program ends with status 1 naming a variable | `JAC_<ABSTRACTION>` names an unlisted plugin, or `JAC_<ABSTRACTION>_<FIELD>` holds a value that is not of the field's type | List the plugin; a `str` is taken as written, any other type as JSON |

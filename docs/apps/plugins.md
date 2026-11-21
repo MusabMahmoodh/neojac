@@ -226,6 +226,10 @@ class = "jsonstore.store.JsonStore"
   ([The abstractions](#the-abstractions)). It is required (E2216 without it), and a plugin whose
   `interface_ver` is not this neojac's is E2230. When an interface's version goes up, a plugin is
   written again for the new one and published as a new version of its own, which says so.
+- The package is a project, so it has an `archwire.jac` that puts its modules in a layer
+  ([Projects](../toolchain/projects.md#archwirejac)): for this one,
+  `graph layers { layer store { store; } }`. A command run on the plugin holds the whole of it
+  to its wiring; a program that takes the plugin does not judge it again.
 - The class conforms to the abstraction's interface. One that does not is refused where it is
   bound (E1281).
 - A plugin of `ui` or `bundler` has no class: nothing of it runs with the program. In place of
@@ -281,7 +285,7 @@ obj JsonStore(Store) {
 
 ### What a plugin imports
 
-A plugin's modules import four things, and nothing else of neojac's (E2232):
+A plugin's modules import four things, and nothing else of neojac's (E2233):
 
 | Import | What it gives |
 |---|---|
@@ -411,7 +415,7 @@ example of its interface:
 | E2221 | A library or a plugin declares a plugin: only a project does |
 | E2227 | The project declares a plugin that no binding names and no abstraction lists |
 | E2230 | A plugin was written for another version of its abstraction's interface than this neojac's |
-| E2232 | A plugin, or a library a plugin declares, imports a module of stdjac or the contract of an abstraction it does not fill |
+| E2233 | A plugin, or a library a plugin declares, imports a module of stdjac or the contract of an abstraction it does not fill |
 | E1050, E1052, E1053 | A setting left out, a key that is no setting, a value of another type |
 | E1281 | The plugin's class does not conform to the abstraction's interface |
 | E5158 | An abstraction's table holds something other than `plugin` and plugins' tables, or `[packages]` an entry that is no source. For `ui` and `bundler`: the table of a plugin the space is not built with, a setting the plugin does not list, or a form `jac.toml` had before (`ui = "preact"`, `bundler_config`) |

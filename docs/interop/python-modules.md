@@ -121,7 +121,7 @@ HI!
 | Code | Cause |
 |---|---|
 | E5090 | A `.py` module wired into a native space's program: `neojac does not support Python modules yet` |
-| W1100 | `import helper;` in a native program of a project with no archwire: no Jac module, native module or Python package has the name |
+| W1100 | `import helper;` in a native program of a project that says `archwire = false`: no Jac module, native module or Python package has the name |
 | E1144 | `import helper;` in a module under an `archwire.jac`: the import must be a wire |
 | E2099 | A wire between two layers that no rule admits |
 | E1145 | A wire names something the `.py` module's top level does not bind |

@@ -4,6 +4,7 @@
 [project]
 name = "sqlfile"
 kind = "library"
+archwire = false
 
 [check.lint]
 select = []

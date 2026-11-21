@@ -964,7 +964,7 @@
               "page": "reference/diagnostics/e22-2.md"
             },
             {
-              "title": "E2226 on: a package's `[packages]`, its version and what it was written for",
+              "title": "E2226 on: a package's `[packages]`, its version, what it was written for, and a project's archwire",
               "page": "reference/diagnostics/e22-3.md"
             },
             {

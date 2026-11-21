@@ -70,6 +70,14 @@ import_items ::= "{" (element* | import_item ("," import_item)* ","?) "}"
 import_item ::= ("*" | "default" | any_word | NAME) ("as" NAME)?
 ```
 
+**In a project, a module's imports of the project's other modules are wires.** The project's
+`archwire.jac` states them ([Import wiring](modules-wiring.md)), and one written in the module
+is E1144. The `import` statement is for everything else: the standard library, a package, a C or
+Rust library. It is also how a module that is of no project imports another, and a module of a
+project that says `archwire = false`
+([Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports)); the
+modules on this page are such modules.
+
 | Form | Binds in the importing module |
 |---|---|
 | `import util;` | `util`, the module. Its members are `util.name`. |

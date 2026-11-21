@@ -265,7 +265,7 @@ and a requirement are belong to the language, and change as it does.
 | E2229 | A package needs a later neojac |
 | E2230 | A plugin was written for another version of its abstraction's interface |
 | E2221 | A library or a plugin declares a plugin |
-| E2232 | A plugin, or a library a plugin declares, imports something of neojac's that is not its contract |
+| E2233 | A plugin, or a library a plugin declares, imports something of neojac's that is not its contract |
 | E2227 | A project declares a plugin and neither binds nor lists it |
 | E5165 | `neojac install` is asked to fetch a package where another installer's is |
 | E5166 | An installed package is not what `jac.lock` pins |

@@ -243,7 +243,7 @@ graph import {
 - A reading is kept in the build cache by what the crate holds (its manifest and every `.rs` file
   under it), the platforms read, and the neojac that read it; it names the crate's files from the
   crate's directory. A copy of the project in another directory is checked from the same reading.
-- These wires are checked by `neojac arch`, by the editor, and mended by `neojac fmt --fix`. A
+- These wires are checked by every command ([What a command judges](../language/modules-wiring.md#what-a-command-judges)), whether the program at hand uses the crate or not, and mended by `neojac fmt --fix`. A
   `macro_rules!` macro called by its textual scope leaves no path in what rustc resolves, and is
   not an import here.
 

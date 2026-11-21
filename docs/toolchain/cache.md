@@ -97,11 +97,34 @@ A build also records what it read, in the project's `.jac/build/` ([Projects](pr
 - every file the build read: each module, annex, `jac.toml`, C source and header, package declaration;
 - every path the build looked for and did not find: a platform variant (`main.linux.jac`) or an annex that did not exist then makes the build stale once it does;
 - every directory it scanned for annex parts (`main.<part>.impl.jac`): a new part makes it stale;
-- every environment variable it read: changed, set where it was unset (even to an empty value), or unset. For a family of variables read by prefix, a new member counts too. The record keeps a digest, never a value.
+- every environment variable it read: changed, set where it was unset (even to an empty value), or unset. For a family of variables read by prefix, a new member counts too. The record keeps a digest, never a value;
+- the project's wiring: its `archwire.jac` judged whole and found right, with nothing of it changed since ([below](#the-archwires-record)).
 
 A file the build never looked for (notes, the program it wrote, `.jac/`) changes nothing, whatever it does to the directory's time. A build with `--emit-ir` or `--verify-reuse` always runs.
 
 When a build does run, it compiles only the modules whose code changed, and links. A module rewritten with the same content compiles nothing.
+
+### The archwire's record
+
+Every command judges the project's `archwire.jac` whole: every file under it, whichever program the command was run for ([What a command judges](../language/modules-wiring.md#what-a-command-judges)). That judgment is of the project and not of a program, so it is made once and recorded once, in `.jac/build/` beside the builds' records. It stands while these are as they were:
+
+- the compiler, `archwire.jac` and `jac.toml`;
+- the wiring of every Jac module under it: the imports it writes, its `__all__`, and which of the names wired into it it spells;
+- what its own engine read of every Python, JavaScript and TypeScript file under it: its imports and the names it gives;
+- every file of a crate or a C module `jac.toml` holds;
+- which source files and folders each of its directories holds.
+
+So an edit is judged for what it changes:
+
+| An edit | What the next command does |
+|---|---|
+| A function's body, a comment, a file that is no source | Nothing for the archwire. A program that loads the module is built, with no judging; any other is up to date |
+| An import, a wired name no longer spelled, a file added or removed, `archwire.jac` itself | Judges the archwire once, whichever program it was run for. A program that reads nothing of what changed is then up to date, and its build does nothing more |
+| Something that breaks the wiring | Every command reports it, for every program, until it is mended |
+
+`neojac check` reads the same record: a check of a program whose project's wiring stands judges none of it again.
+
+Commands started together on a project whose wiring changed judge it once between them: the first judges, and the others wait for what it finds, their status line saying so. `neojac test`, which builds its test modules together, pays for one judgment and not one for each.
 
 ## Modules taken from an earlier build
 

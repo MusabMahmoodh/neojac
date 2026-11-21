@@ -4,11 +4,12 @@ keywords: project, project root, .jac, dist, status line, progress, color
 ---
 # Projects
 
-A project is a directory of Jac modules with a `jac.toml` at its top. The directory holding `jac.toml` is the project's root: where neojac reads the project's settings, where imports stop climbing, where tests are found from, and where neojac keeps what it makes for the project.
+A project is a directory of Jac modules with a `jac.toml` at its top and an `archwire.jac` that wires them. The directory holding `jac.toml` is the project's root: where neojac reads the project's settings, where imports stop climbing, where tests are found from, and where neojac keeps what it makes for the project.
 
 ```text
 shop/
     jac.toml
+    archwire.jac
     main.jac
     cart.jac
     impl/
@@ -64,7 +65,57 @@ An `archwire.jac` governs the modules in its directory and below, up to the root
 neojac: `neojac emit-py` writes a space of the project in this directory, and there is no archwire.jac here
 ```
 
-A project of one program needs no `archwire.jac`.
+Every project has one. Each command judges it whole, as [`neojac arch`](arch.md) does: every module under it is in a layer, whether the program at hand loads the module or not, and every import between the project's files, in Jac and in Python, JavaScript, TypeScript, Rust, C and C++, is a wire it declares ([Import wiring](../language/modules-wiring.md#what-a-command-judges)). A module of a project that no `archwire.jac` governs is refused, once for the project, at its `jac.toml`:
+
+```text
+jac.toml:1:1: error[E2231]: 'main.jac' is a module of the project 'shop', and no archwire.jac governs it: a project states its modules' imports as wires in one, so write it, or say `archwire = false` under [project] in jac.toml for a project whose modules write their own imports
+```
+
+A [library](packages.md#jac-packages) and a [plugin](../apps/plugins.md) are projects too, and each has its own.
+
+The smallest `archwire.jac` names a layer for the project's modules:
+
+<!-- example: not checked: a graph layers block is valid only in a file named archwire.jac, beside the modules it groups -->
+```jac
+graph layers {
+    layer shop { main | cart; }
+}
+```
+
+### A project whose modules write their own imports
+
+`archwire = false` under `[project]` in `jac.toml` says the project has no `archwire.jac`. Each of its modules writes its own `import` statements, and nothing judges which module imports which:
+
+```toml
+[project]
+name = "shop"
+archwire = false
+```
+
+An `archwire.jac` in a directory of such a project still governs that directory and what is below it: the key speaks for the modules no `archwire.jac` governs.
+
+A directory with no `jac.toml` is not a project, and a program in one needs neither file.
+
+### What is not the project's source
+
+Every file under an `archwire.jac` in a language whose imports are wires is a module of the project, and one that no layer names is an error (E2201). Some of what sits in a project's tree is not its source, and neojac leaves it out:
+
+| Left out | Why |
+|---|---|
+| A file or directory whose name begins with `.` | `.jac/`, `.git/`, an editor's settings |
+| `node_modules/`, `eco/`, `target/`, `dist/` | What neojac and the ecosystems' tools write |
+| A directory that holds an `@jac` directory | An emitted space's modules ([`neojac emit-js`](../reference/commands.md)) |
+| A directory with an `archwire.jac` or a `jac.toml` of its own | That archwire governs it, or it is a project of its own |
+| A crate or C module that `jac.toml` does not hold | A dependency: one module, its files its own business ([Rust modules](../interop/rust-modules.md), [C modules](../interop/c-modules.md)) |
+| A path `exclude` under `[project]` names | Yours to say |
+
+```toml
+[project]
+name = "shop"
+exclude = ["build/*", "scripts/bench/*"]
+```
+
+`exclude` is a list of fnmatch patterns of paths relative to the root, with `/` between parts. A directory that matches is not entered.
 
 ## How the files are laid out
 

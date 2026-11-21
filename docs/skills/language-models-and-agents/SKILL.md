@@ -174,7 +174,7 @@ the tool's arguments.
 | E0033 | A `by` function with no result type | Declare `-> T`, or `-> Iterator[ByEvent]` |
 | E1229, E0109 | A result type with no JSON schema: `any`, a `tuple`, a function type | An `obj` of fields that have one |
 | E5090 | `by` on a method | A function; the method becomes a tool, `tools=[r.method]` |
-| E2233 on `llm` | `llm` is imported | Drop the import: `llm` is built in |
+| E2234 on `llm` | `llm` is imported | Drop the import: `llm` is built in |
 | E1308 on an endpoint | It streams `ByEvent`s, which do not cross | Stream a type of your own (step 5) |
 | `ByError`: `ANTHROPIC_API_KEY isn't set` | No key where the call runs | Step 4 |
 | The model never calls a tool | It is not in the list written in the `by` call, or its `sem` does not say when to use it | List it there, and say when in its `sem` |

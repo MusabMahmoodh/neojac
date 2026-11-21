@@ -127,7 +127,7 @@ flowchart TB
         ROUTER["Page routes<br/>made from a browser space's page modules<br/>today: front finds the pages and js_gen emits the routes"]
         BIND["UI bindings<br/>React, Preact, React Native, Solid<br/>model: rerender, fine-grained, none"]
         BUNDLE["Bundlers<br/>Vite, Expo with Metro"]
-        RTJS["JS runtime, rt/stdjac/js<br/>language helpers, crossing client, UI boot<br/>a node space's graph, its walks run from dispatch's plans<br/>today: that graph is in memory, with one root for every caller<br/>and a node space's server is the runtime's own<br/>which serves functions: a walker endpoint and :protect are refused there"]
+        RTJS["JS runtime, rt/hosts/js<br/>language helpers, crossing client, UI boot<br/>a node space's graph, its walks run from dispatch's plans<br/>today: that graph is in memory, with one root for every caller<br/>and a node space's server is the runtime's own<br/>which serves functions: a walker endpoint and :protect are refused there"]
         RTPY["Python runtime, rt/stdjac/py<br/>objects, the graph, walks run from dispatch's plans"]
     end
 

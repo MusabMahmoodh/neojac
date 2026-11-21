@@ -1,6 +1,6 @@
 ---
-description: Every jac.toml key neojac reads, table by table - memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
-keywords: jac.toml, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm.<tree>, apps.<app>.window, apps.<app>.profiles
+description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
+keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm.<tree>, apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
 
@@ -33,7 +33,26 @@ nanoid = "^5.1.0"
 
 A key is named here in dotted form, `check.lint.select` for `select` in `[check.lint]`, which is also how TOML lets you write it: `memory.profile = "rc"` at the top of the file is the same key as `profile = "rc"` under `[memory]`. `neojac docs <key>` prints this page.
 
-neojac reads only the tables below and ignores the rest. Another tool's settings go in `[tool.<name>]`, which is the tools' own (below). `[project]` is a package's identity: `name`, `version` (`MAJOR.MINOR.PATCH`, as Semantic Versioning has it: E2228 for one that is not), and `kind` (`"library"` or `"plugin"`) for a package other projects declare ([Packages](../toolchain/packages.md#jac-packages)). A project that is neither has no `kind`. `neojac` is the oldest neojac the package builds with, `neojac = "0.4"`: a neojac older than that refuses it (E2229), the project's own included.
+neojac reads only the tables below and ignores the rest. Another tool's settings go in `[tool.<name>]`, which is the tools' own (below).
+
+## [project]
+
+A package's identity, and what of its tree is its source.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `project.name` | string | none | The package's name: the name another project declares it by ([Packages](../toolchain/packages.md#jac-packages)) |
+| `project.version` | string | none | The package's version, `MAJOR.MINOR.PATCH` as Semantic Versioning has it: E2228 for one that is not |
+| `project.kind` | string | none | `"library"` or `"plugin"`, for a package other projects declare. A project that is neither has no `kind` |
+| `project.neojac` | string | none | The oldest neojac the package builds with, `neojac = "0.4"`: a neojac older than that refuses it (E2229), the project's own included |
+| `project.archwire` | boolean | `true` | `false` says the project has no `archwire.jac`: its modules write their own imports, and nothing judges which imports which. Without it, a module of the project that no `archwire.jac` governs is E2231 ([Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports)) |
+| `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, and a directory that matches is not entered ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
+
+```toml
+[project]
+name = "shop"
+exclude = ["build/*", "notes/*"]
+```
 
 ## [memory]
 

@@ -35,7 +35,7 @@ function that carries one. Nothing is registered as a module starts, so no `with
 name of the program's own with the same spelling is the one the program means. `consume_limit`,
 `JobFailed` and `static_file` ([below](#static_file)) are imported from `stdjac`:
 `import from stdjac { JobFailed, consume_limit }`. A built-in word that is imported, or one of
-the three imported from a module of stdjac, is E2233.
+the three imported from a module of stdjac, is E2234.
 
 | Name | Signature | Does |
 |---|---|---|

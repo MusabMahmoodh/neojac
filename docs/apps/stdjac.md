@@ -58,7 +58,7 @@ Every other name a program uses of stdjac is imported from `stdjac` itself:
 | The language model | What `llm` is made of and given: `LLM`, `Effort`, `Message`, `IterationAction`, `IterationContext`, `on_usage` | [By and sem](../language/by-and-sem.md) |
 
 A built-in word that is imported, or one of these names imported from a module of stdjac, is
-E2233.
+E2234.
 
 The contracts, which a plugin imports and a program does not:
 
