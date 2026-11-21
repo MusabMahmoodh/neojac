@@ -1,6 +1,6 @@
 ---
-description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
-keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm.<tree>, apps.<app>.window, apps.<app>.profiles
+description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
+keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
 
@@ -27,7 +27,7 @@ exclude = ["*/reject/*"]
 [dependencies.pypi]
 requests = ">=2.31"
 
-[npm.web.dependencies]
+[npm."eco/web".dependencies]
 nanoid = "^5.1.0"
 ```
 
@@ -144,16 +144,17 @@ The project's Python packages, which `neojac install` installs into `.jac/venv/`
 | `jac.toml: [dependencies] is not a table`, `jac.toml: [dependencies.pypi] is not a table` | The key has another type |
 | E5157 | `install` or `remove` on a dotted or inline form |
 
-## [npm.\<tree\>]
+## [npm."\<directory\>"]
 
-One npm tree of the project: a package and the packages it depends on. The table is that tree's `package.json`, key for key and in the table's order, with npm's own names for its keys (`dependencies`, `devDependencies`, `type`, `scripts`, ...). neojac writes it to `eco/<tree>/package.json` and `neojac install` installs it there, pinning what npm resolved in `jac.lock`. See [Packages](../toolchain/packages.md) (`neojac docs packages`).
+One npm tree of the project: a package and the packages it depends on. The table is that tree's `package.json`, key for key and in the table's order, with npm's own names for its keys (`dependencies`, `devDependencies`, `type`, `scripts`, ...). neojac writes it to `package.json` in that directory and `neojac install` installs it there, pinning what npm resolved in `jac.lock`. See [Packages](../toolchain/packages.md) (`neojac docs packages`).
 
 | Key | Type | Meaning |
 |---|---|---|
-| `npm.<tree>` | table | The tree's `package.json`. `<tree>` is its directory under `eco/`: letters, digits, `-` and `_` |
-| `npm.<tree>.dependencies.<package>` | string | A package and the versions of it the tree takes, as npm writes them (`"^5.1.0"`) |
+| `npm."<directory>"` | table | The `package.json` of that directory. `<directory>` is the tree's directory from the root, with `/` between its parts: `eco/web`, `frontend`, or `.` for the root itself |
+| `npm."<directory>".dependencies.<package>` | string | A package and the versions of it the tree takes, as npm writes them (`"^5.1.0"`) |
+| `npm."<directory>".workspaces` | list | The tree is a workspace's root: each member npm finds by these patterns is a tree of its own, a table too, installed with the root under its one lock ([Workspaces](../toolchain/packages.md#workspaces)) |
 
-`neojac install --npm <package>... [--tree <tree>]` adds packages and `neojac remove --npm <package>...` takes them out; `neojac npm`, run in a tree, changes what npm changes. Each rewrites only the tree's table.
+`neojac install --npm <package>... [--tree <directory>]` adds packages and `neojac remove --npm <package>...` takes them out; `neojac npm`, run in a tree, changes what npm changes. Each rewrites only the tree's table.
 
 | Code | Cause |
 |---|---|
@@ -162,14 +163,16 @@ One npm tree of the project: a package and the packages it depends on. The table
 | E5158 | `npm`, or one of its entries, is not a table, or a tree's name is not a directory's |
 | E5159 | A tree declares `workspaces`: a tree is one package |
 
-## [cargo."\<directory\>"] and [c."\<directory\>"]
+## [cargo."\<directory\>"], [c."\<directory\>"] and [pypi."\<directory\>"]
 
-A Rust crate's or workspace's `Cargo.toml` (`cargo`), and a C module's `cmodule.toml` (`c`), by the directory it is in, from the project's root. The table is the manifest's own text with its tables named under the directory's; neojac writes the file where it stands before a command looks for it. `neojac absorb <directory>` takes existing manifests in, and `neojac cargo` takes back what cargo changes. See [Packages](../toolchain/packages.md#rust-crates-and-c-modules), [Rust modules](../interop/rust-modules.md) and [C modules](../interop/c-modules.md).
+A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml` (`c`) and a Python project's `pyproject.toml` (`pypi`), by the directory it is in, from the project's root. The table is the manifest's own text with its tables named under the directory's; neojac writes the file where it stands before a command looks for it. `neojac absorb <directory>` takes existing manifests in, and `neojac cargo` takes back what cargo changes. See [Packages](../toolchain/packages.md#rust-crates-c-modules-and-python-projects), [Rust modules](../interop/rust-modules.md) and [C modules](../interop/c-modules.md).
 
 | Code | Cause |
 |---|---|
 | E5157 | The table is written inline or with dotted keys where neojac has it to rewrite, or a manifest's text cannot be moved under a table's name as it is |
-| E5158 | `cargo` or `c` is not a table of manifests, each a table named by its directory |
+| E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
+
+`[pypi."<directory>"]` holds a Python project's manifest and no more yet: `neojac install` installs the packages `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies`.
 
 ## [packages]
 
@@ -275,7 +278,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | `spaces.<space>.bundler` | table | `plugin` is the one the space's `ui` plugin names | The `bundler` plugin that packs the space, as `plugin = "<name>"`: one neojac ships (`vite`, `expo`), or one `[plugins]` declares, whose script neojac runs on its Node |
 | `spaces.<space>.bundler.<plugin>` | table | | The settings of the space's bundler. `vite` has `config`: a configuration file, relative to the root (in the space's npm tree: `eco/web/vite.config.ts`) |
 | `spaces.<space>.base` | string | `"/"` | The URL path a browser space is served at |
-| `spaces.<space>.npm` | string | the project's only tree | The npm tree (`[npm.<tree>]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
+| `spaces.<space>.npm` | string | the project's only tree | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
 
 | Code | Cause |
 |---|---|
@@ -310,10 +313,10 @@ What a phone app's Android build is made with. With no `[android]` table neojac 
 
 | File | What it is |
 |---|---|
-| `jac.lock` | Written by neojac: what each ecosystem's own resolver pinned for `jac.toml`, the Python distributions of `[dependencies.pypi]` (`[pypi]`) and each npm tree's lock as npm wrote it (`[npm.<tree>]`). Keep it in version control; `neojac install --frozen` installs exactly it ([Packages](../toolchain/packages.md)) |
-| `eco/<tree>/` | An npm tree's directory: the files its tools are configured by, which are the project's, and the `package.json`, `package-lock.json` and `node_modules` neojac writes there, which are not tracked |
+| `jac.lock` | Written by neojac: what each ecosystem's own resolver pinned for `jac.toml`, the Python distributions of `[dependencies.pypi]` (`[pypi]`) and each npm tree's lock as npm wrote it (`[npm."<directory>"]`). Keep it in version control; `neojac install --frozen` installs exactly it ([Packages](../toolchain/packages.md)) |
+| An npm tree's directory (`eco/web/`) | Where the tree's `package.json` stands: the files its tools are configured by, which are the project's, and the `package.json`, `package-lock.json` and `node_modules` neojac writes there, which are not tracked |
 | `archwire.jac` | The project's spaces, apps and import wiring, in Jac ([Archwire](../apps/archwire.md)) |
-| `cmodule.toml`, `Cargo.toml`, `Cargo.lock` | In a project, written by neojac from the `[c."<directory>"]` and `[cargo."<directory>"]` tables above, and not tracked. A program with no `jac.toml` above it keeps them as files ([C modules](../interop/c-modules.md), [Rust modules](../interop/rust-modules.md)) |
+| `cmodule.toml`, `Cargo.toml`, `Cargo.lock`, `pyproject.toml` | In a project, written by neojac from the `[c."<directory>"]`, `[cargo."<directory>"]` and `[pypi."<directory>"]` tables above, and not tracked. A program with no `jac.toml` above it keeps them as files ([C modules](../interop/c-modules.md), [Rust modules](../interop/rust-modules.md)) |
 
 ## What goes wrong
 

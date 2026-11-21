@@ -392,8 +392,8 @@ A browser space imports from npm with a string module name and names in braces:
 - `import "./styles/site.css";` imports a file for its effect, as the bundler takes it: a style
   sheet goes into the bundle's CSS. A cpython space cannot import a file by path (E5090).
 
-The packages are those of the space's npm tree, `[npm.<tree>]` in `jac.toml`, installed with
-`neojac install` (by the npm of neojac's own Node) into `eco/<tree>`
+The packages are those of the space's npm tree, `[npm."<directory>"]` in `jac.toml`, installed with
+`neojac install` (by the npm of neojac's own Node) into the tree's directory
 ([Packages](../toolchain/packages.md)).
 
 What a space imports from npm is checked against the package's TypeScript declarations, read by

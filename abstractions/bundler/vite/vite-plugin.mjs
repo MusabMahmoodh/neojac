@@ -9,9 +9,9 @@ export function prepare(jobPath) {
     const job = JSON.parse(readFileSync(jobPath, "utf8"));
     const here = path.dirname(fileURLToPath(import.meta.url));
     // Vite and its plugins are the packages of the space's npm tree (jac.toml's
-    // [npm.<tree>], installed in eco/<tree>), where Vite runs and its configuration is.
+    // [npm."<directory>"], installed in that directory), where Vite runs and its configuration is.
     if (!job.tree) {
-        console.error("space " + job.name + " has no npm tree to take its bundler from: jac.toml declares none ([npm.<tree>])");
+        console.error("space " + job.name + " has no npm tree to take its bundler from: jac.toml declares none ([npm."<directory>"])");
         process.exit(1);
     }
     const plugin = path.join(job.tree, "node_modules", "@jac", "vite");

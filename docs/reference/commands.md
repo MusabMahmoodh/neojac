@@ -360,17 +360,17 @@ Install the project's packages, of every ecosystem.
 ```sh
 neojac install [--frozen]
 neojac install --pypi <package>...
-neojac install --npm <package>... [--tree <tree>]
+neojac install --npm <package>... [--tree <directory>]
 ```
 
 | Option | What it does |
 |---|---|
 | `--pypi <package>...` | Add these packages to jac.toml's [dependencies.pypi], and install them |
-| `--npm <package>...` | Add these packages to an npm tree of jac.toml, [npm.<tree>], and install them |
-| `--tree <tree>` | The npm tree --npm adds to, made if jac.toml has none of the name; a project's only tree needs no naming |
+| `--npm <package>...` | Add these packages to an npm tree of jac.toml, [npm."<directory>"], and install them |
+| `--tree <directory>` | The directory of the npm tree --npm adds to, made a tree if jac.toml has none there; a project's only tree needs no naming |
 | `--frozen` | Install exactly what jac.lock pins, and fail if it doesn't cover jac.toml |
 
-Installs what jac.toml lists and records in jac.lock exactly what was installed. A package jac.toml declares by a repository ([packages]) is fetched into eco/jac/<name>. jac.lock pins every package installed there, whoever installed it, and a package declared by its version that is not there stops the install. What the project's libraries and plugins need of PyPI and npm is installed with the project's own. PyPI packages ([dependencies.pypi]) go into the project's virtual environment (.jac/venv), on neojac's CPython. Each npm tree ([npm.<tree>], which is that tree's package.json) is installed by neojac's npm in eco/<tree>, where neojac writes its package.json and package-lock.json from jac.toml and jac.lock.
+Installs what jac.toml lists and records in jac.lock exactly what was installed. A package jac.toml declares by a repository ([packages]) is fetched into eco/jac/<name>. jac.lock pins every package installed there, whoever installed it, and a package declared by its version that is not there stops the install. What the project's libraries and plugins need of PyPI and npm is installed with the project's own. PyPI packages ([dependencies.pypi]) go into the project's virtual environment (.jac/venv), on neojac's CPython. Each npm tree ([npm."<directory>"], which is the package.json of that directory) is installed by neojac's npm in its directory, where neojac writes its package.json and package-lock.json from jac.toml and jac.lock.
 
 Where jac.toml has an [android] table, what a phone app's Android build is made with is fetched into neojac's cache, once the table accepts the Android SDK's licenses (`licenses = "accepted"`): the SDK unless ANDROID_HOME names one, a JDK unless JAVA_HOME names one, and an emulator where the table says `emulator = true`. Each is a pinned release, checked against its digest.
 
@@ -378,7 +378,7 @@ Where jac.toml has an [android] table, what a phone app's Android build is made 
 |---|---|
 | `neojac install` | What jac.toml lists |
 | `neojac install --pypi numpy` | Add a PyPI package |
-| `neojac install --npm lodash --tree web` | Add an npm package |
+| `neojac install --npm lodash --tree eco/web` | Add an npm package |
 
 Its guide: [toolchain/packages](../toolchain/packages.md) (`neojac docs toolchain/packages`).
 
@@ -388,37 +388,43 @@ Remove packages from the project.
 
 ```sh
 neojac remove --pypi <package>...
-neojac remove --npm <package>... [--tree <tree>]
+neojac remove --npm <package>... [--tree <directory>]
 ```
 
 | Option | What it does |
 |---|---|
 | `--pypi <package>...` | Take these packages out of jac.toml's [dependencies.pypi] and the environment |
 | `--npm <package>...` | Take these packages out of an npm tree of jac.toml and its installed packages |
-| `--tree <tree>` | The npm tree, where jac.toml has several |
+| `--tree <directory>` | The npm tree's directory, where jac.toml has several |
 
 Its guide: [toolchain/packages](../toolchain/packages.md) (`neojac docs toolchain/packages`).
 
 ### `neojac absorb`
 
-Take another tool's manifest into jac.toml.
+Take a repository's manifests into jac.toml, and wire its files.
 
 ```sh
-neojac absorb [<directory>] [--tree <tree>]
+neojac absorb [<directory>] [--check] [--json]
 ```
 
 | Option | What it does |
 |---|---|
-| `--tree <tree>` | The name of the npm tree it becomes; a directory's own name without it |
+| `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
+| `--json` | Print what it found, and what it wrote, as data |
 
-Takes the package.json in a directory, and the package-lock.json beside it, into jac.toml and jac.lock as an npm tree, and moves them and their node_modules to eco/<tree>, where neojac writes them from then on.
+Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.
 
-In a directory with no package.json, takes every Cargo.toml (with its Cargo.lock) and cmodule.toml under it into the jac.toml of the project each is in, as a table named by its directory: neojac writes them where they stood from then on.
+Which manifests are the project's is each ecosystem's own answer. The first manifest of an ecosystem met from the top is a tree, and under it only the workspaces its own tool names are: npm's, cargo's, uv's. Any other manifest there, a fixture's or a template's, is data: its directory is listed in jac.toml's [project] exclude, and nothing under it is taken.
+
+It then writes the project's archwire.jac: one layer where there was no archwire, and a wire for every import between the project's files, as each language's own engine reads them. A step that fails leaves every file as it was.
+
+What no manifest says, and only a program of the repository or a person knows, is an open item: a script that builds native code, a lock another tool wrote, how a tree's tests are run. Each is listed at its file.
 
 | Example | What it does |
 |---|---|
-| `neojac absorb --tree web` | The project's own package.json |
-| `neojac absorb crates` | Every crate and C module under crates/ |
+| `neojac absorb --check` | What this repository is, with nothing written |
+| `neojac absorb` | Make it a project |
+| `neojac absorb crates` | The manifests under crates/, into this project |
 
 Its guide: [toolchain/packages](../toolchain/packages.md) (`neojac docs toolchain/packages`).
 
@@ -454,7 +460,7 @@ neojac npm [<npm argument>...]
 neojac npx [<npx argument>...]
 ```
 
-The npm that Node ships, with its own command line. In a project it runs in an npm tree of jac.toml (eco/<tree>: the one it is run in, or the project's only one), and what it writes to the tree's package.json and package-lock.json is taken into jac.toml and jac.lock as it ends.
+The npm that Node ships, with its own command line. In a project it runs in an npm tree of jac.toml (the one whose directory it is run in or under, or the project's only one), and what it writes to the tree's package.json and package-lock.json is taken into jac.toml and jac.lock as it ends.
 
 Its arguments, --help among them, are that program's own: `neojac npm --help` is its help.
 

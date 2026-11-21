@@ -45,8 +45,8 @@ What C memory a program handles (`ptr[T]`, views, `pin`, `addressof`) is in
 | `neojac cc`, `neojac c++` | Clang and LLD, for every target from any machine | [C and C++](c-and-cpp.md) |
 | `neojac cargo`, `rustc`, `rustdoc` | Rust 1.99 | [Rust](rust.md) |
 | `neojac python` | CPython 3.15 | [Python](python.md#the-interpreter) |
-| `neojac install`, `neojac remove` | A project's packages, as `jac.toml` lists them and `jac.lock` pins them: PyPI's in `.jac/venv`, npm's in `eco/<tree>` | [Packages](../toolchain/packages.md) |
-| `neojac absorb` | Takes a `package.json` and its lock into `jac.toml` and `jac.lock` | [Packages](../toolchain/packages.md#taking-in-a-manifest-you-already-have) |
+| `neojac install`, `neojac remove` | A project's packages, as `jac.toml` lists them and `jac.lock` pins them: PyPI's in `.jac/venv`, npm's in each tree's directory | [Packages](../toolchain/packages.md) |
+| `neojac absorb` | Takes a repository's manifests into `jac.toml` and `jac.lock`, and writes its wires | [Packages](../toolchain/packages.md#taking-in-a-repository-neojac-absorb) |
 | `neojac node`, `npm`, `npx` | Node 26 and its npm | [npm and Node](npm.md#neojac-node-npm-and-npx) |
 
 `neojac build --lib` goes the other way: it builds a Jac module as a shared library that C (or any

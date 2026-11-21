@@ -170,7 +170,7 @@ registers another. An account made through GitHub is called by its login there.
 | Path | What it is |
 |---|---|
 | `archwire.jac` | Spaces, apps, and every wire between modules |
-| `jac.toml` | `[llm]`, `[memory]`, each app's deployment values, and the npm packages of the two trees, `[npm.web]` and `[npm.mobile]` |
+| `jac.toml` | `[llm]`, `[memory]`, each app's deployment values, and the npm packages of the two trees, `[npm."eco/web"]` and `[npm."eco/mobile"]` |
 | `jac.lock` | What npm resolved for each tree |
 | `eco/web/` | The browser spaces' tooling: `vite.config.ts`, `index.html`, `tsconfig.json`, `components.json`, and `global.css`, Tailwind's stylesheet. neojac writes the tree's `package.json` and `package-lock.json` here from `jac.toml` and `jac.lock`, and `neojac install` its `node_modules`; none of the three is tracked |
 | `eco/mobile/` | The phone app's tree, made by `neojac install`: nothing in it is written by hand |
@@ -205,7 +205,7 @@ owned `Game`, and `RenderView` is a view that lends the renderer just what drawi
 `neojac build <app>` builds any of them, and `neojac build` builds all of them, once `neojac install`
 has installed the project's packages. A space's npm packages are those of its tree (`npm` under its
 `[spaces.<space>]` in `jac.toml`): `web` for the site and the demos, `mobile` for the phone app.
-`neojac install --npm <package> --tree web` adds one.
+`neojac install --npm <package> --tree eco/web` adds one.
 
 | App | What it is | Try it |
 |---|---|---|

@@ -231,8 +231,9 @@ server it does not contain. [Crossings](crossings.md) says how such a call trave
 URL is given.
 
 Combinations the build does not make yet are refused with E5090: two `cpython` spaces, or two
-`node` spaces, in one native app's process, and a `wasm` or `hermes` space in `run` beside native
-spaces (a web app lists its `wasm` space under `serve`). So is an app that runs no space: what it
+`node` spaces, in one native app's process, a `wasm` or `hermes` space in `run` beside native
+spaces (a web app lists its `wasm` space under `serve`), and a node space whose npm tree is a
+member of a workspace: an artifact does not carry a member's packages yet. So is an app that runs no space: what it
 serves needs a program to serve it, so `app web { serve site; }` is refused as
 `an app 'web' that serves site and runs no space`.
 

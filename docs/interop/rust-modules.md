@@ -7,7 +7,7 @@ keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), .cargo
 A directory holding a `Cargo.toml` is a Rust module: a crate that a program compiles with it and
 imports as it imports a [C module](c-modules.md). In a project (a directory with a `jac.toml`) the
 manifest is a table of `jac.toml`, `[cargo."<directory>"]`, which neojac writes as that file:
-`neojac absorb <directory>` takes an existing one in ([Packages](../toolchain/packages.md#rust-crates-and-c-modules)). `neojac build` compiles the crate, with its
+`neojac absorb <directory>` takes an existing one in ([Packages](../toolchain/packages.md#rust-crates-c-modules-and-python-projects)). `neojac build` compiles the crate, with its
 dependencies, build scripts and procedural macros, and links it all into the one binary.
 
 ## The shortest example
