@@ -1,0 +1,9 @@
+.DS_Store
+.vscode
+.idea
+*.swp
+# What neojac leaves in a project it builds.
+.jac/
+dist/
+__pycache__/
+node_modules/

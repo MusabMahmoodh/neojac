@@ -1,7 +1,9 @@
-# neojac releases
+# neojac
 
-Prebuilt releases of neojac, the Jac compiler: Linux x86_64 and aarch64, and
-macOS on Apple Silicon (`.tar.gz`), and Windows x86_64 (`.zip`).
+neojac is a compiler for the Jac programming language: one download with the compiler and
+everything a project around a Jac program needs (CPython, Node, Clang and Rust). This repository
+is where it is released, and holds what of it is open: the language's abstractions with their
+standard plugins, its documentation and its examples.
 
 ## Install
 
@@ -23,8 +25,32 @@ curl -fsSL https://github.com/jaseci-labs/neojac-releases/releases/latest/downlo
 On Windows, download `neojac-<version>-windows-x86_64.zip` from a release and
 unpack it; `bin\neojac.exe` finds its runtime beside it.
 
-Every release here is published by neojac's release workflow, and its notes
-name the source commit it was built from.
+Every release here is published by neojac's release workflow, and is tagged on
+the commit of this repository whose abstractions, plugins and documentation it
+ships.
+
+## What is here
+
+| | |
+|---|---|
+| [`docs/`](docs/) | The documentation `neojac docs` prints, and the skills an agent loads. It starts at [docs/start](docs/start/index.md) |
+| [`abstractions/`](abstractions/) | The language's abstractions, a directory each: what carries out `root`, `by llm()`, `:protect`, `@job` and the rest. Each declares itself (`jac.toml`), holds the contract a plugin of it implements (`contract.jac`), and holds its standard plugins: `sqlite`, `accounts`, `http`, `anthropic`, `react`, `vite` and the others |
+| [`libraries/`](libraries/) | Libraries the standard plugins declare: `sqlfile`, a SQLite file at a layout |
+| [`examples/`](examples/) | Programs written in Jac |
+
+The compiler itself is not in this repository. What it is built on that a program meets is: the
+contracts and the plugins of `abstractions/` and the libraries of `libraries/` are compiled into
+the programs it builds, and a release ships them, and `docs/`, as they are here. A plugin is
+written against its abstraction's contract alone, so anyone with neojac installed can write one,
+or replace a standard one ([Plugins](docs/apps/plugins.md)).
+
+neojac is not the open-source `jac` of [jaseci-labs/jac](https://github.com/jaseci-labs/jac),
+the language's reference design: the two are separate compilers with separate releases, and both
+can be installed on one machine. Where they differ as languages is
+[Coming from the reference design](docs/start/coming-from-the-reference-design.md).
+
+[CONTRIBUTING.md](CONTRIBUTING.md) says how a change is made here. Everything in this repository
+is under the [MIT license](LICENSE), and so are the released binaries.
 
 ## Architecture
 
@@ -35,7 +61,7 @@ flowchart TB
     subgraph SRC["Source and declarations"]
         JAC[".jac modules"]
         WIRE["archwire.jac<br/>spaces, apps, profiles, wires"]
-        TOML["jac.toml, with jac.lock<br/>ui, bundler, remote URLs, memory, lint<br/>each ecosystem's packages, and each space's npm tree"]
+        TOML["jac.toml, with neojac.lock<br/>ui, bundler, remote URLs, memory, lint<br/>each ecosystem's packages, and each space's npm tree"]
     end
 
     subgraph FOREIGN["What the analysis knows of other ecosystems"]
@@ -101,7 +127,7 @@ flowchart TB
         ROUTER["Page routes<br/>made from a browser space's page modules<br/>today: front finds the pages and js_gen emits the routes"]
         BIND["UI bindings<br/>React, Preact, React Native, Solid<br/>model: rerender, fine-grained, none"]
         BUNDLE["Bundlers<br/>Vite, Expo with Metro"]
-        RTJS["JS runtime, rt/stdjac/js<br/>language helpers, crossing client, UI boot<br/>a node space's graph, its walks run from dispatch's plans<br/>today: that graph is in memory, with one root for every caller<br/>and a node space's server is the runtime's own<br/>which serves functions: a walker endpoint and :protect are refused there"]
+        RTJS["JS runtime, rt/hosts/js<br/>language helpers, crossing client, UI boot<br/>a node space's graph, its walks run from dispatch's plans<br/>today: that graph is in memory, with one root for every caller<br/>and a node space's server is the runtime's own<br/>which serves functions: a walker endpoint and :protect are refused there"]
         RTPY["Python runtime, rt/stdjac/py<br/>objects, the graph, walks run from dispatch's plans"]
     end
 
@@ -303,7 +329,7 @@ A ref names an element of the last snapshot, so read the refs from your own.
 DIFFWALKER_REPO=~/payments-demo neojac dev web
 ```
 
-Edit a page, such as the sign-in text in `core/site/auth/SignIn.jac`. Only what
+Edit a page, such as the sign-in text in `core/site/auth/SignIn.neojac`. Only what
 the edit touches is rebuilt, in about a second, and the open page shows the
 change by itself. A build that fails says why and leaves the running app
 alone.
