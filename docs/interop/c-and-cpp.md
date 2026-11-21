@@ -93,6 +93,34 @@ The headers and runtimes come from the `lib/` beside neojac's `bin/`, or from th
 `NEOJAC_LIB_DIR` names; see [Building programs](../toolchain/build.md#how-the-runtime-is-found)
 (`neojac docs build`).
 
+## Recording what a build ran
+
+A build system that is given neojac's tools can be asked what it ran. Where `NEOJAC_RECORD_TO`
+names a file, each run of `neojac cc`, `c++`, `clang`, `ar` and the other tools above, and each
+run of [`neojac cargo`](rust.md), appends one line to it, a JSON object:
+
+```sh
+NEOJAC_RECORD_TO=$PWD/runs.jsonl make CC="neojac cc" AR="neojac ar"
+```
+
+```text
+{"tool": "cc", "cwd": "/work/counter", "args": ["-O2", "-c", "counter.c", "-o", "counter.o"], "inputs": ["counter.c"], "output": "counter.o"}
+{"tool": "ar", "cwd": "/work/counter", "args": ["rcs", "libcounter.a", "counter.o"]}
+{"tool": "cc", "cwd": "/work/counter", "args": ["main.c", "libcounter.a", "-o", "main"], "inputs": ["main.c", "libcounter.a"], "output": "main"}
+```
+
+| Key | What it holds |
+|---|---|
+| `tool` | The tool, by the name it was run by: `cc`, `c++`, `ar`, `ld.lld`, `cargo`, ... |
+| `cwd` | The directory it was run in. The paths in the other keys are as they were written, from there |
+| `args` | Its arguments, as given |
+| `inputs`, `output` | For `cc` and `c++` alone: the files the command line names as inputs, sources, objects and libraries alike, and what `-o` names (`""` where there is no `-o`), as Clang's own option parser reads them |
+
+- The variable is passed on, so a build that runs other builds (pip running a package's
+  `setup.py`, cargo running a crate's build script) records every one into the same file.
+- A record is of the run and not of its result: a compile that fails is recorded too.
+- With the variable unset nothing is written.
+
 ## Differences from a system toolchain
 
 - A system `cc` builds for the machine it is on, against that machine's C library. `neojac cc`

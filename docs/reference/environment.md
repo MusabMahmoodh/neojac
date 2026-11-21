@@ -1,6 +1,6 @@
 ---
 description: Every environment variable neojac reads, sets for the programs it runs, or that a program it built reads - NEOJAC_*, the names an app may not take, color and terminal variables, SDKROOT and the installer's - with what reads each and what it does.
-keywords: environment variables, NEOJAC_LIB_DIR, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_PROGRESS_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_HOME, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
+keywords: environment variables, NEOJAC_LIB_DIR, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_HOME, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
 ---
 # Environment variables
 
@@ -16,6 +16,7 @@ neojac needs no environment variable: an installed release finds its runtime, it
 | `XDG_CACHE_HOME` | The same, on Linux | Where the per-user cache directory is, when `NEOJAC_CACHE_DIR` is unset (else `~/.cache`) |
 | `LOCALAPPDATA` | The same, on Windows | Where the per-user cache directory is, when `NEOJAC_CACHE_DIR` is unset |
 | `NEOJAC_PROGRESS_TO` | Every command that shows a status line | A file to append each step to, one line each (`<step>` or `<step> · <detail>`), instead of drawing a status line ([Projects](../toolchain/projects.md#neojac_progress_to)) |
+| `NEOJAC_RECORD_TO` | `cc`, `c++`, `clang`, `ar`, the linkers and `cargo` | A file to append one line to for each run, a JSON object: the tool, the directory it ran in, its arguments, and for `cc` and `c++` the inputs and the output ([C and C++](../interop/c-and-cpp.md#recording-what-a-build-ran)) |
 | `NO_COLOR` | Every command | Set to anything but empty: no color, wherever the output goes. It wins over `FORCE_COLOR` |
 | `FORCE_COLOR`, `CLICOLOR_FORCE` | Every command | Set to anything but empty or `0`: color even where the output is not a terminal |
 | `TERM` | Every command | `dumb`: no status line, no outcome line, and no color unless forced |
