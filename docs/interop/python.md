@@ -184,6 +184,8 @@ In a virtual environment, `sysconfig`'s compilers are the toolchain's own: `CC`,
 `BLDSHARED` and `LINKCC` are `<toolchain>/bin/neojac cc`, `CXX` and `LDCXXSHARED` are
 `neojac c++`, and `AR` is `neojac ar`. So pip builds a package's C extensions from source with
 neojac's Clang, whatever `neojac` comes first on `PATH`, and needs no compiler on the machine.
+Where `NEOJAC_EXE` names a neojac, which one that starts Python sets to itself, the tools are
+that one's ([Environment variables](../reference/environment.md)).
 
 The interpreter exports CPython's C API and none of the C libraries compiled into it (OpenSSL,
 zlib, SQLite, libffi, ...). So C extension modules, wheels' among them, load as they do on
