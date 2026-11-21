@@ -76,7 +76,7 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 |---|---|---|
 | `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
 | `form` | A manifest form npm does not read (`workspace:` links, `pnpm.*`, `pnpm-workspace.yaml`) | Not yet rewritten by neojac. Do not hand-edit the table to make npm take it: say what you found |
-| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate. It reports a module linked from C, and a `binding.gyp`, which it does not take yet: leave those programs in place and say so |
+| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table. A record is of the system it runs on. It does not take a `binding.gyp` yet, and says what of a build a table cannot hold: leave those programs in place and report what it said |
 | `tests` | No manifest says how a Python project's tests are run | Find the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command`. Report it; `jac.toml` has no key for it yet |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
@@ -108,3 +108,4 @@ neojac arch --text
 | E5156 `... is null` | A `package.json` holds a `null`, which TOML has no value for | Take the `null` out of the manifest: npm reads an absent key the same way |
 | E5157 | A manifest's text cannot be moved under a table's name as it is | Reformat that part of the manifest as plain tables |
 | `cargo cannot read it` | `cargo metadata` refused the `Cargo.toml` | Fix what cargo says: neojac asks cargo which crates are the workspace's |
+| After `--record` on macOS: `'IOKit/IOKitLib.h' file not found` at a C module's `cmodule.toml` | The C uses a framework the toolchain carries no headers of | Set `SDKROOT` to a macOS SDK, for every command in the project (`neojac docs interop/c-and-cpp`) |

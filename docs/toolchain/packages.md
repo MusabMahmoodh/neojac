@@ -474,8 +474,8 @@ features = ["python"]
   from, by the directory of that unit's table.
 - **It is a module of the project.** A file that imports it is wired from it, and until the table
   is there the import names nothing: `neojac absorb` reports it (E1145).
-- **`neojac absorb --record` writes the table** for a module linked from a crate, from what the
-  repository's own build does ([Recording a build](#recording-a-build)).
+- **`neojac absorb --record` writes the table**, for a module linked from a crate or from C,
+  from what the repository's own build does ([Recording a build](#recording-a-build)).
 - **neojac does not build one yet.**
 
 ## Running npm
@@ -547,7 +547,7 @@ item**. `absorb` lists each at its file, and does not guess:
 
 | Kind | Reported for | What closes it |
 |---|---|---|
-| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | For a Python project, `neojac absorb --record` ([Recording a build](#recording-a-build)). A `binding.gyp` is not recorded yet |
+| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | For a Python project, `neojac absorb --record` ([Recording a build](#recording-a-build)), for a module linked from a crate or from C. A `binding.gyp` is not recorded yet |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
 | `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
 | `tests` | A Python project | The command that runs its tests |
@@ -589,8 +589,30 @@ recorded
   ([Extension modules](#extension-modules)), and the `build` open item is closed.
 - **The features are cargo's arguments as given**, a dependency's feature among them
   (`pyo3/extension-module`): nothing is left out for being the build tool's own.
-- **A module linked from C is reported and not taken yet**, and so is a crate built with
-  `--no-default-features` or `--all-features`, which the table has no key for.
+- **A module linked from C becomes a C module of the project**: its sources are the units
+  compiled into the library, in the order they were linked, with the directory they share as the
+  module's. The flags every unit was given are the module's `include`, `defines` and `cflags`,
+  and what one unit alone was given is in its `[files."<source>"]`. The interpreter's own headers
+  are named as the toolchain's (`{lib}/cpython/include/python3.15`), and the frameworks and
+  libraries of the link are the module's.
+
+  ```toml
+  [c.psutil.target.darwin]
+  sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
+  include = ["{lib}/cpython/include/python3.15"]
+  defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]
+  frameworks = ["CoreFoundation", "IOKit"]
+
+  [extensions."psutil/_psutil"]
+  c = "psutil"
+  ```
+
+- **A record is of the system it was made on**, so the whole of it is under that system's
+  `[target.<os>]`: what another system compiles is not known until the build is recorded there.
+- **What a table cannot say is reported, and the module is not taken**: an object no recorded run
+  compiled, a source or a header directory outside the project and the toolchain, a flag of the
+  link that is none of a library, a framework or how an extension links, and a crate built with
+  `--no-default-features` or `--all-features`.
 - **The build's own leavings stay**: `build/`, `target/`, an `.egg-info`, which the repository's
   `.gitignore` usually names already. neojac adds `.jac/` to it.
 - **It is a program of the repository that runs**, as it does under `pip install`: record a
