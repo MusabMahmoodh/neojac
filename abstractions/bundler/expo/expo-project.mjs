@@ -24,10 +24,10 @@ export function prepare(jobPath) {
         path.join(job.work, "remotes.js"),
         "globalThis.__JAC_REMOTES__ = " + JSON.stringify(job.remotes) + ";\nglobalThis.__JAC_API_BASE_URL__ = " + JSON.stringify(first) + ";\n",
     );
-    // Its npm packages are those of the space's npm tree: jac.toml's [npm.<tree>], which
-    // neojac writes as eco/<tree>/package.json and `neojac install` installs beside it.
+    // Its npm packages are those of the space's npm tree: jac.toml's [npm."<directory>"], which
+    // neojac writes as the package.json of that directory and `neojac install` installs beside it.
     if (!job.tree) {
-        console.error("a hermes space needs an npm tree, with expo and react-native: jac.toml declares none ([npm.<tree>])");
+        console.error("a hermes space needs an npm tree, with expo and react-native: jac.toml declares none ([npm."<directory>"])");
         process.exit(1);
     }
     const manifest = path.join(job.tree, "package.json");

@@ -70,7 +70,7 @@ For each app, from its archwire:
 5. Assembles the artifact in `dist/`.
 
 The work in between is in `.jac/build/<app>/` in the project, and a JavaScript space's in its npm
-tree's, `eco/<tree>/.jac/build/<app>/`; compiled modules are in neojac's
+tree's, `.jac/build/<app>/` in the tree's directory; compiled modules are in neojac's
 build cache, shared by every project (see [build](../toolchain/build.md)).
 
 ## Artifacts
@@ -93,9 +93,9 @@ holds, as its app needs:
 | `pages/<space>/` | Each browser space it serves, as its bundler wrote it |
 | `lib/python315.zip` | CPython's standard library, compressed |
 | `lib/python3.15/site-packages/` | The project's Python packages |
-| `eco/<tree>/package.json`, `eco/<tree>/node_modules/` | The packages of an npm tree its code requires, with their production dependencies, where the tree is in the project |
+| `eco/web/package.json`, `eco/web/node_modules/` | The packages of an npm tree its code requires (here the tree `eco/web`), with their production dependencies, where the tree is in the project |
 | `spaces/<space>/` | The code of each cpython space it runs in its process |
-| `eco/<tree>/spaces/<space>/` | The code of each node space it runs in its process, under its tree's packages, where Node resolves them from |
+| `eco/web/spaces/<space>/` | The code of each node space it runs in its process, under its tree's packages, where Node resolves them from |
 
 Copy the directory to a machine of that platform and run the program; nothing else is needed
 there. When an app's artifact changes from a single program to a directory (it starts serving a

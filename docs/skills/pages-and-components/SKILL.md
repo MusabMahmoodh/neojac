@@ -60,7 +60,7 @@ graph import {
 
 Every function or walker a page calls is `:pub` or `:protect` in `svc.jac` (E1210 otherwise).
 
-2. **Add the page's packages and its bundler's two files.** Copy the `[npm.web]` tables into
+2. **Add the page's packages and its bundler's two files.** Copy the `[npm."eco/web"]` tables into
    `jac.toml`, and `vite.config.ts` and `index.html` into `eco/web/`, exactly from
    `neojac docs apps/index` (section "The smallest project"): React, React Router, Vite, and the
    Vite plugin `@jac/vite`, which the build supplies. Write no `package.json`: neojac writes it. `index.html` has `<div id="root"></div>` and

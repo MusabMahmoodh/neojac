@@ -7,7 +7,7 @@ keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inlin
 A directory holding a `cmodule.toml` is a C module: C (or C++) source that a program compiles with
 it and imports as it imports a Jac module. In a project (a directory with a `jac.toml`) the manifest
 is a table of `jac.toml`, `[c."<directory>"]`, which neojac writes as that file: `neojac absorb
-<directory>` takes an existing one in ([Packages](../toolchain/packages.md#rust-crates-and-c-modules)). Clang, inside neojac, reads the module's headers, so the
+<directory>` takes an existing one in ([Packages](../toolchain/packages.md#rust-crates-c-modules-and-python-projects)). Clang, inside neojac, reads the module's headers, so the
 program binds what they declare without writing declarations of its own, and compiles its sources
 into the program. To call a library that is already built, declare its functions instead: see
 [C libraries](c-libraries.md) (`neojac docs C library`).

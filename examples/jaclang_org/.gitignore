@@ -1,6 +1,9 @@
 .jac/
 server.log
 dist/
-eco/*/package.json
-eco/*/package-lock.json
-eco/*/node_modules/
+/eco/web/package.json
+/eco/web/package-lock.json
+/eco/web/node_modules/
+/eco/mobile/package.json
+/eco/mobile/package-lock.json
+/eco/mobile/node_modules/

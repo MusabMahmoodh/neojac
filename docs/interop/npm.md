@@ -39,16 +39,16 @@ whose own Jac is compiled to JavaScript, is described in [Apps](../apps/index.md
 
 ## Installing packages
 
-A project's npm packages are an npm tree of its `jac.toml`, a `[npm.<tree>]` table, which is that
-tree's `package.json` ([Packages](../toolchain/packages.md)):
+A project's npm packages are an npm tree of its `jac.toml`: a `[npm."<directory>"]` table, which
+is the `package.json` of that directory ([Packages](../toolchain/packages.md)):
 
 ```sh
-neojac install --npm nanoid lodash --tree app    # the first packages name the tree they make
+neojac install --npm nanoid lodash --tree eco/app    # the first packages name the directory of the tree they make
 neojac install --npm @types/lodash               # declarations, for a package that ships none
 ```
 
 ```toml
-[npm.app.dependencies]
+[npm."eco/app".dependencies]
 nanoid = "^5.1.0"
 lodash = "^4.17.21"
 "@types/lodash" = "^4.17.0"
@@ -77,7 +77,7 @@ with entry {
 ## How an import is resolved
 
 - `import from "pkg" { a, b }` imports the module as an ES `import` of that specifier does on Node:
-  Node's own resolution and export conditions, from the project's npm tree (`eco/<tree>`): its
+  Node's own resolution and export conditions, from the directory of the project's npm tree: its
   only tree, or the one the module's space names in `jac.toml`.
   It is settled as the program starts, before its entry code runs.
 - Each name is the module's export of that name. A CommonJS module's `module.exports` is its
@@ -364,7 +364,7 @@ neojac npx tsc --version
   `neojac node`, `npm` and `npx` put its directory first on `PATH`, so a script npm runs finds
   `node` there.
 - npm is the one Node ships, in the toolchain's `lib/node/npm/`. In a Jac project, `neojac npm`
-  and `neojac npx` run in an npm tree of `jac.toml` (`eco/<tree>`), and `jac.toml` and `jac.lock`
+  and `neojac npx` run in an npm tree of `jac.toml`, in its directory, and `jac.toml` and `jac.lock`
   take what they wrote there ([Packages](../toolchain/packages.md#running-npm)). Where there is no
   `jac.toml`, they are npm as it is anywhere.
 - Node exports Node-API, Node's C++ API, V8's and libuv's (what their headers mark for export), as

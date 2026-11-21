@@ -44,21 +44,21 @@ hello/
 [project]
 name = "hello"
 
-[npm.web]
+[npm."eco/web"]
 private = true
 type = "module"
 
-[npm.web.dependencies]
+[npm."eco/web".dependencies]
 react = "^19.1.0"
 react-dom = "^19.1.0"
 react-router-dom = "^7.6.0"
 
-[npm.web.devDependencies]
+[npm."eco/web".devDependencies]
 "@vitejs/plugin-react" = "^5.0.0"
 vite = "^7.1.0"
 ```
 
-`[npm.web]` is the tree's `package.json`, which neojac writes into `eco/web` from it
+`[npm."eco/web"]` is the tree's `package.json`, which neojac writes into `eco/web` from it
 ([Packages](../toolchain/packages.md)).
 
 `archwire.jac` puts the server's module and the pages in a [layer](../language/modules-layers.md)

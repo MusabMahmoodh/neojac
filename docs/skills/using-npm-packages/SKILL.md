@@ -23,10 +23,12 @@ neojac docs host             # what a node and a browser space reach
 neojac docs JsObject         # the same page, at its values
 ```
 
-A project's npm packages are an npm tree of its `jac.toml`: a `[npm.<tree>]` table, which is that
-tree's `package.json`. Look for one in `jac.toml`; the first install makes it. An import resolves
-in the project's only tree, or the one its space names (`[spaces.<space>] npm = "<tree>"`).
-Never write `package.json` by hand: neojac writes it, in `eco/<tree>/`, from `jac.toml`.
+A project's npm packages are an npm tree of its `jac.toml`: a `[npm."<directory>"]` table, named
+by the tree's directory from the project's root (`eco/web`, or `.` for a package at the root),
+which is the `package.json` of that directory. Look for one in `jac.toml`; the first install
+makes it. An import resolves in the project's only tree, or the one its space names
+(`[spaces.<space>] npm = "<directory>"`). Never write `package.json` by hand: neojac writes it, in
+the tree's directory, from `jac.toml`.
 
 ## Steps
 
@@ -34,7 +36,7 @@ Never write `package.json` by hand: neojac writes it, in `eco/<tree>/`, from `ja
    neojac embeds, and records the packages in `jac.toml` and what was resolved in `jac.lock`.
 
 ```sh
-neojac install --npm nanoid lodash --tree app   # --tree names the tree; needed only to make the first, or among several
+neojac install --npm nanoid lodash --tree eco/app   # --tree names the tree's directory; needed only to make the first, or among several
 neojac install --npm @types/lodash              # declarations, for a package that ships none
 neojac install                                  # on a fresh clone: everything jac.toml lists
 ```
@@ -106,7 +108,7 @@ neojac build main.jac -o main && ./main
 ```
 
 A native program that imports JavaScript links Node, so it is over 100 MB, and builds only for
-the platform neojac runs on. It reads its packages from the tree's `eco/<tree>/node_modules` as
+the platform neojac runs on. It reads its packages from the tree's `node_modules` as
 it runs.
 
 5. **In an app's space**, import the same way. A node space serves its `:pub` functions:
@@ -132,8 +134,8 @@ and the bundler takes the package; check with `neojac check --space <space>`.
 ## What a correct result looks like
 
 - `neojac check` prints nothing; the program prints what the examples show.
-- `jac.toml`'s `[npm.<tree>.dependencies]` lists the packages; `jac.lock` has a `[npm.<tree>]`
-  table; `eco/<tree>/node_modules/<pkg>` exists.
+- `jac.toml`'s `[npm."<directory>".dependencies]` lists the packages; `jac.lock` has a `[npm."<directory>"]`
+  table; `<directory>/node_modules/<pkg>` exists.
 - A node space answers `curl -X POST http://127.0.0.1:<port>/__jac/call/ids/api/pairs -d '{"args": {"xs": [1, 2, 3]}}'`
   with `{"ok":true,"data":[[1,2],[3]]}`.
 
@@ -143,7 +145,7 @@ and the bundler takes the package; check with `neojac check --space <space>`.
 |---|---|---|
 | W1100 `cannot find module 'x'` | Not among the packages of the tree the module resolves in | `neojac install --npm x` |
 | E5160 `the packages of npm tree ... are not installed` | `jac.toml` or `jac.lock` changed, or a fresh clone | `neojac install` |
-| E1288 `imports from npm, and jac.toml declares the trees ...` | Several trees, and the space names none | `npm = "<tree>"` under `[spaces.<space>]` in `jac.toml` |
+| E1288 `imports from npm, and jac.toml declares the trees ...` | Several trees, and the space names none | `npm = "<directory>"` under `[spaces.<space>]` in `jac.toml` |
 | E1145 `module 'x' has no 'y'` | The package's declarations do not export `y` | Check the name; for CommonJS import `default` |
 | `ImportError: cannot import name 'chunk' from 'lodash'` at start-up, though `check` passed | A CommonJS package's property imported as a named export, in a project with no declarations for the package (with `@types/lodash` installed, `check` reports it as E1145) | `import from "lodash" { default as _ }`, then `_.chunk`; install the package's declarations so `check` catches it |
 | `AttributeError: ... has no attribute 'nope'` | A property the object lacks, looked up at run time | Attribute names are not checked; fix the name |

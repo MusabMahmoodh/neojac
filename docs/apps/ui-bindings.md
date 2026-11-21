@@ -233,7 +233,7 @@ it. The ones neojac ships are the `bundler` plugins `vite` and `expo`:
 
 | Plugin | For | Does |
 |---|---|---|
-| `vite` | Browser spaces | Runs the project's own Vite (its npm tree's `node_modules/vite`), with the project's config, in the tree's directory, `eco/<tree>` |
+| `vite` | Browser spaces | Runs the project's own Vite (its npm tree's `node_modules/vite`), with the project's config, in the tree's directory |
 | `expo` | Hermes spaces | Runs the project's Expo to export the app's bundles for Android and iOS |
 
 The bundlers' packages are the project's, those of the space's npm tree in `jac.toml`, installed
@@ -285,7 +285,7 @@ A hermes space's packages are its npm tree's (`[spaces.<space>] npm` in `jac.tom
 message when the space has no tree or its packages are not installed.
 
 The entry module's `app` function is the phone app's root component. The bundler writes the
-Expo project around it in the space's work directory (`eco/<tree>/.jac/build/<app>/<space>/`) and runs
+Expo project around it in the space's work directory (`<the tree's directory>/.jac/build/<app>/<space>/`) and runs
 `expo export` for Android and iOS into `dist/<app>/`. The URLs of the spaces the app calls are
 written into the bundle from `[apps.<app>.remote]`. See [Hosts](hosts.md).
 
@@ -361,7 +361,7 @@ The build runs `build` as `neojac node tools/bundle/bundle.mjs <job>`. The job i
 |---|---|
 | `name` | The space's name, or the app's when the app serves nothing |
 | `top` | The project's root |
-| `tree` | The directory of the space's npm tree (`eco/<tree>`), where its packages are installed and a bundler runs; `""` when the project has none |
+| `tree` | The directory of the space's npm tree (`eco/web`), where its packages are installed and a bundler runs; `""` when the project has none |
 | `work` | The space's work directory |
 | `src` | The space's compiled modules, with `@jac/bundle.json` (its entry, the aliases of its imports, the spaces it reaches) |
 | `dist` | Where to write the bundle |

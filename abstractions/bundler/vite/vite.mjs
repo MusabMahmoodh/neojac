@@ -1,5 +1,5 @@
 // The Vite bundler: the project's own Vite, with its own config, run in the space's npm
-// tree (eco/<tree>) on the vendored Node.
+// tree (its directory, eco/web say) on the vendored Node.
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { prepare } from "./vite-plugin.mjs";

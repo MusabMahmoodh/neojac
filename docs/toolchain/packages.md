@@ -1,5 +1,5 @@
 ---
-description: A project's packages and manifests from every ecosystem in jac.toml and jac.lock - Jac packages ([packages]), libraries and plugins alike, by a version, a directory or a repository, the installed packages of eco/jac and what a version requirement means, what a library is and what it may not hold, npm trees ([npm.<tree>]) and the eco/ directory neojac writes them into, Rust crates ([cargo."<dir>"]) and C modules ([c."<dir>"]) written where they stand, PyPI packages, neojac install, remove, absorb, npm and cargo, what is tracked, and what is refused.
+description: A project's packages and manifests from every ecosystem in jac.toml and jac.lock - Jac packages ([packages]), libraries and plugins alike, by a version, a directory or a repository, the installed packages of eco/jac and what a version requirement means, what a library is and what it may not hold, npm trees ([npm."<dir>"]), each the package.json of its directory, written where it stands, Rust crates ([cargo."<dir>"]), C modules ([c."<dir>"]) and Python projects ([pypi."<dir>"]) written where they stand, PyPI packages, neojac install, remove, absorb, npm and cargo, what is tracked, and what is refused.
 keywords: packages, [packages], libraries, Jac library, Jac package, version, version requirement, installed package, jac.lock, eco, eco/jac, npm tree, package.json, package-lock.json, node_modules, install, remove, absorb, frozen, Cargo.lock
 ---
 # Packages
@@ -12,10 +12,11 @@ and `jac.lock` before it runs a tool, and takes back what the tool changed as it
 | Ecosystem | In `jac.toml` | In `jac.lock` | Installed in |
 |---|---|---|---|
 | Jac | `[packages]`, each package by its version or by where it is | `[jac.<name>]`, for each installed one, whoever installed it | `eco/jac/<name>`, for one declared by a version or a repository |
-| npm | `[npm.<tree>]`, one for each tree of packages | `[npm.<tree>]` | `eco/<tree>/node_modules` |
+| npm | `[npm."<directory>"]`, one for each tree of packages | `[npm."<directory>"]` | `<directory>/node_modules` |
 | PyPI | `[dependencies.pypi]` | `[pypi]` | `.jac/venv` ([Python](../interop/python.md#pypi-packages)) |
 | Rust | `[cargo."<directory>"]`, a crate's or a workspace's `Cargo.toml` | `[cargo."<directory>"]`, its `Cargo.lock` | nothing: cargo builds from the crate's directory |
 | C and C++ | `[c."<directory>"]`, a C module's `cmodule.toml` | | nothing |
+| A Python project | `[pypi."<directory>"]`, its `pyproject.toml` | | nothing yet |
 
 ```sh
 neojac install                        # everything jac.toml lists
@@ -281,36 +282,81 @@ A library or a plugin says what it needs of other ecosystems as a project does, 
 
 - **Its `[dependencies.pypi]`** is resolved together with the project's, into the project's
   `.jac/venv`, and pinned in `jac.lock`'s `[pypi]`.
-- **The `dependencies` of its `[npm.<tree>]` tables** are written into every npm tree of the
-  project, with the tree's own. Two askers of one npm package agree on its range (E5162).
+- **The `dependencies` of its `[npm."<directory>"]` tables** are written into every npm tree of
+  the project, with the tree's own. Two askers of one npm package agree on its range (E5162).
 - **Neither is written into the project's `jac.toml`.** What `neojac npm` takes back from a tree is
   the project's own packages.
 
 ## npm trees
 
 An npm tree is one package and the packages it depends on: one `package.json`, one lock, one
-`node_modules`. `jac.toml`'s `[npm.<tree>]` table is that tree's `package.json`, key for key, with
-npm's own names for its keys:
+`node_modules`, in one directory. A tree is named by that directory, from the project's root with
+`/` between its parts (`.` is the root itself), and `jac.toml`'s `[npm."<directory>"]` table is the
+`package.json` there, key for key, with npm's own names for its keys:
 
 ```toml
-[npm.web]
+[npm."eco/web"]
 private = true
 type = "module"
 
-[npm.web.dependencies]
+[npm."eco/web".dependencies]
 nanoid = "^5.1.0"
 lodash = "^4.17.21"
 
-[npm.web.devDependencies]
+[npm."eco/web".devDependencies]
 "@types/lodash" = "^4.17.0"
 ```
 
 ```sh
-neojac install --npm nanoid lodash --tree web    # add packages, making the tree if it is new
-neojac remove --npm lodash                       # take one out
+neojac install --npm nanoid lodash --tree eco/web    # add packages, making the tree if it is new
+neojac remove --npm lodash                           # take one out
 ```
 
-`--tree` names the tree. A project's only tree needs no naming.
+`--tree` names the tree's directory, as a path from where the command is run. A project's only
+tree needs no naming.
+
+A tree may be any directory of the project. One made for a Jac project's own pages is by
+convention `eco/<name>`, beside the project's modules and apart from them. One taken in from a
+repository that already had a `package.json` is wherever that file stands, its sources beside it:
+`[npm."frontend"]`, or `[npm."."]` for a package at the root.
+
+### Workspaces
+
+A tree whose `package.json` has `workspaces` is a workspace: several packages installed as one.
+Its root is a tree, and so is each member, a table for each:
+
+```toml
+[npm."."]
+name = "shop"
+private = true
+workspaces = ["frontend", "packages/*"]
+
+[npm."frontend"]
+name = "frontend"
+
+[npm."frontend".dependencies]
+emails = "*"
+
+[npm."packages/emails"]
+name = "emails"
+```
+
+- **Which directories are members is npm's own answer.** neojac asks the workspace mapper npm
+  itself uses, which reads the root's `workspaces` and finds the `package.json` files it reaches.
+  A `package.json` it does not reach (a test fixture, a template) is no tree, and none is made
+  of it.
+- **A workspace has one lock,** the root's, and `jac.lock` holds it under the root's name. A
+  member has none.
+- **It is installed as one.** `neojac install` runs npm at the root, once, and prints the
+  members with it. A space that names a member (`npm = "frontend"`) finds its packages as Node
+  does, from the member's directory upward, and is built only when the workspace is installed as
+  `jac.toml` and `jac.lock` say (E5160).
+- **`neojac npm` in a member's directory** is npm run in that workspace. What it writes to any of
+  the workspace's `package.json` files, and to the root's lock, is taken back.
+- **Every member is a table.** A member npm finds that `jac.toml` holds none for is E5159:
+  `neojac absorb` of the root's directory takes each in.
+- **An app's artifact does not carry a member's packages yet.** An app whose node space runs on a
+  member's tree is refused (E5090).
 
 ### Which tree a space's imports use
 
@@ -319,18 +365,18 @@ project with several says which is each space's, in `jac.toml`:
 
 ```toml
 [spaces.site]
-npm = "web"
+npm = "eco/web"
 
 [spaces.phone]
-npm = "mobile"
+npm = "eco/mobile"
 ```
 
 A space naming a tree `jac.toml` does not declare is E1287, and a module importing from npm where
 nothing says which of several trees is its own is E1288.
 
-## The `eco/` directory
+## A tree's directory
 
-Each tree has a directory, `eco/<tree>`, which is where its tools run:
+A tree's directory is where its tools run. Here the tree is `eco/web`:
 
 ```text
 shop/
@@ -351,24 +397,27 @@ shop/
   yours that imports the tree's packages: a bundler's configuration, `tsconfig.json`,
   `index.html`, a stylesheet that imports a package. A tool finds a file's packages by looking in
   the directories above the file, so such a file is under its tree.
-- **What neojac writes there** is not tracked. The first time it writes a tree it adds these
-  lines to the project's `.gitignore`:
+- **What neojac writes there** is not tracked. The first time it writes a tree it adds the three
+  to the project's `.gitignore`, by their paths from the root:
 
   ```text
-  eco/*/package.json
-  eco/*/package-lock.json
-  eco/*/node_modules/
+  /eco/web/package.json
+  /eco/web/package-lock.json
+  /eco/web/node_modules/
   ```
 
   `.jac/` is ignored as the project's own is.
-- **A JavaScript space is compiled there**, into `eco/<tree>/.jac/build`, so that its modules find
-  the tree's packages and its `tsconfig.json` as any file of the tree does.
+- **A JavaScript space is compiled there**, into `<directory>/.jac/build`, so that its modules
+  find the tree's packages and its `tsconfig.json` as any file of the tree does.
+- **`eco/` is not the project's source**: a file under it is in no layer of `archwire.jac`
+  ([Projects](projects.md#what-is-not-the-projects-source)). A tree anywhere else stands among
+  the project's files, and its JavaScript and TypeScript are modules of the project.
 
-## Rust crates and C modules
+## Rust crates, C modules and Python projects
 
-A crate's `Cargo.toml`, the `Cargo.lock` beside it and a [C module](../interop/c-modules.md)'s
-`cmodule.toml` are tables of `jac.toml` and `jac.lock` too, each named by its directory from the
-project's root:
+A crate's `Cargo.toml`, the `Cargo.lock` beside it, a [C module](../interop/c-modules.md)'s
+`cmodule.toml` and a Python project's `pyproject.toml` are tables of `jac.toml` and `jac.lock`
+too, each named by its directory from the project's root:
 
 ```toml
 [cargo.adder]
@@ -382,6 +431,12 @@ sources = ["geom.c"]
 
 [c.geom.target.linux]
 libs = ["m"]
+
+[pypi.backend]
+[pypi.backend.project]
+name = "app"
+version = "0.1.0"
+dependencies = ["fastapi>=0.141"]
 ```
 
 - **A table is the manifest's own text**, its tables named under the directory's. Comments are
@@ -390,9 +445,12 @@ libs = ["m"]
   under `eco/`: cargo finds a crate's sources, and its workspace, from where its manifest is.
   neojac writes them before any command looks for them, making a directory that holds nothing
   else, and lists each in the project's `.gitignore`.
-- **`neojac absorb <directory>`** takes in every `Cargo.toml` and `cmodule.toml` under a directory,
-  into the `jac.toml` of the project each is in. A workspace is a table for its root and one for
-  each member.
+- **`neojac absorb <directory>`** takes in every `Cargo.toml`, `cmodule.toml` and `pyproject.toml`
+  under a directory, into the `jac.toml` of the project each is in. A workspace is a table for
+  its root and one for each member.
+- **A `pyproject.toml` is held, and not yet installed from.** Its table is the project's manifest
+  as its own tools read it: its build backend's, pytest's, a linter's. `neojac install` installs
+  what `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies` yet.
 - **`neojac cargo`** writes the project's manifests first, and takes back what cargo changed as it
   ends (`cargo add`, `cargo update`).
 
@@ -401,8 +459,8 @@ A program with no `jac.toml` above it keeps its manifests as files: a loose `mai
 
 ## Running npm
 
-`neojac npm` and `neojac npx` run in a tree: the one whose directory they are run in or under, or
-the project's only tree. neojac writes the tree's `package.json` and lock first, and when npm ends
+`neojac npm` and `neojac npx` run in a tree: the one whose directory they are run in or under
+(the nearest, where one tree's directory holds another's), or the project's only tree. neojac writes the tree's `package.json` and lock first, and when npm ends
 it takes what npm wrote back into `jac.toml` and `jac.lock`:
 
 ```text
@@ -415,30 +473,100 @@ Only the tree's table changes. The rest of `jac.toml`, its comments with it, is 
 In a directory that is no Jac project (no `jac.toml` in it or above it), `neojac npm` is npm as it
 is anywhere, on that directory's own `package.json`.
 
-## Taking in a manifest you already have
+## Taking in a repository: neojac absorb
 
-`neojac absorb` makes a tree of a `package.json`, the `package-lock.json` beside it and their
-`node_modules`:
+`neojac absorb` takes the manifests a repository already has into `jac.toml`, each where it
+stands, and writes the project's `archwire.jac`. No source file changes.
 
 ```sh
-neojac absorb --tree web       # the package.json in this directory
-neojac absorb mobile           # the one in mobile/, as the tree `mobile`
+neojac absorb --check          # what this repository is: nothing is written
+neojac absorb                  # make it a project
+neojac absorb crates           # the manifests under crates/, into the project this directory is in
 ```
 
-The manifest becomes `[npm.<tree>]`, the lock becomes `jac.lock`'s, and the three move to
-`eco/<tree>`. A package the manifest names by a path (`"file:../kit"`) is named from the tree's
-directory afterwards, and is resolved again by the next `neojac install`. A manifest that cannot
-be taken whole is not taken at all: nothing is written and nothing moves.
+A directory with no `jac.toml` in it or above it becomes a project: `absorb` makes the file.
+
+### Which manifests are the project's
+
+Each ecosystem answers for its own:
+
+| Manifest | Becomes | Its workspaces, asked of |
+|---|---|---|
+| `package.json`, with its `package-lock.json` | `[npm."<directory>"]` | npm's own workspace mapper ([Workspaces](#workspaces)) |
+| `pyproject.toml` | `[pypi."<directory>"]` | The members and exclusions `[tool.uv.workspace]` lists |
+| `Cargo.toml`, with its `Cargo.lock` | `[cargo."<directory>"]` | `cargo metadata` |
+| `cmodule.toml` | `[c."<directory>"]` | A C module has none |
+
+- **The first manifest of an ecosystem met from the top is a tree**, and under it only the
+  workspaces its own tool names are trees too.
+- **Any other manifest under a tree is data**: a test fixture's `package.json`, a template's.
+  Nothing under its directory is taken, and the directory is added to `jac.toml`'s
+  `[project] exclude`, so its files are no modules of the project
+  ([Projects](projects.md#what-is-not-the-projects-source)).
+- **Nothing moves.** A manifest names its files by path, so it stays beside them. From then on
+  neojac writes it there from its table, and lists it in `.gitignore`.
+- **A directory with a `jac.toml` of its own is another project**, and is passed by.
+
+### The archwire it writes
+
+Where the project has no `archwire.jac`, `absorb` writes one with a single layer,
+`layer all { *; }`: nothing of the project's layering is known yet. It then writes a wire for
+every import between the project's files, as each language's own engine reads them
+([Declared wires](../language/modules-wiring.md#declared-wires---)), which is what
+`neojac fmt --fix archwire.jac` does. A project that says `archwire = false` gets none.
+
+What still stands between the archwire and a check that passes is printed as the diagnostics
+every command would give, and `absorb` then exits with status 1. The files it wrote stay.
+
+### Open items
+
+What no manifest says, and only a program of the repository or a person knows, is an **open
+item**. `absorb` lists each at its file, and does not guess:
+
+| Kind | Reported for | What closes it |
+|---|---|---|
+| `build` | A `setup.py` beside a `pyproject.toml`; a `binding.gyp` beside a `package.json` | A record of what that program compiles, which neojac does not take yet |
+| `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
+| `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
+| `tests` | A Python project | The command that runs its tests |
+
+```text
+$ neojac absorb --check
+tiktoken is a Python project (pyproject.toml) and a Rust package (Cargo.toml)
+
+  jac.toml     [pypi."."]   pyproject.toml, as it stands
+               [cargo."."]  Cargo.toml, as it stands
+  archwire.jac one layer, and a wire for every import between its files
+
+open items
+   1  setup.py: a program that builds this project: no manifest says what it compiles, or into which module
+   2  pyproject.toml: no manifest says how this tree's tests are run
+
+nothing written
+```
+
+- **`--check` writes nothing.** It finds the trees, the data and the open items. It does not
+  read the sources for their imports, so what the wires would say it does not judge.
+- **`--json` prints the same as one document**: `trees` (each with its `ecosystem`, `directory`,
+  `manifest`, `table`, `lock` and the tree it is a `member_of`), `data`, `open` (each with its
+  `kind`, the file it is `at`, and what it `says`), and after an `absorb` that wrote, `wrote` and
+  the count of `problems`.
+- **A step that fails leaves every file as it was**: a manifest that cannot be taken whole
+  (E5156, E5157) is refused, and nothing of the others stays written.
+- **Absorbing again changes nothing**, and takes in what was added since.
+
+`neojac absorb` does not yet write the project's spaces, install from a `pyproject.toml`, or
+build what a `build` item names: a project it makes is one neojac holds and draws
+(`neojac arch`), not yet one it builds.
 
 ## What keeps the two in step
 
 - **What neojac writes is `jac.toml` and `jac.lock`, and nothing else.** A tree's `package.json`
   holds what its table holds, in the order the table has it.
-- **npm resolves, neojac records.** `jac.lock`'s `[npm.<tree>]` is the lock npm wrote, key for key.
+- **npm resolves, neojac records.** `jac.lock`'s `[npm."<directory>"]` is the lock npm wrote, key for key.
   Written back, it is the same file byte for byte.
 - **What one side cannot hold is refused, never dropped.** JSON's `null` has no value in TOML
-  (E5156), and TOML's dates, `inf` and `nan` have none in JSON (E5155). A tree with `workspaces`
-  is refused (E5159): another package is another tree.
+  (E5156), and TOML's dates, `inf` and `nan` have none in JSON (E5155).
 - **A build checks what is installed.** A tree whose `node_modules` was not installed from
   `jac.toml` and `jac.lock` as they are now is E5160, and `neojac install` is the fix. It runs npm
   only for a tree that is not as pinned.
@@ -447,12 +575,13 @@ be taken whole is not taken at all: nothing is written and nothing moves.
 
 | What neojac says | Why |
 |---|---|
-| `install: jac.toml declares no npm tree: name the one to make, --tree <tree>` | `--npm` in a project with no tree yet |
-| `install: jac.toml declares the npm trees web, mobile: say which, --tree <tree>` | `--npm` in a project with several |
-| `npm: jac.toml declares the npm trees web, mobile: run it in the one it is for, eco/<tree>` | `neojac npm` at the top of a project with several |
-| `install --frozen: jac.lock pins nothing for the npm tree 'web'; run neojac install` | `--frozen` before the tree was ever locked |
-| `absorb: jac.toml already declares the npm tree 'web'` | The name is taken: give another with `--tree` |
-| E5155, E5156, E5157, E5158, E5159 | A value or a form one file cannot hold of the other: `neojac docs E5156`. E5157 is also a `Cargo.toml` or `cmodule.toml` whose text cannot be moved under a table's name as it is |
+| `install: jac.toml declares no npm tree: name the directory of the one to make, --tree <directory> (eco/web, say)` | `--npm` in a project with no tree yet |
+| `install: jac.toml declares the npm trees eco/web, eco/mobile: say which, --tree <directory>` | `--npm` in a project with several |
+| `install: --tree names a directory of the project, and '../web' is outside it` | A tree is a directory of the project |
+| `npm: jac.toml declares the npm trees eco/web, eco/mobile: run it in the directory of the one it is for` | `neojac npm` where no tree's directory is, in a project with several |
+| `install --frozen: jac.lock pins nothing for the npm tree 'eco/web'; run neojac install` | `--frozen` before the tree was ever locked |
+| E5155, E5156, E5157, E5158 | A value or a form one file cannot hold of the other: `neojac docs E5156`. E5157 is also a `Cargo.toml` or `cmodule.toml` whose text cannot be moved under a table's name as it is |
+| E5159 | A workspace npm finds that `jac.toml` holds no table for: `neojac absorb` of the root's directory |
 | E5160 | A tree not installed as pinned: `neojac install` |
 | E5161 | A package that is not installed as a declaration asks: one declared by a version that is not in `eco/jac/`, or one from a repository that is not fetched (`neojac install`) |
 | E5162 | Two askers of one npm package, at different ranges |

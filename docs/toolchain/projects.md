@@ -107,7 +107,7 @@ Every file under an `archwire.jac` in a language whose imports are wires is a mo
 | A directory that holds an `@jac` directory | An emitted space's modules ([`neojac emit-js`](../reference/commands.md)) |
 | A directory with an `archwire.jac` or a `jac.toml` of its own | That archwire governs it, or it is a project of its own |
 | A crate or C module that `jac.toml` does not hold | A dependency: one module, its files its own business ([Rust modules](../interop/rust-modules.md), [C modules](../interop/c-modules.md)) |
-| A path `exclude` under `[project]` names | Yours to say |
+| A path `exclude` under `[project]` names | Yours to say. [`neojac absorb`](packages.md#taking-in-a-repository-neojac-absorb) lists there each directory whose manifest no workspace names |
 
 ```toml
 [project]
@@ -150,7 +150,7 @@ A module may have a file for each platform it differs on, `fs.linux.jac`, `fs.da
 | `.jac/venv/` | The project's Python virtual environment | `install` |
 | `.jac/data/<app>/` | An app's graph, accounts and jobs, when it runs on this machine | the app ([Apps](../apps/data.md)) |
 | `jac.lock` | What each ecosystem's resolver pinned for `jac.toml`: Python distributions, and each npm tree's lock ([Packages](packages.md)) | `install`, `npm`, `absorb` |
-| `eco/<tree>/package.json`, `package-lock.json`, `node_modules/`, `.jac/` | An npm tree as its tools read it, written from `jac.toml` and `jac.lock`, its installed packages, and its spaces as compiled | `install`, `npm`, `build` |
+| An npm tree's `package.json`, `package-lock.json`, `node_modules/`, `.jac/`, in its directory (`eco/web/`) | An npm tree as its tools read it, written from `jac.toml` and `jac.lock`, its installed packages, and its spaces as compiled | `install`, `npm`, `build` |
 | `dist/` | Each app's artifact | `build` with no main module ([Building apps](../apps/building.md)) |
 | `-o <out>` | The program, wherever `-o` names | `build` |
 

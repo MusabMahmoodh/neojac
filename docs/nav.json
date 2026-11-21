@@ -1069,6 +1069,10 @@
         {
           "title": "Porting Python to Jac",
           "page": "skills/porting-from-python/SKILL.md"
+        },
+        {
+          "title": "Adopting a repository",
+          "page": "skills/adopting-a-repository/SKILL.md"
         }
       ]
     }
