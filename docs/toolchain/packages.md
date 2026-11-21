@@ -13,10 +13,10 @@ and `jac.lock` before it runs a tool, and takes back what the tool changed as it
 |---|---|---|---|
 | Jac | `[packages]`, each package by its version or by where it is | `[jac.<name>]`, for each installed one, whoever installed it | `eco/jac/<name>`, for one declared by a version or a repository |
 | npm | `[npm."<directory>"]`, one for each tree of packages | `[npm."<directory>"]` | `<directory>/node_modules` |
-| PyPI | `[dependencies.pypi]` | `[pypi]` | `.jac/venv` ([Python](../interop/python.md#pypi-packages)) |
+| PyPI | `[dependencies.pypi]`, and what each Python project below depends on | `[pypi]` | `.jac/venv` ([Python](../interop/python.md#pypi-packages)) |
 | Rust | `[cargo."<directory>"]`, a crate's or a workspace's `Cargo.toml` | `[cargo."<directory>"]`, its `Cargo.lock` | nothing: cargo builds from the crate's directory |
 | C and C++ | `[c."<directory>"]`, a C module's `cmodule.toml` | | nothing |
-| A Python project | `[pypi."<directory>"]`, its `pyproject.toml` | | nothing yet |
+| A Python project | `[pypi."<directory>"]`, its `pyproject.toml` | | nothing of its own: what it depends on is in `.jac/venv` |
 
 ```sh
 neojac install                        # everything jac.toml lists
@@ -448,9 +448,9 @@ dependencies = ["fastapi>=0.141"]
 - **`neojac absorb <directory>`** takes in every `Cargo.toml`, `cmodule.toml` and `pyproject.toml`
   under a directory, into the `jac.toml` of the project each is in. A workspace is a table for
   its root and one for each member.
-- **A `pyproject.toml` is held, and not yet installed from.** Its table is the project's manifest
-  as its own tools read it: its build backend's, pytest's, a linter's. `neojac install` installs
-  what `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies` yet.
+- **A `pyproject.toml`'s table is the project's manifest as its own tools read it**: its build
+  backend's, pytest's, a linter's. `neojac install` installs what it depends on, beside what
+  `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)).
 - **`neojac cargo`** writes the project's manifests first, and takes back what cargo changed as it
   ends (`cargo add`, `cargo update`).
 

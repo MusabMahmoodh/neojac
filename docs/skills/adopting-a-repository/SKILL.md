@@ -82,7 +82,18 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
 tool stops complaining changes what the repository builds.
 
-5. **Draw it.**
+5. **Install what it depends on.**
+
+```sh
+neojac install
+```
+
+It installs each npm tree's packages, and into `.jac/venv` what each Python project's
+`pyproject.toml` (or its build) says it depends on, and pins them in `jac.lock`. A Python
+project's dependency groups and extras are not installed: what its tests need that only a group
+lists (pytest) is added with `neojac install --pypi <package>`, and reported.
+
+6. **Draw it.**
 
 ```sh
 neojac arch --text

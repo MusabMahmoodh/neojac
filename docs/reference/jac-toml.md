@@ -172,7 +172,7 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 | E5157 | The table is written inline or with dotted keys where neojac has it to rewrite, or a manifest's text cannot be moved under a table's name as it is |
 | E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
 
-`[pypi."<directory>"]` holds a Python project's manifest and no more yet: `neojac install` installs the packages `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies`.
+`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are not installed.
 
 ## [extensions."\<path\>"]
 
