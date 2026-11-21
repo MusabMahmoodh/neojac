@@ -474,8 +474,9 @@ features = ["python"]
   from, by the directory of that unit's table.
 - **It is a module of the project.** A file that imports it is wired from it, and until the table
   is there the import names nothing: `neojac absorb` reports it (E1145).
-- **neojac does not build one yet**, and does not write the table itself yet: it comes from what
-  the repository's own build does, which `neojac absorb` lists as a `build` open item.
+- **`neojac absorb --record` writes the table** for a module linked from a crate, from what the
+  repository's own build does ([Recording a build](#recording-a-build)).
+- **neojac does not build one yet.**
 
 ## Running npm
 
@@ -501,6 +502,7 @@ stands, and writes the project's `archwire.jac`. No source file changes.
 ```sh
 neojac absorb --check          # what this repository is: nothing is written
 neojac absorb                  # make it a project
+neojac absorb --record         # and run its build, to write what that links
 neojac absorb crates           # the manifests under crates/, into the project this directory is in
 ```
 
@@ -545,7 +547,7 @@ item**. `absorb` lists each at its file, and does not guess:
 
 | Kind | Reported for | What closes it |
 |---|---|---|
-| `build` | A `setup.py` beside a `pyproject.toml`; a `binding.gyp` beside a `package.json` | A record of what that program compiles, which neojac does not take yet |
+| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | For a Python project, `neojac absorb --record` ([Recording a build](#recording-a-build)). A `binding.gyp` is not recorded yet |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
 | `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
 | `tests` | A Python project | The command that runs its tests |
@@ -564,6 +566,35 @@ open items
 
 nothing written
 ```
+
+### Recording a build
+
+What a build program compiles is in no manifest, and is not read out of the program: neojac runs
+it and watches.
+
+```text
+$ neojac absorb --record
+...
+recorded
+  [extensions."tiktoken/_tiktoken"]  the crate ., with pyo3/extension-module, python
+```
+
+- **It runs the project's own build**, the wheel its build backend makes, on neojac's CPython in
+  a virtual environment of its own (`.jac/absorb/`), with the toolchain's `cc` and `cargo`
+  [recording each run](../interop/c-and-cpp.md#recording-what-a-build-ran). That needs what the
+  build needs: the network, for the packages its backend asks for.
+- **A native module the wheel holds is traced to what linked it**: the library whose bytes it is,
+  the run of cargo whose target directory that library is in, and so the crate and the features
+  it was built with. `jac.toml` gains `[extensions."<path>"]`
+  ([Extension modules](#extension-modules)), and the `build` open item is closed.
+- **The features are cargo's arguments as given**, a dependency's feature among them
+  (`pyo3/extension-module`): nothing is left out for being the build tool's own.
+- **A module linked from C is reported and not taken yet**, and so is a crate built with
+  `--no-default-features` or `--all-features`, which the table has no key for.
+- **The build's own leavings stay**: `build/`, `target/`, an `.egg-info`, which the repository's
+  `.gitignore` usually names already. neojac adds `.jac/` to it.
+- **It is a program of the repository that runs**, as it does under `pip install`: record a
+  repository you would build.
 
 - **`--check` writes nothing.** It finds the trees, the data and the open items. It does not
   read the sources for their imports, so what the wires would say it does not judge.

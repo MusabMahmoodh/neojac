@@ -404,12 +404,13 @@ Its guide: [toolchain/packages](../toolchain/packages.md) (`neojac docs toolchai
 Take a repository's manifests into jac.toml, and wire its files.
 
 ```sh
-neojac absorb [<directory>] [--check] [--json]
+neojac absorb [<directory>] [--check | --record] [--json]
 ```
 
 | Option | What it does |
 |---|---|
 | `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
+| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: an extension module made from a crate, as [extensions] |
 | `--json` | Print what it found, and what it wrote, as data |
 
 Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.
