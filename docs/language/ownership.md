@@ -198,7 +198,7 @@ An `imm` value may be read from a `flow for` body and sent to a `flow` task
 ## Drops
 
 An owned value is dropped right after its owner's last use, not at the end
-of its scope, and an owner never read again is dropped as soon as it is
+of its scope (but for a scoped class's, below), and an owner never read again is dropped as soon as it is
 made. (A name bound in module code, a `with entry` block, is a module
 global, which lives as long as the program.) A borrow of it keeps it alive while the borrow lives. An owner is
 dropped too when an exception leaves its scope, before a handler outside
@@ -248,7 +248,62 @@ with entry {
 8080
 ```
 
+### Values whose drop runs code: dropped where their scope ends
+
+A class is **scoped** when dropping one does something a program can see: a Rust type whose drop
+rustc reports as significant (a guard, a lock, a collection that frees its items), and a class
+that owns (`has x: own T`) a field of a scoped class. An owner of a scoped class is dropped
+where its scope ends, as Rust drops it, not at its last use:
+
+- at the end of the smallest block that holds all its uses, and on each `break` and `continue`
+  that leaves that block, owners of one block in the reverse order they were bound;
+- on a `return` and as an exception passes, as every owner is;
+- not at all once it is moved: `b = a`, an `own` parameter and a Rust parameter taken by value
+  empty it, as Rust's drop flags do.
+
+A local or a field of a scoped class is bound with `own` (E1256): it has one owner, which drops
+it there.
+
+```jac
+import from std.collections { HashSet }
+
+obj Seen {
+    has s: own HashSet[u32];
+}
+
+def distinct(xs: list[int]) -> int {
+    seen: own HashSet[u32] = HashSet[u32].new();
+    for x in xs {
+        seen.insert(u32(x));
+    }
+    return int(seen.len());
+}
+
+with entry {
+    print(distinct([3, 1, 3, 2, 1]));
+    k = Seen(s=HashSet[u32].new());
+    print(k.s.is_empty());
+}
+```
+
+```output
+3
+True
+```
+
+See [Rust modules](../interop/rust-modules.md) for the Rust types a program uses.
+
 ## What is rejected
+
+```jac
+# expect: E1256
+import from std.collections { HashSet }
+
+def held -> bool {
+    s = HashSet[u32].new();
+    return s.is_empty();
+}
+```
 
 ```jac
 # expect: E1301, E1305, E1309, E1311
@@ -292,6 +347,7 @@ def frozen_param(b: Buffer) {
 | E1309 | A field is written through an `imm` binding. |
 | E1311 | `imm` of a value that may be aliased, such as a parameter. |
 | E1507 | A struct binding is marked `own`, `lin` or `imm`. |
+| E1256 | A local or a field of a scoped class is bound without `own`. |
 
 The errors of borrows and owned places (E1302 to E1304, E1306, E1315 to
 E1323, E1328, E1330) are on
