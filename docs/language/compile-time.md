@@ -216,6 +216,12 @@ holds anything its place may: at module level imports, functions, classes,
 `glob`s, `with entry` blocks and nested `comptime if`s; in an archetype
 fields, methods, nested archetypes and nested `comptime if`s.
 
+An import in a branch is the target's alone: a target whose branch does not import a module does
+not load it. Under an `archwire.jac` an import of a project module stays in its branch, and the
+wire into the module admits it, as a wire admits [an import in a code
+body](modules.md#an-import-in-a-code-body): `plat.linux ++> main { name }` and
+`plat.darwin ++> main { name }` for a module whose branches import `name` from each.
+
 ```jac
 import from jaclang.comptime { target }
 

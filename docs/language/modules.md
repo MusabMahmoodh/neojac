@@ -194,6 +194,43 @@ A relative import looks in that one place only. One that finds nothing is E1134.
 binds it by name: `util.twice(2)`. It does so in any directory, a package or not, and `as` renames
 it (`import from . { util as u }`); `import from .. { util }` takes the one a directory above.
 
+### A module whose name is no identifier
+
+A module keeps its file's name though the stem is no identifier (`sqlite-error.jac`, as a
+JavaScript package names its files), and is imported by its path, quoted, from the importing
+file's directory and without the extension: `import from "./sqlite-error" { SqliteError }`. The
+quoted path stands wherever a module's path does: in an import in a code body, in `include from`,
+and in a wire, from the archwire's directory (`"lib/sqlite-error" ++> main { SqliteError }`). A
+module whose stem is an identifier is imported by its dotted name.
+
+`sqlite-error.jac` and `main.jac`:
+
+```jac
+obj SqliteError {
+    has code: int = 0;
+}
+
+default glob LIMIT: int = 3;
+```
+
+<!-- example: not checked: needs the file sqlite-error.jac beside it -->
+```jac
+import from "./sqlite-error" { SqliteError, default as lim }
+
+def later -> int {
+    import from "./sqlite-error" { LIMIT }
+    return LIMIT;
+}
+
+with entry {
+    print(SqliteError(code=5).code, lim, later());
+}
+```
+
+```text
+5 3 3
+```
+
 ### `include` and a re-export
 
 `include` makes another module's names this module's own, as if they were written here: a module
