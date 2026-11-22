@@ -82,12 +82,18 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
 tool stops complaining changes what the repository builds.
 
-5. **Say how each Python project's tests are run**, and run them.
+5. **Say how each tree's tests are run**, and run them. A tree is tested only where `jac.toml`
+   names its suite.
 
 ```toml
-[test.pypi."."]
+[test.pypi."."]                    # a Python project: its command
 command = ["pytest", "tests", "--import-mode=append"]
 groups = ["test"]                  # the [dependency-groups] the command needs
+
+[test.npm."."]                     # an npm tree: a script of its package.json
+script = "test"
+
+[test.cargo."."]                   # a crate: neojac cargo test
 ```
 
 ```sh
@@ -105,31 +111,25 @@ neojac test                        # builds the project from the tables, then ru
 - **What the tests need that no group or extra lists** (tiktoken's `pytest` and `hypothesis`
   are named only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
   `neojac install --pypi pytest hypothesis`.
+- **An npm tree's addon is built by the tree's own script first** (`neojac npm run
+  build-release`, or what its `install` runs): neojac does not build a `binding.gyp` yet. Leave
+  a script that needs a tool neojac does not ship (`bun`, `turbo`) unnamed, and report it.
 - **Compare with the repository's own run.** The bar is the same tests passing. A test that
   fails the same way under the repository's own tools on this machine is not yours to fix:
   report it, and deselect it in the command only if the repository's own run does.
 - **Programs the tests start** (`sysctl`, `ifconfig`) must be on `PATH` as they are for the
   repository's own run.
 
-6. **Declare what a Python project's wheel is**, where the repository publishes one, in
-   `archwire.jac`:
-
-<!-- example: not checked: an archwire is one file of a project, and this one's project holds a pyproject.toml -->
-```jac
-graph spaces {
-    space lib: cpython { "."; }
-
-    package tiktoken { ship lib; }
-}
-```
+6. **Build what it publishes.**
 
 ```sh
 neojac build                       # dist/<name>-<version>-<tags>.whl
 ```
 
-The quoted directory is the project's, as `[pypi."<directory>"]` names it. The wheel holds the
-files the repository's own wheel does (`.jac/absorb/*/dist/` has that one, to compare), but for
-files only its build backend writes into the metadata directory (setuptools' `top_level.txt`).
+`neojac absorb --record` declared, in `archwire.jac`, a `cpython` space that holds each Python
+project and a `package` that ships it, named for the project. The wheel holds the files the
+repository's own wheel does (`.jac/absorb/*/dist/` has that one, to compare), but for files only
+its build backend writes into the metadata directory (setuptools' `top_level.txt`).
 
 7. **Draw it.**
 

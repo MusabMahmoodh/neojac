@@ -268,6 +268,8 @@ dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
 - **The package is that project's wheel**, named as the project's own build names it: its name
   and version from its metadata, its tags from the interpreter and the system it was built on.
   Its files are written in one order with one date, so the same sources pack the same wheel.
+- **`neojac absorb --record` writes both declarations** for a Python project it records, named
+  for the project ([Packages](../toolchain/packages.md#recording-a-build)).
 - **A package ships one space, of one Python project, today.** A space of Jac modules, a second
   space, and an npm package from a `node` space are refused as not built yet (E5090).
 - **A package is in no profile**, and a space it ships is held: `neojac check` does not take it

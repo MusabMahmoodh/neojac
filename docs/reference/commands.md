@@ -261,7 +261,7 @@ neojac test <file.jac> -o <runner> [<option>...]
 
 Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
 
-A Python project's own suite is run after them: the command jac.toml's [test.pypi."<directory>"] gives, in the project's directory, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path. A path that is a project's pyproject.toml runs that suite alone, and -k runs none.
+The suites of the project's own trees that jac.toml names are run after them, each in its tree's directory: a Python project's by the command [test.pypi."<directory>"] gives, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path; an npm tree's by the script [test.npm."<directory>"] names; a crate's by `neojac cargo test`, with the arguments of [test.cargo."<directory>"]. A path that is a tree's manifest runs that suite alone, and -k runs none.
 
 Exits with status 1 when a test fails, a suite does or a runner doesn't build, and 5 when there are no tests.
 
@@ -416,7 +416,7 @@ neojac absorb [<directory>] [--check | --record] [--json]
 | Option | What it does |
 |---|---|
 | `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
-| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], and what its wheel holds, as [wheel] |
+| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it |
 | `--json` | Print what it found, and what it wrote, as data |
 
 Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.

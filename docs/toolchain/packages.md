@@ -536,8 +536,9 @@ pyproject.toml: pytest tests --import-mode=append
   is told not to put it first either: `--import-mode=append`, or `importlib`.
 - **A suite that fails fails the run**, with its own output as it printed it.
 - **The project's wheel is a package of the archwire**: a `cpython` space that holds the project
-  by its directory, and `package <name> { ship <space>; }`. `neojac build` packs the built
-  directory into `dist/` ([archwire](../apps/archwire.md#packages)).
+  by its directory, and `package <name> { ship <space>; }`. `neojac absorb --record` writes both,
+  named for the project, and `neojac build` packs the built directory into `dist/`
+  ([archwire](../apps/archwire.md#packages)).
 
 ## Running npm
 
@@ -674,6 +675,10 @@ recorded
   file the project has none of (one its build generated), a file it installs outside its
   packages, or entry points its `[project]` table does not state, is reported, and its table is
   not written. Every Python project with a build is recorded, one with no native code too.
+- **The project's space and its package are declared in `archwire.jac`**, once its wheel is
+  recorded: `space <name>: cpython { "<directory>"; }` and `package <name> { ship <name>; }`,
+  named for the project, in the `graph spaces` block that is there or in a new one. A project a
+  space already holds, and a name a space, an app or a package already has, are left alone.
 - **A build that finds everything already made runs no compiler**, so the record is kept from
   one run to the next. Where a module was built before any record was kept, absorb says so:
   remove what the build left (`build/`, `target/`) and record again.

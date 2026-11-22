@@ -148,6 +148,27 @@ groups = ["dev"]
 |---|---|
 | E5158 | `test.pypi` is not a table of projects, an entry has no `command`, has a key of another type or another key, or names a group or an extra the `pyproject.toml` has none of |
 
+### [test.npm."\<directory\>"] and [test.cargo."\<directory\>"]
+
+The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `test.npm."<directory>".script` | string | The script of the tree's `package.json` that runs its tests: `neojac npm run <script>` |
+| `test.cargo."<directory>".args` | list of strings | What `neojac cargo test` is given besides, `[]` where absent |
+
+```toml
+[test.npm."."]
+script = "test"
+
+[test.cargo.engine]
+args = ["--features", "simd"]
+```
+
+| Code | Cause |
+|---|---|
+| E5158 | `test.npm` or `test.cargo` is not a table of trees, an entry names a directory `jac.toml` holds no tree of, `script` is not a string, `args` is not a list of strings, or there is another key |
+
 ## [dependencies.pypi]
 
 The project's Python packages, which `neojac install` installs into `.jac/venv/` on neojac's CPython and pins in `jac.lock`. See [Python](../interop/python.md) (`neojac docs interop/python`).
