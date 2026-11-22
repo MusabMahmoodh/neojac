@@ -108,6 +108,49 @@ A struct is a value its place holds, not a reference, so `own`, `lin` and
   Counter)`. Its other methods are called through a borrow.
 - **A walker owner is consumed by `spawn`**, which gives it back:
   `res = w spawn s`.
+- **An owner given to a managed place is handed to the managed runtime**: passed to a parameter
+  with no state, appended to a managed container, stored in a managed field or local. From there
+  it is counted, as any managed value is, and it is dropped, its `__del__` run, when its last
+  reference goes.
+
+```jac
+obj Guard {
+    has name: str = "";
+
+    def __del__ {
+        print("  release", self.name);
+    }
+}
+
+def look(g: Guard) -> str {
+    return g.name;
+}
+
+def main {
+    held: list[Guard] = [];
+    g: own Guard = Guard(name="a");
+    held.append(g);
+    print("handed");
+    held.clear();
+    print("cleared");
+    h: own Guard = Guard(name="b");
+    print(look(h));
+    print("looked");
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+handed
+  release a
+cleared
+b
+  release b
+looked
+```
 
 ```jac
 obj Counter {

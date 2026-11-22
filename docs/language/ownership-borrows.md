@@ -24,7 +24,9 @@ moves.
 - **A borrow starts at a parameter, `self`, an `own` value or another
   borrow** (E1323): a managed local may be released while it is used.
 - **One mutable borrow at a time** (E1302), and no change through the owner
-  while a shared borrow is live (E1303).
+  while a shared borrow is live (E1303). A `&mut x` argument and a call of a
+  method whose receiver is `self: &mut` lend `x` mutably for the call, so
+  `r = &a; bump(&mut a); print(r.n)` is E1302.
 - **A shared borrow only reads.** Through `&x`, a `self: &T` receiver or
   the element a shared `flow for` lends, assigning a field is E1320 and
   calling a method that changes the object is E1318. A method changes its
@@ -177,8 +179,12 @@ with entry {
   Overwriting an entry drops the old value at once, `pop` moves one out,
   and the rest drop with the container. An element cannot be moved into
   another owner in place (E1317).
+- **An owned container's items drop with it**: `xs: own list[Buf]` drops
+  each `Buf` it holds where `xs` is dropped, and an owned object's fields go
+  with it the same way, unless something else still holds them.
 - **Storing an owner into a managed object's field seals it** into managed
-  storage: from there it is counted, as any managed value is.
+  storage: from there it is counted, as any managed value is, and dropped
+  when its last reference goes.
 - A [packed list](packed-lists.md) of structs or narrow numbers owns its
   elements by holding them, so `list[own P]` is E1521.
 
@@ -229,7 +235,7 @@ optional field, `swap(&mut p.a, &mut p.b)` of two fields,
 ## What is rejected
 
 ```jac
-# expect: E1302, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
+# expect: E1302 x2, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
 obj Buffer {
     has n: int = 0;
 }
@@ -256,6 +262,13 @@ def two_mutable {
     e1: &mut Buffer = &mut a;
     e2: &mut Buffer = &mut a;
     print(e1.n, e2.n);
+}
+
+def lent_mutably_while_shared {
+    a: own Buffer = Buffer();
+    r = &a;
+    bump(&mut a);
+    print(r.n);
 }
 
 def moved_while_borrowed {
