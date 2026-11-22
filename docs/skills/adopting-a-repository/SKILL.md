@@ -114,6 +114,7 @@ neojac test                        # builds the project from the tables, then ru
 6. **Declare what a Python project's wheel is**, where the repository publishes one, in
    `archwire.jac`:
 
+<!-- example: not checked: an archwire is one file of a project, and this one's project holds a pyproject.toml -->
 ```jac
 graph spaces {
     space lib: cpython { "."; }
