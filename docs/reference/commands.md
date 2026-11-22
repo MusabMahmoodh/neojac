@@ -303,20 +303,23 @@ Its guide: [toolchain/fmt](../toolchain/fmt.md) (`neojac docs toolchain/fmt`).
 Translate source in another language into Jac.
 
 ```sh
-neojac port [--check] [-o <out>] [<option>...] <path>...
+neojac port [--check [--json]] [-o <out>] [<option>...] <path>...
 neojac port --mapping <language>
 ```
 
 | Option | What it does |
 |---|---|
-| `--check` | Write nothing: report what would port and what is refused, and exit with status 1 if anything is |
-| `-o <out>` | Where to write: a .jac file for one source, else a directory (default: beside each source) |
+| `--check` | Write nothing: report what would port and what is refused, and in a project the plan, and exit with status 1 if anything is refused |
+| `--json` | With --check, print what would port and the plan as data |
+| `-o <out>` | Where to write, for sources outside a project: a .jac file for one source, else a directory (default: beside each source) |
 | `--mapping <language>` | Print what port makes of each construct of a language: c, c++, rust, python or javascript |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments.
 
-A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. The source is never changed, and an output that is already there is refused (E4003).
+A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. An output that is already there is refused (E4003).
+
+In a project, a path is read as the project says, and porting a file moves its module in one change: the Jac is written beside the source, the source is moved to replaced-by-neojac/, its imports of the project's modules become ++> wires and its tables in jac.toml are updated, all of it only if the project then checks (E4008). Outside a project, the source is never changed.
 
 | Example | What it does |
 |---|---|

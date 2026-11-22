@@ -27,6 +27,7 @@ element ::=
     | enum_decl
     | test_decl
     | docstring_target
+    | default_element
     | ability
     | global_vars
     | comptime_element
@@ -43,19 +44,26 @@ type_alias ::= "type" access_tag (KEYWORD | NAME) ("[" type_params "]")? (":=" |
 
 import_stmt ::= "comptime"? ("include" | "import" "type"?) ("from" from_path import_items? | (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)? ("," (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)?)* ";")
 
-archetype ::= decorators "async"? ("struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
+archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
 
 enum_decl ::= decorators "enum" access_tag NAME (":" atomic_chain | "(" atomic_chain ("," atomic_chain)* ")")? ("{" (enum_member "," | module_code)* "}" | ";")
 
 test_decl ::= decorators "test" STRING? block
 
-docstring_target ::= STRING (test_decl | enum_decl | type_alias | global_vars | comptime_element | impl_def | module_code | decorated)
+docstring_target ::= STRING (test_decl | enum_decl | type_alias | global_vars | comptime_element | impl_def | module_code | default_element | decorated)
+
+default_element ::= "default" (global_vars | decorated)
 
 ability ::= decorators "comptime"? "override"? "class"? "static"? "async"? ("def" | "can") access_tag (NAME | "init" | "postinit")? ("[" type_params "]")? (event_sig | func_signature) where_clause? (block | ("by" expression | "abst")? ";")
 
 global_vars ::= "glob" access_tag global_var ("," global_var)* ";"
 
-comptime_element ::= ability | import_stmt | assert_stmt | comptime_global
+comptime_element ::=
+    comptime_decls
+    | ability
+    | import_stmt
+    | assert_stmt
+    | comptime_global
 
 graph_import ::= "graph" "import" wire_module_path? "{" (STRING import_rule | import_rule | import_wire)* "}"
 
@@ -89,7 +97,7 @@ inherit_list ::= (call_arg ("," call_arg)* ","?)?
 
 where_clause ::= "where" expression ("," expression)?
 
-archetype_member ::= (STRING? (ability | has_stmt | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
+archetype_member ::= (STRING? (ability | has_stmt | members_if | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
 
 atomic_chain ::= atom ("?" (("<." | "." | ".>")? attr_name | index_slice) | ("<." | "." | ".>") attr_name | "(" ("=" (kw_arg ("," kw_arg)* ","?)? | call_args) ")" | "[" filter_body | index_slice)*
 
@@ -104,6 +112,8 @@ func_signature ::= ("(" func_params ")")? ("->" pipe)?
 expression ::= lambda_expr | concurrent ("if" expression "else" expression)?
 
 global_var ::= NAME (":" ownership_prefix pipe)? ("=" expression ("=" expression)*)?
+
+comptime_decls ::= "comptime" "if" expression decls_block ("elif" expression decls_block)* ("else" decls_block)?
 
 assert_stmt ::= "comptime"? "assert" expression ("," expression)? ";"
 
@@ -147,6 +157,8 @@ call_arg ::= kw_arg | ("**" | "*") expression | expression compr_clauses?
 
 has_stmt ::= "static"? "has" access_tag has_var ("," has_var)* ";"?
 
+members_if ::= "comptime"? "if" expression members_block ("elif" expression members_block)* ("else" members_block)?
+
 stmt ::=
     jsx_element ";"?
     | comptime_stmt
@@ -157,6 +169,7 @@ stmt ::=
     | forever_stmt
     | for_stmt
     | with_stmt
+    | defer_stmt
     | try_stmt
     | match_stmt
     | switch_stmt
@@ -213,6 +226,8 @@ concurrent ::= ("flow" | "wait") walrus | walrus
 
 ownership_prefix ::= ("own" | "lin" | "imm" | "&" "mut"?)?
 
+decls_block ::= "{" element* "}"
+
 module_pattern ::= "*" | wire_module_path ("." "*")?
 
 wire_payload ::= "{" (("*" | any_word | NAME) ("as" NAME)? ("," ("*" | any_word | NAME) ("as" NAME)?)* ","?)? "}"
@@ -223,13 +238,15 @@ name_list ::= NAME ("," NAME)* ";"
 
 stmts ::= stmt*
 
-logical_or ::= logical_and ("or" logical_and)*
+logical_or ::= logical_and (("or" | "??") logical_and)*
 
 any_word ::= NAME | KEYWORD
 
 compr_clauses ::= compr_clause+
 
-has_var ::= NAME ":" pipe ("=" expression | "postinit")? ("{" accessor* "}")?
+has_var ::= NAME ":" pipe (":" expression)? ("=" expression | "postinit")? ("{" accessor* "}")?
+
+members_block ::= "{" archetype_member* "}"
 
 jsx_element ::=
     "<>" jsx_children "</>"
@@ -254,6 +271,8 @@ forever_stmt ::= "forever" block
 for_stmt ::= "comptime"? "async"? "flow"? "for" atomic_chain ("=" expression "while" expression "with" atomic_chain assignment? | "in" expression) block else_stmt?
 
 with_stmt ::= "async"? "with" with_item ("," with_item)* block
+
+defer_stmt ::= "defer" block stmts
 
 try_stmt ::= "try" block ("awaiting" block)? except_clause* else_stmt? ("finally" block)?
 
@@ -456,6 +475,6 @@ OPERATOR ::=
     | ":->" | ":+>" | ":<-" | ":<+" | ":>" | ":=" | ":" | "..." | ".>" | "." | "**="
     | "*%=" | "*|=" | "**" | "*=" | "*%" | "*|" | "*" | "//=" | "//" | "/=" | "/>" | "/"
     | ">>=" | ">=" | ">>" | ">" | "==" | "=" | "!=" | "|>" | "|=" | "|" | "@=" | "@"
-    | "&=" | "&" | "%=" | "%" | "^=" | "^" | "?" | "(" | ")" | "[" | "]" | "{" | "}"
-    | "," | ";" | "~"
+    | "&=" | "&" | "%=" | "%" | "^=" | "^" | "??" | "?" | "(" | ")" | "[" | "]" | "{"
+    | "}" | "," | ";" | "~"
 ```
