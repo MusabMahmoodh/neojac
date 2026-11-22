@@ -244,6 +244,56 @@ with entry {
 j a c -1
 ```
 
+### Bit-fields and arrays
+
+A width after a field's type makes it a **bit-field**, as C's `unsigned ready : 1;`. Its type is
+an integer type, or `bool`, at least that wide (E2263), and its width an integer literal (E0181).
+A run of bit-fields packs into units of their type, and one that would cross its unit's end starts
+the next, as the Itanium and AAPCS layouts place it. Reading one gives its bits as its type,
+sign-extended for a signed type; writing one writes its bits and keeps the rest of its unit,
+truncating the value as C does. Only a C record has bit-fields (E2262): a Jac struct's layout is
+not C's.
+
+A field of type `array[T, N]`, `T` a number or an array of them, is a C array in the record, laid
+out as C lays it out. `r.name` is the array in place, so `r.name[0] = v` writes the record's
+memory, and assigning the field copies a whole array in.
+
+```jac
+import from c {
+    obj Flags {
+        has ready: u32: 1,
+            level: i32: 3,
+            code: u32: 30,
+            after: u8;
+    }
+
+    obj Label {
+        has name: array[i8, 16],
+            flags: i16,
+            extra: array[u32, 2];
+    }
+}
+
+with entry {
+    f = Flags(ready=u32(1), level=i32(-2), code=u32(5));
+    f.level = i32(9);
+    print(f.ready, f.level, f.code, f.after);
+    buf = Label(name=array[i8, 16](), flags=i16(3), extra=array[u32, 2](u32(0), u32(7)));
+    buf.name[0] = i8(65);
+    print(buf.name[0], buf.extra[1]);
+}
+```
+
+```output
+1 1 5 0
+65 7
+```
+
+`f.level = i32(9)` keeps 9's low three bits, 1.
+
+A C `union` is a Jac `union` ([Structs](../language/structs.md#unions)), declared in an import
+block as a record is.
+
 ## Passing addresses
 
 A parameter declared `&T` or `&mut T` takes the address of a variable or field of the caller:
@@ -289,7 +339,8 @@ with entry {
 30 20 10 5
 ```
 
-Only a named function can be a callback; a lambda or a bound method cannot (E1195). `None`
+Only a named function can be a callback; a lambda or a bound method cannot (E1195), and a
+`Callable` record field is assigned a named function, `None` or a conversion of one (below). `None`
 passes `NULL`, which removes a callback where C says so. A `str`
 parameter of a callback receives C's `const char *` as a `str`. A callback's signature cannot
 take `bytes` or a `bytearray` (C passes no length), a C record by value, or another callback
@@ -319,6 +370,35 @@ with entry {
 
 ```output
 60
+```
+
+A function converts to another function pointer type, or to a pointer, by calling the type, as a
+data pointer converts by `ptr[T](p)`: `Callable[[int], int](f)` of a named function `f` is its
+C address as a function pointer of that type, and `ptr(f)` (or `ptr[T](f)`) the same address as
+a pointer. `Callable[[P], R](p)` of a `ptr` calls the address by the new type, as C's cast does:
+a signature that disagrees with the function's is undefined, as in C.
+
+```jac
+import from c {
+    obj Op {
+        has run: Callable[[int], int];
+    }
+}
+
+def negated(n: int) -> int {
+    return -n;
+}
+
+with entry {
+    slot = ptr(negated);
+    back = Callable[[int], int](slot);
+    m = Op(run=Callable[[int], int](negated));
+    print(back(4), m.run(5), slot.is_null());
+}
+```
+
+```output
+-4 -5 False
 ```
 
 ## Globals
@@ -352,6 +432,14 @@ with entry {
 
 `addressof(x)` gives the address of a C global or of a C record value, as a `ptr[T]`. It takes
 nothing else (E1154).
+
+- **`glob:priv name: T = value;`** in an import block is C data that is the module's alone, as C's
+  `static` at file scope: its symbol is internal and named for the module, so it never meets a
+  library's symbol of that name, nor another module's. Without `:priv` the data keeps its C name,
+  for the module's C files to use.
+- **A `glob` of an opaque record** (`glob first_counter: counter;`, C's `extern counter
+  first_counter;`) is bound, and used through its address: `counter_next(addressof(
+  first_counter))`. Reading it as a value is E1151, since its size is C's alone.
 
 ## Naming the library, and how a program links
 
@@ -415,7 +503,10 @@ with entry {
 |---|---|
 | E5090 | A type C cannot take (a list, a dict, a Jac object), a function with a body, a base or method on a record |
 | E1150 | A C record contains itself by value |
-| E1151 | An opaque C type is constructed or held by value |
+| E1151 | An opaque C type is constructed or held by value, or a global of one read as a value |
+| E0181 | A bit-field's width that is not an integer literal |
+| E2262 | A bit-field outside a C record |
+| E2263 | A bit-field wider than its integer type, or of a type that is no integer |
 | E1152 | A borrow parameter, or `pin()`, of something that is not C plain data |
 | E1053 | An argument of another type than the parameter's, an `i64` where an `i32` is declared among them |
 | E1153 | A C array's name used as a list: indexed, assigned or passed, where only `addressof()` of it is a value |
@@ -423,7 +514,7 @@ with entry {
 | E1155 | A C array defined by anything but a list literal |
 | E1157 | A variadic argument that is no C scalar, pointer, `str`, `bytes` or `bytearray` |
 | E1158 | A C function declared with `**kwargs` |
-| E1195 | A lambda or bound method passed as a callback |
+| E1195 | A lambda or bound method passed as a callback, or assigned to a `Callable` field of a C record |
 
 `neojac docs E1150` prints any of these with its message. The codes of naming a library
 (E5148, E5149, W5021) are in [Naming and linking a C library](c-libraries-linking.md).
