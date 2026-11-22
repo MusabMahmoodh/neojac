@@ -1,6 +1,6 @@
 ---
-description: Rust crates as modules of a Jac program - what a crate's interface gives Jac, calling back into Jac and C, how crates are compiled, cached and linked into the one binary, and what goes wrong.
-keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
+description: Rust crates as modules of a Jac program - what a crate's interface gives Jac, Rust's own API used natively (std's types, a crate's items, generics, enums, traits a Jac struct conforms to, closures, panics, drops), calling back into Jac and C, how crates are compiled, cached and linked into the one binary, and what goes wrong.
+keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
 ---
 # Rust modules
 
@@ -166,8 +166,109 @@ with entry {
 
 A public item the interface cannot express is left out, and importing it says why (E5138): a
 `pub fn` that isn't `extern "C"` (`it isn't extern "C"`), one without a fixed name, one whose
-types C cannot pass. Rust's own types (`String`, `Vec`, generics, methods) do not cross; pass
-pointers and C types, and keep Rust's values behind an opaque handle as `Tally` is above.
+types C cannot pass. Through `extern "C"`, Rust's own types (`String`, `Vec`, generics, methods) do not cross; use
+them natively ([below](#rusts-own-api-natively)), or keep them behind an opaque handle as `Tally`
+is above.
+
+## Rust's own API, natively
+
+A program also uses Rust as Rust declares it, with no `extern "C"`: rustc reads the items, and
+each call goes through a shim it compiles.
+
+- **`import from std.collections { BinaryHeap }`** names a Rust item by its path, for `std`,
+  `core` (written through `std`) and `alloc`, anywhere. A module of the program of that name
+  wins over the crate.
+- **A crate's ordinary public items** (functions, structs and their methods, enums) are imported
+  through a wire from the crate, or an import where the project has no `archwire.jac`. A Jac
+  file inside a crate names the crate's dependencies by their Rust paths
+  (`import from adder { Bag }`), and a file outside it does not.
+- **A generic is instantiated by its arguments**: `Vec[u32].new()`, `Stack[u32]`,
+  `Option[Ordering].Some(o)`. An argument is a Rust type, a number type, a tuple of numbers
+  (`Vec[tuple[u64, u32]]`, which crosses as a Jac tuple), or a struct of the program whose fields
+  are all numbers, which Rust sees as a `#[repr(C)]` copy of it.
+- **What crosses**: numbers and `bool` as they are; `&str` as a `str`, `&[u8]` as `bytes`; Rust's
+  own values (`String`, `Vec`, a crate's struct) as owned Jac objects, which Rust drops when Jac
+  lets them go. A parameter Rust takes by value moves the object, and leaves the Jac object
+  empty. `v[i]` reads and writes through `Index<usize>`; a field of an element is not a place
+  (E1504), so `e = v[i]; e.x = 1; v[i] = e;`.
+- **An enum** is a class whose variants are its values: `Ordering.Less`, `o.reverse()`,
+  `o == Ordering.Less`; it prints as `Ordering.Less`.
+- **A trait** is an interface a Jac struct conforms to: listed as a base, its methods written in
+  Jac (`cmp`, `eq`), which Rust calls. `BinaryHeap[Job]` orders the program's `Job`s by its `cmp`.
+- **A closure** Rust calls before it returns (`then_with`, `map`) is a Jac lambda, and an exception
+  it raises passes out through Rust to the Jac that called it.
+- **A panic** is the Jac exception `RustPanic`, of `import from rust { RustPanic }`.
+- **A value whose drop runs code** (rustc's significant drop: a guard, a lock, a collection) is
+  owned and dropped where its scope ends, so it is bound with `own` (E1256;
+  [Ownership](../language/ownership.md#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
+
+```jac
+import from rust { RustPanic }
+import from std.cmp { Eq, Ord, Ordering, PartialEq, PartialOrd }
+import from std.collections { BinaryHeap }
+import from std.option { Option }
+import from std.vec { Vec }
+
+def order_of(a: u32, b: u32) -> Ordering {
+    if a < b {
+        return Ordering.Less;
+    }
+    return Ordering.Greater if a > b else Ordering.Equal;
+}
+
+"""A job, ordered by its rank, the lowest first."""
+struct Job(Ord, PartialOrd, Eq, PartialEq) {
+    has start: u32 = 0,
+        rank: u32 = 0;
+
+    def cmp(other: &Job) -> Ordering {
+        return order_of(other.rank, self.rank).then(order_of(other.start, self.start));
+    }
+
+    def partial_cmp(other: &Job) -> Option[Ordering] {
+        return Option[Ordering].Some(self.cmp(other));
+    }
+
+    def eq(other: &Job) -> bool {
+        return self.start == other.start and self.rank == other.rank;
+    }
+}
+
+with entry {
+    heap: own BinaryHeap[Job] = BinaryHeap[Job].new();
+    heap.push(Job(start=u32(0), rank=u32(3)));
+    heap.push(Job(start=u32(2), rank=u32(1)));
+    heap.push(Job(start=u32(1), rank=u32(1)));
+    order: list[str] = [];
+    while not heap.is_empty() {
+        j = heap.pop().unwrap();
+        order.append(f"{j.start}/{j.rank}");
+    }
+    print(order);
+    o = Ordering.Less;
+    print(o.reverse(), Ordering.Equal.then_with(lambda -> Ordering { return o; }));
+    pairs: own Vec[tuple[u64, u32]] = Vec[tuple[u64, u32]].new();
+    pairs.push((u64(3), u32(7)));
+    pairs[0] = (u64(4), u32(8));
+    print(pairs.len(), pairs[0]);
+    try {
+        Vec[u32].new().pop().unwrap();
+    } except RustPanic as e {
+        print("panic:", e);
+    }
+}
+```
+
+```output
+['1/1', '2/1', '0/3']
+Ordering.Greater Ordering.Less
+1 (4, 8)
+panic: called `Option::unwrap()` on a `None` value
+```
+
+An item rustc reports that Jac cannot bind is left out with its reason (E5138): a type that
+borrows (holds a reference), a `Copy` type of another crate. Rust items that cannot be read or
+built at all are E5190.
 
 ## Calling Jac and C from Rust
 
@@ -315,6 +416,9 @@ graph import {
 | E5137 | cargo cannot resolve the module (a bad `Cargo.toml`, a dependency it cannot fetch) |
 | E5139 | The crate's interface cannot be read |
 | E5141 | A wire into a crate other than names from a Jac module or a C module whole |
+| E5190 | Rust items the program imports natively cannot be read or built; the message says why |
+| E2270 | A Jac file of a crate imports from a dependency that a Jac or Python module is also named |
+| E1256 | A value whose drop runs code is bound without `own` |
 
 ## Differences from Python and from the reference design
 
