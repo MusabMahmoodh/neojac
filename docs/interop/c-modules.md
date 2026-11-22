@@ -471,8 +471,6 @@ double shapes_jac_scaled(double x, int32_t *calls) {
   C: a C use of a name it declares is a use of the Jac module. This is how a C file that
   [`neojac port`](../toolchain/port.md#in-a-project) made Jac is still called by the C of its
   module that stays.
-- **A Jac module's C data** (`glob` in `import from c`) is a name it gives as its functions are:
-  a wire carries it, and its header declares it `extern`.
 - **A C module built into a shared library** cannot call the program's Jac (E5183): a C module
   that calls Jac is linked into the program.
 
