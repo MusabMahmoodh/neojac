@@ -201,7 +201,10 @@ JavaScript package names its files), and is imported by its path, quoted, from t
 file's directory and without the extension: `import from "./sqlite-error" { SqliteError }`. The
 quoted path stands wherever a module's path does: in an import in a code body, in `include from`,
 and in a wire, from the archwire's directory (`"lib/sqlite-error" ++> main { SqliteError }`). A
-module whose stem is an identifier is imported by its dotted name.
+stem that holds a dot is no identifier either: `types.gen.jac` is imported as
+`import from "./types.gen" { Row }`, since `.types.gen` would name `gen` in a package `types`. A
+module whose stem is an identifier is imported by its dotted name, and a quoted path to one is
+E2310: `import from "./util" { two }` is `import from .util { two }`.
 
 `sqlite-error.jac` and `main.jac`:
 

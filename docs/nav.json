@@ -948,6 +948,10 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
+              "title": "E1615 to E1618: type parameter packs",
+              "page": "reference/diagnostics/e16.md"
+            },
+            {
               "title": "E2009 to E2088: declarations, impls and misplaced statements",
               "page": "reference/diagnostics/e20-1.md"
             },
@@ -976,7 +980,7 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
-              "title": "E2240 to E2290: imports in code, defaults, unions, bit-fields, crates and comptime if",
+              "title": "E2240 to E2310: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if and quoted paths",
               "page": "reference/diagnostics/e22-4.md"
             },
             {

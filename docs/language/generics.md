@@ -1,6 +1,6 @@
 ---
-description: Type parameters on functions and methods: what a call infers, what a type parameter provides under its bound, generic methods, and what is rejected.
-keywords: generics, generic, generic function, generic method, type parameter, type argument, type arguments, bound
+description: Type parameters on functions and methods: what a call infers, type parameter packs, what a type parameter provides under its bound, generic methods, and what is rejected.
+keywords: generics, generic, generic function, generic method, type parameter, type argument, type arguments, bound, type parameter pack, variadic
 grammar: type_params, type_param
 ---
 # Generics
@@ -20,7 +20,7 @@ parameter`), and give classes type parameters, described on
 ```ebnf
 type_params ::= type_param ("," type_param)* ","?
 
-type_param ::= "comptime"? NAME (":" pipe)? ("=" pipe)?
+type_param ::= "*" NAME | "comptime"? NAME (":" pipe)? ("=" pipe)?
 ```
 
 The brackets go after the name of a function, a method, an archetype or a
@@ -40,6 +40,7 @@ A type parameter is one of:
 | `T` | A type parameter, any type |
 | `T: Named` | A type parameter bounded by the class `Named` |
 | `T: Shape`, `T: Shape & Named` | A type parameter bounded by one or several [interfaces](interfaces.md) (several joined by `&`) |
+| `*Ts` | A [type parameter pack](#type-parameter-packs): the types of a function's `*` parameter, one for each argument a call gives it |
 
 A type parameter is compile-time already, so the word `comptime` marks only
 value parameters: before a type parameter it is E1479 (see
@@ -139,6 +140,67 @@ with entry {
 ```
 
 `running([1, 2], 0.5)` is a call with `T` as `any`: its `int`s stay `int`s.
+
+## Type parameter packs
+
+A type parameter written `*Ts` is a pack: it stands for the types of every
+argument a call gives the function's `*` parameter, each its own, so the `*`
+parameter is written `*args: *Ts`. Each call is compiled for its
+arguments' types, as a call of any generic function is for its type
+arguments, and `args` is the tuple of them: `len(args)` is a number the
+call fixes, a loop over it sees each value as it is, and a call spreads it
+(`*args`) to give another function those same arguments, with their types.
+
+```jac
+import from c {
+    def snprintf(buf: bytearray, n: int, fmt: ptr[i8], *args: any) -> i32;
+}
+
+def described[*Ts](head: str, *args: *Ts, sep: str = ",") -> str {
+    return head + str(len(args)) + sep + sep.join([str(x) for x in args]);
+}
+
+def forwarded[*Ts](*args: *Ts) -> str {
+    return described("f", *args, sep="+");
+}
+
+def formatted[*Ts](fmt: ptr[i8], *args: *Ts) -> str {
+    buf = bytearray(64);
+    n = snprintf(buf, len(buf), fmt, *args);
+    return buf[:n].decode();
+}
+
+with entry {
+    print(described("n", 1, "a", 2.5));
+    print(forwarded(True, None));
+    print(described("t", *(1, "b")));
+    print(formatted(ptr[i8]("%d of %s"), i32(7), ptr[i8]("seven")));
+}
+```
+
+```output
+n3,1,a,2.5
+f2+True+None
+t2,1,b
+7 of seven
+```
+
+`formatted` passes its arguments to C's `snprintf` with the types its
+caller gave them, an `i32` as C's `int` and a `ptr[i8]` as a `char *`,
+which is what C's `...` takes: a C function that takes `...` is ported as
+such a function ([Porting C](../interop/port-c.md)).
+
+- **A pack is a function's or a method's**, one at most, and it types its
+  `*` parameter and nothing else: a class or a type alias with one, a
+  second pack, a pack no `*` parameter is typed by, and `Ts` written
+  anywhere but `*args: *Ts` are E1615. A `*` parameter typed `*U` where `U`
+  is no pack of the function is E1616.
+- **Its types are given by the call's arguments, one by one.** A call that
+  writes type arguments (`count[int](1)`) is E1617. A spread of a tuple
+  gives one argument for each of its items; a spread of a list, whose length
+  the call does not know where it is compiled, is E1618.
+- Parameters after the `*` parameter are keyword-only, as for any `*`
+  parameter (`sep` above).
 
 ## What a type parameter provides
 
@@ -323,6 +385,8 @@ you want.
 | E1110, E1030, ... | A body uses what its parameters' bounds do not provide |
 | E1284 | The same, in a body bounded by interfaces, reported at the declaration |
 | E2195 | An override with another number of type parameters |
+| E1615, E1616 | A type parameter pack where a pack cannot be, and a `*` parameter typed by no pack of its function |
+| E1617, E1618 | A call of a function with a pack that writes type arguments, or spreads a list into the pack |
 | E5090 | A generic function or method as a value; a default for a type parameter; an override among methods compiled for each call |
 
 ```jac

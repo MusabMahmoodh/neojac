@@ -201,7 +201,8 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   (`.jac/port/journal.json`: the texts it replaces, the files it makes, the sources it moves)
   before it is applied, and the journal goes once the change is final. Ctrl-C puts the change
   back at once; after a kill, the next `neojac port` in the project undoes what the journal
-  holds, and says so, before it does anything else.
+  holds, and says so, before it does anything else. Until then the project is neither as it was
+  nor as the port would leave it, and `neojac check` and `neojac build` refuse to read it (E4013).
 
 ## Outside a project
 
@@ -221,7 +222,9 @@ module it is in (the `cmodule.toml` above it).
 - **The source is never changed**, and neither is a `cmodule.toml`, a `Cargo.toml`, an
   `archwire.jac` or a `jac.toml`.
 - **The files of a C module port together.** Nothing wires a Jac module into the C that stays,
-  so a file is refused while a source that calls it stays C (E4002).
+  so a file is refused while a source that calls it stays C (E4002). A function defined with
+  `...` is a Jac function with a [type parameter pack](../language/generics.md#type-parameter-packs),
+  which C cannot call in a project either: it ports with the C files that call it (E4031).
 
 ## Platforms
 
@@ -265,6 +268,7 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4012 | A module that imports one the run does not port, held back with it |
 | E4016 | A Python source importing a module neojac cannot find |
 | E4030 | A C file calling a header's `static inline` function, where no C module holds the header |
+| E4031 | A C function defined with `...`, which a C file the run does not port calls |
 | E4043 | A unity build's source, held back because a file it includes is refused |
 
 - **A source its own compiler rejects** is reported by that compiler, under its own code

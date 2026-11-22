@@ -198,6 +198,12 @@ as C's default promotions pass it: an integer as a 64-bit word, a float as a `do
 `bytes`, `bytearray` or pointer as an address. Any other argument is refused (E1157). A C
 function takes no `**kwargs` (E1158).
 
+A Jac function that takes arguments as C's `...` does, and passes them on to a variadic C
+function, takes them as a [type parameter pack](../language/generics.md#type-parameter-packs):
+`def say[*Ts](fmt: ptr[i8], *args: *Ts) -> i32 { return printf(fmt, *args); }` is compiled for
+each call's arguments, and passes each with its own type. This is how `neojac port` writes a C
+function defined with `...` ([Porting C](port-c.md)); C cannot call it.
+
 C's `printf` writes through the C library's own buffer, which Jac's `print` does not share:
 mixing the two can reorder a program's output. Format into a buffer with `snprintf`, as above,
 or use `print`.
