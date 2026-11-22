@@ -25,7 +25,9 @@ glob COLUMNS: str = "id, size, type, made, whole";
 
 """The file a result's line holds."""
 def kept_of(r: any) -> Kept {
-    return Kept(id=str(r[0]), size=int(r[1]), ctype=str(r[2]), made=float(r[3]), whole=int(r[4]) != 0);
+    return Kept(
+        id=str(r[0]), size=int(r[1]), ctype=str(r[2]), made=float(r[3]), whole=int(r[4]) != 0
+    );
 }
 
 obj LocalFiles(Files) {
