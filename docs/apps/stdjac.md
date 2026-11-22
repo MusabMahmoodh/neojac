@@ -86,7 +86,8 @@ runtime from `"@jac/runtime"` instead ([Pages](pages.md#jacruntime)).
 `File` is a module of its own on each side: where a program keeps files it is stdjac's `files`,
 and in a browser or hermes space its `page_files`, whose `File` holds what the page has and is
 sent when it crosses ([Files](files.md#in-a-page)). The two declare the same three fields, which
-is what crosses. A cpython, node or wasm space has neither yet, and `File` there is E5090.
+is what crosses. A cpython space has the first, as a native one has. A node or wasm space has
+neither yet, and `File` there is E5090.
 
 ## The modules the build adds
 

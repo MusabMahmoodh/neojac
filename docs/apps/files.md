@@ -39,8 +39,8 @@ def:protect add_photo(image: File, caption: str) -> Photo {
 
 ## In a space
 
-A native space of a serving app makes a `File` from bytes, or from an iterator of bytes for a file
-made a piece at a time, and reads one whole or in pieces:
+A native or cpython space of a serving app makes a `File` from bytes, or from an iterator of bytes
+for a file made a piece at a time, and reads one whole or in pieces:
 
 <!-- example: not checked: a served app's module -->
 ```jac
@@ -212,10 +212,10 @@ space, as it sends the call on, and answers a request for a file of that space w
 
 | Host | A `File` |
 |---|---|
-| `native`, in a serving app | Is made, kept, read and swept |
+| `native` and `cpython`, in a serving app | Is made, kept, read and swept. The spaces an app runs keep their files in one place, so a `File` one made names the same file to the others, and a sweep in one leaves what another's nodes hold |
 | `native`, in a program with an `entry` | Is held and given back. Making or reading one is a `RuntimeError` |
 | `browser`, `hermes` | Is made from a `Blob` or bytes, sent when it crosses, shown by `url()`, read with `await` |
-| `cpython`, `node`, `wasm` | Is refused where it is said (E5090): not built yet |
+| `node`, `wasm` | Is refused where it is said (E5090): not built yet |
 
 A native program that gives another app a `File` gives its three fields. The app that answers
 holds it to the files it keeps, so the call is rejected unless the two keep their files in one
@@ -229,4 +229,4 @@ place.
 | A call is `rejected`: `a File that names no kept file` | The `File` was swept, or was made by another app that keeps its files elsewhere |
 | `FileError: its bytes are not image/png's` | The bytes begin as another type's |
 | A picture is gone an hour after it was sent | No kept node held it: the endpoint did not keep the `File` it was given |
-| `neojac does not support `File` in a cpython space yet` | A module of a cpython, node or wasm space says `File` |
+| `neojac does not support `File` in a node space yet` | A module of a node or wasm space says `File` |

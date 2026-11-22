@@ -215,7 +215,7 @@ JAC_API_DATA=/var/lib/api dist/api-linux-x86_64
 ```
 
 A `cpython` space that a native app runs in its own process keeps a graph of its own, in
-`<data directory>/<space>/graph.db`.
+`<data directory>/<space>/graph.db`. Its files are the app's, in `files/` with the rest.
 
 ## Data that no longer fits
 
