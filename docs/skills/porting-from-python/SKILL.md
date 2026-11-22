@@ -16,7 +16,14 @@ neojac docs start/coming-from-python   # every Python form beside Jac's, with th
 neojac docs library                    # which standard modules are native
 ```
 
-Try `neojac port stock.py` first (`neojac docs port`). It translates a core of Python mechanically, into Jac that behaves as the file does with every name an `any`, and says exactly which constructs it refuses (`neojac port --check stock.py`). The steps below are for what it refuses, and for giving a port its types.
+Try `neojac port stock.py` first (`neojac docs port`). It translates Python mechanically, into Jac that behaves as the file does, with every name an `any` and each annotation carried as the Python object the source named, and says exactly which constructs it refuses (`neojac port --check stock.py`). The steps below are for what it refuses, and for giving a port its types.
+
+In a project (a `jac.toml` above the file, as `neojac absorb` writes one), port reads the file as the project builds it, and a port is one change:
+
+- `neojac port --check <dir>` prints the plan: each module after the modules it imports, and modules that import each other as one group. Port in that order, a step at a time, and run the project's tests after each.
+- `neojac port shop/use.py` writes `shop/use.jac`, moves `use.py` to `replaced-by-neojac/shop/use.py`, writes its imports of the project's modules as wires in `archwire.jac`, and does all of it only if the project then checks (E4008). Nothing is half done: on a refusal, every file is as it was.
+- A module of the project imported by a script in no space is refused (E4009): put the script in a space, or port it too.
+- A class Python makes (a `NamedTuple` or SQLModel base, `@dataclass`, a run-time `if` in its body) and a decorated function stay Python's in a `cpython` space; natively they are E5174 and E5175 (`neojac docs interop/python-classes`).
 
 Record what the Python does before you change it: run it on inputs that exercise each path and keep the output (`python3 stock.py > py.out`). That file is the port's acceptance test.
 

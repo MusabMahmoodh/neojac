@@ -9,8 +9,8 @@ description: Use when a repository written in Python, JavaScript, TypeScript, Ru
 Use it when a repository that neojac did not make is to become a neojac project: its manifests
 held by `jac.toml`, its files wired in `archwire.jac`, and no source file changed.
 
-- Translating its source into Jac comes after, a file at a time: `porting-from-python`, and
-  `neojac docs toolchain/port`.
+- Translating its source into Jac comes after, a module at a time, in the order
+  `neojac port --check` plans: `porting-from-python`, and `neojac docs toolchain/port`.
 - Adding a package to a project that is already neojac's is `using-npm-packages` or
   `using-python-packages`, not this.
 
@@ -166,6 +166,21 @@ each of its pins was reproduced or accepted.
   `neojac test`, with the same tests passing.
 - **Say what the repository gives up**: an install from its source by pip or npm, and tools
   that read its manifests without neojac.
+
+## Porting it to Jac, after
+
+Once the project is adopted and its tests pass on neojac, its source can move to Jac a module at a
+time, each step leaving a project that builds:
+
+```sh
+neojac port --check                # what would port, what is refused, and the plan
+neojac port shop/mathx.py          # one module: its Jac, the source to replaced-by-neojac/, its wires
+neojac test                        # the same tests passing, after each step
+```
+
+Port in the plan's order: each module after the modules of the project it imports. Each port is
+one change, made only if the project then checks (E4008), and a C file the rest of its C module
+still calls is called through the header beside its Jac. Commit after each step.
 
 ## What a correct result looks like
 
