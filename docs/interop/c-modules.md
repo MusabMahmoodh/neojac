@@ -296,7 +296,7 @@ Nothing needs to be `extern "C"`.
 |---|---|
 | A class | An `obj`, its methods called as Jac's: `r.area()`, `Figure.alive()` for a static one |
 | A constructor | `C.make(args)`; a class that declares none has `make()` |
-| A copy | `v.__copy__()`; the C++ object is destroyed where its `own` owner's scope ends when its destructor runs code ([below](#c-values-whose-destructor-runs-code)), and by `__del__`, when the Jac object is freed, when it does not |
+| A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
 | A result by value | Owned by Jac; a result by reference is borrowed |
