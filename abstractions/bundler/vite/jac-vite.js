@@ -59,6 +59,10 @@ export default function jac({ assets } = {}) {
         replacement: path.join(job.src, to),
     }));
     alias.push({ find: /^\$src\//, replacement: job.top + "/" });
+    // The space's Jac modules a file of the project imports, each by the place
+    // of the JavaScript file it stands as (`tone.jac` as `tone.js`), and the
+    // module's forwarder in the compiled space, which gives it to JavaScript.
+    const jacModules = bundle.jac_modules || {};
     let parsed = 0;
     let resolved = null;
     let watched = [];
@@ -95,8 +99,15 @@ export default function jac({ assets } = {}) {
                 resolve: { alias },
             };
         },
-        resolveId(id) {
+        resolveId(id, importer) {
             if (id === "/@jac/entry") return path.join(job.src, bundle.entry);
+            // A file of the project names a Jac module as the file it stands as,
+            // `./m.js`, or `./m` where the resolution takes a bare name.
+            if (importer && (id.startsWith("./") || id.startsWith("../"))) {
+                const at = path.relative(job.top, path.resolve(path.dirname(importer), id)).split(path.sep).join("/");
+                const place = Object.hasOwn(jacModules, at) ? at : Object.hasOwn(jacModules, at + ".js") ? at + ".js" : "";
+                if (place !== "" && !at.startsWith("../")) return path.join(job.src, jacModules[place]);
+            }
             return null;
         },
         moduleParsed() {
