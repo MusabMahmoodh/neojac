@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, header-only library, C data, extern, std_string, headers per target
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, headers per target
 ---
 # C modules
 
@@ -314,9 +314,9 @@ Nothing needs to be `extern "C"`.
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
 | A result by value | Owned by Jac; a result by reference is borrowed |
-| `std::string`, `std::vector<int>` | libc++'s own classes, instantiated where the module's signatures reach them: `v.push_back(i32(42))`, `s.c_str()` |
+| `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
-| A class template | Instantiated only by a Jac class deriving it with itself (below) |
+| A class template of the module | Instantiated only by a Jac class deriving it with itself (below); the standard library's are `libcxx`'s |
 
 A wire may name an overload set by its C++ name, and binds each member.
 
@@ -370,8 +370,8 @@ figure/4/9 4
 program's own C++ unit declares. Its members are Heavy's methods of number and `bool` types, each
 calling the Jac method, so what the template calls on `T` reaches Jac, and its overrides of
 `Counted`'s virtual methods call Heavy's. Only an instance whose arguments name the deriving
-class itself, besides number types, is made; any other instance of a C++ template is refused by
-name. A program whose C++ instances do not compile (a Jac method's types disagree with the
+class itself, besides number types, is made; any other instance of the module's own templates is
+refused by name. A program whose C++ instances do not compile (a Jac method's types disagree with the
 template's virtual of that name) is E5200.
 
 <!-- example: not checked: needs the C module whose figures.hpp declares Counted -->
@@ -411,9 +411,61 @@ destroys it (E1256 without `own`). A Jac class deriving such a class is one too.
 
 - **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
   interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
-- **A wire may name a class the file's interface reaches** though its source declares no class of
-  that name: `shapes.figures ++> main { std_string, text }` binds libc++'s `std::string`, which
-  `text` returns, so that a local holding one can be declared `sep: own std_string = text(" ");`.
+- **The C++ standard library's classes are `libcxx`'s** (below): a local holding the string
+  `text` returns is declared `sep: own std_string = text(" ");`, with `std_string` imported from
+  `libcxx`.
+
+### The C++ standard library's classes
+
+The classes of the C++ standard library a program uses have one home, the module `libcxx`, which
+neojac makes for each program from the libc++ it ships: `import from libcxx { std_string,
+std_vector }`. A C module's interface names them rather than declaring its own, so the string one
+module's function gives is the string another's takes.
+
+- **A class is named `std_` and its C++ name**: `std::string` is `std_string`, `std::mutex`
+  `std_mutex`.
+- **A class template is named by its template form**, as a program's own C++ template is:
+  `std::vector<int>` is `std_vector[i32]`, `std::lock_guard<std::mutex>` is
+  `std_lock_guard[std_mutex]`. libcxx makes each instance the program names, whether or not any
+  C++ of the program reaches it.
+- **Its members are bound as a C++ class's are**: overloads by their parameters' types, so a
+  `std::vector`'s default constructor is `make_()`; `at` past the end raises `IndexError`.
+- **A class whose destructor runs code is bound `own`** (below).
+- A name that is no class of the standard library, or a type argument its template does not
+  take, does not compile in libcxx: E5200.
+
+```jac
+import from libcxx { std_lock_guard, std_mutex, std_string, std_vector }
+
+def guarded(mu: &std_mutex) -> int {
+    lk: own std_lock_guard[std_mutex] = std_lock_guard[std_mutex].make(mu);
+    return 1;
+}
+
+def main {
+    v: own std_vector[i32] = std_vector[i32].make_();
+    v.push_back(i32(42));
+    v.push_back(i32(7));
+    names: own std_vector[std_string] = std_vector[std_string].make_();
+    mu: own std_mutex = std_mutex.make();
+    print(v.size(), v.at(u64(1)), names.size(), guarded(&mu), mu.try_lock());
+    mu.unlock();
+    try {
+        v.at(u64(5));
+    } except IndexError {
+        print("IndexError");
+    }
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+2 7 0 1 True
+IndexError
+```
 
 ## Wiring C modules
 
