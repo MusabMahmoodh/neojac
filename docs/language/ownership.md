@@ -251,9 +251,11 @@ with entry {
 ### Values whose drop runs code: dropped where their scope ends
 
 A class is **scoped** when dropping one does something a program can see: a Rust type whose drop
-rustc reports as significant (a guard, a lock, a collection that frees its items), and a class
-that owns (`has x: own T`) a field of a scoped class. An owner of a scoped class is dropped
-where its scope ends, as Rust drops it, not at its last use:
+rustc reports as significant (a guard, a lock, a collection that frees its items), a C++ class
+whose destructor is not trivial (`std::string`, a class that frees what it holds;
+[C modules](../interop/c-modules.md#c-values-whose-destructor-runs-code)), a Jac class deriving
+one, and a class that owns (`has x: own T`) a field of a scoped class. An owner of a scoped class
+is dropped where its scope ends, as Rust and C++ drop it, not at its last use:
 
 - at the end of the smallest block that holds all its uses, and on each `break` and `continue`
   that leaves that block, owners of one block in the reverse order they were bound;
