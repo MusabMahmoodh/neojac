@@ -44,7 +44,9 @@ A type parameter is one of:
 A type parameter is compile-time already, so the word `comptime` marks only
 value parameters: before a type parameter it is E1479 (see
 [Compile-time parameters](comptime-parameters.md)). A default for a type
-parameter (`[T = int]`) is not built yet (E5090). A
+parameter (`[T = int]`) is a generic class's
+([Generic classes](generics-classes.md#defaults)); on a function or a method
+it is not built yet (E5090). A
 [`where` clause](interfaces-where.md) after the signature states a condition
 the parameters must meet at each use.
 
