@@ -131,7 +131,10 @@ none of it, and a path into it is E4011.
 **Each file is read as its build reads it.** Python with its package, so a relative import names
 a module of the project; C with its module's table in `jac.toml` (its includes, its defines, its
 own file's flags), for the platforms the module compiles it for (one compiled for none is E4007);
-TypeScript with its `tsconfig.json`. A C file a unity build compiles only through another
+TypeScript in its `tsconfig.json`'s program (its libraries, its module resolution, its
+`paths`), with the `node_modules` above it; Rust with the features the project builds the crate
+with: those of the `[extensions]` row whose `cargo` is the crate, else its defaults (two rows
+naming it with different features refuse it). A C file a unity build compiles only through another
 source's `#include` is read in that source's translation unit, and ports with it: the source and
 the files it includes port together or not at all (E4010 for such a file ported alone or held
 back, E4043 for the source held back).

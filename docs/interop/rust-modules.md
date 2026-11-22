@@ -321,9 +321,62 @@ b'el' llo
 panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `héllo`
 ```
 
+### Values that borrow, and how a Rust value prints
+
+- **A Rust value that borrows** (a type with one lifetime: `Option<&Vec<u8>>`, an `Iter<'_, u32>`)
+  is a Jac value that may only be a local, borrowing what rustc says it borrows: the receiver of
+  the `&self` method that gave it. It may not be stored in a field, a global or a container, nor
+  returned (E1315), and while it is used its owner may not be changed, moved or dropped (E1302,
+  E1303, E1304), as Rust's borrow checker holds it. A `&T` result is a borrow of the Rust value
+  (`got.unwrap()` above is a `&Vec[u8]`), and a `&mut self` method lends its receiver mutably for
+  the call.
+- **What is not offered**: a method whose result borrows an argument rather than its receiver
+  (`Regex::find(&self, text)`'s `Match`), and one that may keep a borrow of an argument
+  (`HashSet<&str>::insert`): a Jac `str` or `bytes` is lent to Rust only for the call.
+- **A Rust value prints as Rust shows it**: `repr()` is its `Debug` (`{:?}`), and `str()` and
+  `print` its `Display` where it has one, else its `Debug`. A type with neither prints as its Rust
+  type, `<adder::Bag>`. Its class is named as the program writes it, `HashSet[u32]`, in messages
+  too.
+
+```jac
+import from std.collections { HashMap, HashSet }
+import from std.string { String }
+import from std.vec { Vec }
+
+def main {
+    m: own HashMap[u32, Vec[u8]] = HashMap[u32, Vec[u8]].new();
+    v: own Vec[u8] = Vec[u8].new();
+    v.push(u8(7));
+    v.push(u8(9));
+    m.insert(u32(1), v);
+    got = m.get(&u32(1));
+    inner = got.unwrap();
+    print(inner.len(), inner[1], got.is_some());
+    m.clear();
+    print(m.len(), m.get(&u32(1)));
+    s: own HashSet[u32] = HashSet[u32].new();
+    s.insert(u32(3));
+    name: own String = String.new();
+    name.push_str("hé");
+    print(s, name, repr(name));
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+2 9 True
+0 None
+{3} hé "hé"
+```
+
+`m.clear()` before the `print` that reads `got` would be E1302: `got` borrows `m`.
+
 An item rustc reports that Jac cannot bind is left out with its reason (E5138): a type that
-borrows (holds a reference), a `Copy` type of another crate. Rust items that cannot be read or
-built at all are E5190.
+borrows and is not offered as above, a `Copy` type of another crate. Rust items that cannot be
+read or built at all are E5190.
 
 ## Calling Jac and C from Rust
 
