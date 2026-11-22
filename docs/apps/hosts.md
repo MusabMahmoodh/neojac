@@ -153,7 +153,11 @@ A node space refuses, with E5090, what Node cannot do yet:
 |---|---|
 | A `:protect` function | `` `:protect` in a node space `` |
 | A walker as an endpoint | `a walker endpoint in a node space` |
-| JSX | `JSX in a node space` |
+
+**JSX in a node space** is made by the JSX runtime its `ui` plugin names in `[ui.jsx]`'s
+`source` ([UI bindings](ui-bindings.md)): with `source = "react"`, `<ul>{[<Item name={x} /> for
+x in names]}</ul>` is `_jsx("ul", { children: [...] })` of `react/jsx-runtime`, which renders on
+the server. A plugin that names no `source`, as the standard `none`, refuses JSX there (E5178).
 
 A node space may call another space's stream, and reads it with `async for`
 ([Crossings](crossings.md#calling-a-stream)).
@@ -445,4 +449,5 @@ defect.
 | E1540 | In a cpython, node, browser or hermes space: a use of C, a C function, record or global ([C libraries](../interop/c-libraries.md)). In a node space: a standard-library module or function only the native runtime defines. In a hermes space: anything that needs a graph. In a browser, hermes or node space: an import of a stdjac name whose module needs the native runtime (`stdjac.remote`, `stdjac.graph`, `stdjac.plan`, `stdjac.server`) |
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
 | E1220, E1221 | Text or a lowercase tag React Native does not show |
-| E5090 | In a node space: `:protect`, a walker endpoint, JSX. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |
+| E5178 | In a node space, JSX where its `ui` plugin names no JSX runtime |
+| E5090 | In a node space: `:protect`, a walker endpoint. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |

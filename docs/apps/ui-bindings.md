@@ -207,6 +207,10 @@ tag = "For"
 prop = "each"
 ```
 
+A plugin whose `hosts` holds `node` names in `[ui.jsx]` the package whose `jsx-runtime` makes a
+node space's elements, `source = "react"`: a node space's JSX is a call of its `jsx`. A plugin
+that names none refuses JSX in a node space (E5178).
+
 A rerender plugin names `[ui.ref]` (`useRef`) where a fine-grained one names `[ui.computed]`,
 `[ui.cleanup]`, `[ui.untrack]` and `[ui.each]`. Two more keys of `[ui]` are for a plugin that
 brings its own half of `@jac/runtime`, as `react` does for its routes and `react_native` for the

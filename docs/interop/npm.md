@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, CommonJS, require
 ---
 # npm and Node
 
@@ -118,6 +118,16 @@ graph import {
 - Under an `archwire.jac` the file is not imported by its path: `import from "./kit/loud.js"
   { shout }` is E1144, whose message gives the wire to write. A path import stays for what is no
   module: a stylesheet or an asset a browser space's bundler takes.
+- **A file imports the space's Jac modules** as JavaScript modules: in a node space, `tone.jac`
+  is the module `tone.js` beside it, so `kit/echo.js` writes `import { tone, bump } from
+  "../tone.js";`, which the wire `tone --> kit.echo { tone, bump }` declares, and its names are
+  held to the Jac module. A module's [default](../language/modules.md#a-modules-default) is its
+  default export.
+- **A CommonJS file** (`.cjs`, or a `.js` where Node reads the place as CommonJS) that `require`s
+  a Jac module is given it as CommonJS: its exports, and for `require` itself the module's
+  default where it has one.
+- **A Jac module's `with entry` code runs once JavaScript first reaches the module**; the space's
+  entry module's runs at the end of its loading.
 - A node space carries the file, and every file of the project it imports, beside its own modules,
   each at its path in the project, as it is: Node runs it, so what it imports must resolve on
   Node. A browser space's bundler reads it where it is. A native program imports it from where it
@@ -239,6 +249,51 @@ True True True
 [1, 2, 3] {'a': 1, 'b': [2]} 1 3 [2, 4, 6]
 1.5 2 1099511627776 None
 3 3 3 3
+```
+
+A function whose first parameter is named `self`, outside a class, is called from Jac with the
+object first, as any function is (`bump(o, 2)`). Called by JavaScript (handed to a JavaScript
+function, stored on a JavaScript object, or imported by a JavaScript file), `self` is
+JavaScript's `this`: `{ n: 1, bump }.bump(2)` calls it with the object as `self`. A lambda takes
+no `this`, as a JavaScript arrow function takes none.
+
+## JavaScript's own operators: the `js` module
+
+Jac's operators mean what Jac says of Jac's types. Where a program needs what JavaScript does
+with values of any type (code `neojac port` made of untyped JavaScript), the runtime's `js`
+module gives JavaScript's own operations, each a function. On a JavaScript host each is the
+operator it names; natively each runs in the program's Node.
+
+| Function | JavaScript |
+|---|---|
+| `js_truthy(x)` | `!!x`: false for `undefined`, `null`, `false`, `0`, `NaN` and `""` |
+| `js_add(a, b)`, `js_sub(a, b)`, `js_mul`, `js_div`, `js_pow` | `a + b` (a string where either is one), `a - b`, `*`, `/`, `**`, converting as JavaScript does |
+| `js_lt`, `js_le`, `js_gt`, `js_ge` | `<`, `<=`, `>`, `>=`: strings by their UTF-16 code units, else as numbers |
+| `js_inc(x)`, `js_dec(x)`, `js_number(x)` | What `x++` and `x--` make `x`; `+x` |
+| `js_same(a, b)` | `a === b` |
+| `js_typeof(x)` | `typeof x` |
+| `js_item(o, k)`, `js_set_item(o, k, v)` | `o[k]`, `o[k] = v` |
+| `js_method(o, name, ...)` | `o[name](...)`, an array's or a string's own method among them |
+| `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
+| `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
+| `js_global(name)` | The global `name` read where the call is written |
+| `js_error(e)` | What JavaScript threw that the Jac exception `e` is |
+| `JsNull` | `null` |
+
+```jac
+import from js { js_add, js_for_in, js_lt, js_method, js_same, js_truthy, js_typeof }
+
+with entry {
+    print(js_add(1, "a"), js_add(2, 3), js_lt("10", "9"), js_lt(10, 9));
+    print(js_truthy([]), js_truthy(""), js_typeof(None), js_same(0.0, -0.0));
+    print(js_method([3, 1, 2], "join", "-"), list(js_for_in({"a": 1, "b": 2})));
+}
+```
+
+```output
+1a 5 True False
+True False undefined True
+3-1-2 ['a', 'b']
 ```
 
 ## Exceptions
