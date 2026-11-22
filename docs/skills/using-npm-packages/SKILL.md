@@ -108,7 +108,8 @@ ENOENT
      for `delete o[k]`, `js_rest(o, ["a", "b"])` for `{ a, b, ...rest } = o`,
      `js_method(o, "join", ", ")`, `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
      for `import.meta`, `js_new_target()` for `new.target`, `js_prototype(f)` for
-     `f.prototype`, `js_global(name)` (`neojac docs js_add`).
+     `f.prototype`, `js_as_method(f, "m")` for an object literal's method `m` (`f` takes the
+     object first), `js_global(name)` (`neojac docs js_add`).
    - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
      JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
      it uses `self` (`neojac docs E2252`).

@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -118,11 +118,14 @@ graph import {
 - Under an `archwire.jac` the file is not imported by its path: `import from "./kit/loud.js"
   { shout }` is E1144, whose message gives the wire to write. A path import stays for what is no
   module: a stylesheet or an asset a browser space's bundler takes.
-- **A file imports the space's Jac modules** as JavaScript modules: in a node space, `tone.jac`
-  is the module `tone.js` beside it, so `kit/echo.js` writes `import { tone, bump } from
-  "../tone.js";`, which the wire `tone --> kit.echo { tone, bump }` declares, and its names are
-  held to the Jac module. A module's [default](../language/modules.md#a-modules-default) is its
-  default export.
+- **A file imports the space's Jac modules** as JavaScript modules: `tone.jac` is the module
+  `tone.js` beside it, so `kit/echo.js` writes `import { tone, bump } from "../tone.js";`, which
+  the wire `tone --> kit.echo { tone, bump }` declares, and its names are held to the Jac module.
+  A module's [default](../language/modules.md#a-modules-default) is its default export. What it
+  imports is the module's forwarder, which gives every function of the module as JavaScript calls
+  it (below). In a node space the forwarder stands at that place; in a browser space the
+  bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)), and the module starts
+  as the bundle imports it.
 - **A CommonJS file** (`.cjs`, or a `.js` where Node reads the place as CommonJS) that `require`s
   a Jac module is given it as CommonJS: its exports, and for `require` itself the module's
   default where it has one.
@@ -200,14 +203,19 @@ objects with the same properties are not equal. `copy.copy` of one is that same 
 | `bytes`, `bytearray` | a new `Buffer` of its bytes |
 | `list`, `tuple` | a new array of what its items become |
 | `dict` | a new plain object when its keys are all strs (each an own data property, `__proto__` among them), else a new `Map` |
-| a function or lambda | a JavaScript function that calls it with every argument JavaScript passes |
+| a function or lambda | a JavaScript function that calls it with the arguments JavaScript passes (below) |
 | any other Jac object | a JavaScript object wrapping it |
 | a `JsObject` | what it holds |
 
 A Jac function or object stays one JavaScript value for as long as JavaScript holds it, and comes
-back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` added. A JavaScript
-caller may pass more arguments than a Jac function names (`array.map` passes three), so a callback
-takes `*rest`.
+back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` added. Natively a
+JavaScript caller's arguments are the function's as JavaScript passes them, so a callback that
+may be given more than it names (`array.map` passes three) takes `*rest`. On a JavaScript host
+(a node or browser space) a function with a `*` or `**` parameter takes them by its parameters:
+its positional parameters by position, its `*args` the arguments past them, a parameter left out
+its default (None where it has none), its `**kwargs` none. What the function gives back to
+JavaScript crosses as an argument does: a function as its JavaScript function, a list as a new
+array, a dict as an object, and of a coroutine a promise of that.
 
 ```jac
 import from js { JsNull }
@@ -282,6 +290,7 @@ operator it names; natively each runs in the program's Node.
 | `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
 | `js_new_target()` | `new.target` of the call that reached the function it is written in: the function JavaScript called with `new`, else `None` ([below](#a-class-with-a-javascript-base)) |
 | `js_global(name)` | The global `name` read where the call is written |
+| `js_as_method(f, key)` | An object literal's method of `key` made of `f`, which takes the object, JavaScript's `this`, as its first parameter: `{ m(x) { ... } }` is `("m", js_as_method(m, "m"))` among `Object.fromEntries`' entries. Its `name` is the key's, JavaScript cannot construct it (`new o.m()` is a `TypeError`), and of a generator function it is a generator method |
 | `js_prototype(f)` | `f.prototype`: of a Jac function, that of the face JavaScript calls with `new` (JavaScript's `f.prototype.m = ...` is `js_prototype(f).m = ...`); on a JS host only, a `RuntimeError` natively |
 | `js_error(e)` | What JavaScript threw that the Jac exception `e` is |
 | `JsNull` | `null` |
