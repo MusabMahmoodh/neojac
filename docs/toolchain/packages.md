@@ -725,8 +725,10 @@ open items
   `[held_to]` names each such lock with a hash of its bytes, and a `neojac install` after one
   changed resolves again under it. Where it and `jac.lock` disagree on a version, the other
   lock's is taken.
-- **Once it is reproduced, the other lock can go.** `jac.lock` pins the same versions, and
-  `neojac install --frozen` installs them, with the lock there or not.
+- **Once it is reproduced, the other lock goes.** With each of its pins reproduced or accepted,
+  `neojac absorb` moves it to [`replaced-by-neojac/`](#what-neojac-replaced-replaced-by-neojac).
+  `jac.lock` pins the same versions, and `neojac install --frozen` installs them, with the lock
+  there or not.
 - **`absorb` reads and compares; it resolves nothing.** Before the first `neojac install` the
   item says that an install resolves with the pins.
 
@@ -765,29 +767,50 @@ What npm does with a `pnpm-lock.yaml` or a `bun.lock`:
   resolves without its pins. So it does where npm cannot install the pins together: the install
   says so, with npm's log.
 
-### What neojac writes from now on, and what can go
+### What neojac replaced: `replaced-by-neojac/`
 
-Once a repository is absorbed, some of its files are neojac's to write and some have nothing
-left to do. absorb says which, and changes nothing of git's:
+Once `jac.toml`, `jac.lock` or a record stands in for a file of the repository, absorb moves the
+file into `replaced-by-neojac/`, a folder at the project's top that holds each one at the place
+it stood. The folder is what can be removed: delete it, and the clean-out is done.
 
 ```text
+moved to replaced-by-neojac/
+  pyproject.toml  jac.toml holds it, and neojac writes it where it stood
+  Cargo.toml      jac.toml holds it, and neojac writes it where it stood
+  setup.py        the record stands in for it, and `neojac absorb --record` puts it back for its run
+  MANIFEST.in     the record stands in for it, and `neojac absorb --record` puts it back for its run
+  uv.lock         jac.lock reproduces its pins
+
 neojac writes these from jac.toml and jac.lock now, and git still tracks them
   git rm --cached Cargo.toml pyproject.toml
-
-the record stands in for these, which can go once every system built for is recorded
-  setup.py, MANIFEST.in
 ```
 
-- **A manifest `jac.toml` holds is written by neojac** where it stands, before any command reads
-  it, and absorb lists it in `.gitignore`. git goes on tracking a file it already tracks, so
-  absorb prints the command that stops it. Untracked, the file is still there for npm, pip and
-  cargo: a fresh clone has it as soon as a neojac command runs.
-- **A build script the record replaced** (`setup.py`, `MANIFEST.in`, `binding.gyp`) is read by
-  nothing once its build is recorded ([Recording a build](#recording-a-build)), on the systems
-  it was recorded on. It is still the only description of what another system compiles, so it
-  goes when every system the project is built for has its record.
-- **neojac deletes nothing and stages nothing.** `--json` has both lists, `tracked` and
-  `replaced`.
+| File | Moved by | What stands where it was |
+|---|---|---|
+| A manifest `jac.toml` holds, and its ecosystem's own lock that `jac.lock` holds (`package-lock.json`, `Cargo.lock`) | The absorb that first takes it, as it stood | The one neojac writes, which `.gitignore` lists |
+| A build's own files: `setup.py`, `MANIFEST.in`, `binding.gyp` | An `absorb --record` whose record says all the build made | Nothing |
+| Another tool's lock: `uv.lock`, `pnpm-lock.yaml`, `bun.lock` | An absorb, once each of its pins is reproduced or accepted | Nothing |
+
+- **A manifest is kept as it stood, and neojac's stands in its place.** neojac writes the file
+  where it was before any command reads it, since npm, pip and cargo read it there. git goes on
+  tracking a path it already tracks, so absorb prints the command that stops it. neojac changes
+  nothing of git's index.
+- **A build's own files move only when the record is whole**
+  ([Recording a build](#recording-a-build)): every native module of the build is an
+  `[extensions]` table and the wheel is a `[wheel]` table. Where the record leaves something
+  unsaid, they stay.
+- **A record on another platform needs them again.** They are still the only description of what
+  a platform not yet recorded compiles. `neojac absorb --record` puts them back from the folder
+  for its run and moves them again after it, so keep the folder, in version control, until every
+  platform the project is built for is recorded: the `recorded` lists of `[extensions]` say
+  which are.
+- **A lock is moved when nothing of it is open**: each pin reproduced, or accepted by name
+  ([A lock another tool wrote](#a-lock-another-tool-wrote)). One neojac does not read stays.
+- **The folder is no part of the project.** A manifest in it is no tree, a program in it is no
+  source and has no wire, and `neojac port` reads nothing there.
+- **`--check` moves nothing** and lists what an absorb would move. `--json` has `replaced`, each
+  with its `path` and what stands in for it, `by`: `jac.toml`, `jac.lock`, `record` or `pins`.
+  It has `tracked` as well, the manifests git still tracks.
 - **What goes with them is what only they offered**: an install from the repository's source by
   pip or npm, which reads `pyproject.toml`, `setup.py` or `binding.gyp`, and whatever reads a
   manifest from the repository itself, a dependency scanner or an editor before any neojac
