@@ -83,7 +83,7 @@ impl ProfileHeader(
                                 className="hidden"
                                 onChange={pick_file}
                             />
-                            if profile.avatar_v {
+                            if profile.avatar is not None {
                                 <Button
                                     variant="outline"
                                     size="sm"
