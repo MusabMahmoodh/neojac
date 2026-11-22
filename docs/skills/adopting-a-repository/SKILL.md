@@ -76,9 +76,9 @@ with a `workspace:` link, which npm is given as a range. If a step fails, every 
 
 | Kind | What it is | What closes it today |
 |---|---|---|
-| `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
+| `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | `neojac install`, which holds pip to a `uv.lock`'s pins (building from source a pin with no wheel for neojac's CPython) and npm to a `pnpm-lock.yaml`'s or a `bun.lock`'s. It removes the tree's `node_modules` to do so, and needs the network. Then `neojac absorb --check`: its `locks` lines count the pins reproduced, and the item names each one that was not, with the version installed. Say why each differs (for pip, the log the install named, `.jac/pins/<name>-<version>.log`; for npm, a peer its range does not admit, or one range given two versions); accept one only when the user agrees, in `jac.toml`'s `[lock.pypi]` or `[lock.npm]`, `accept = ["<name>"]`. Keep the file until the item is closed. A lock of another tool (`poetry.lock`, `yarn.lock`) is not read: keep it and report it |
 | `form` | A manifest form npm does not read and neojac does not rewrite (`pnpm-workspace.yaml`, `pnpm.packageExtensions`) | Do not hand-edit the table to make npm take it: say what you found. `pnpm.overrides` and `workspace:` links are no open item: absorb rewrites the first, and prints what it rewrote, and `jac.toml` keeps the second as written |
-| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the system it runs on. It says what of a build a table cannot hold: leave those programs in place and report what it said |
+| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the platform it runs on, which each extension module lists (`recorded = ["macos-aarch64"]`): run it again on every other platform the project is built for, and it adds that platform's record to the same tables. Start each platform from a clean clone with `jac.toml`, `jac.lock` and `archwire.jac` carried over: what one system's build left behind (`build/`, `.jac/`) is not the next one's. On Linux an npm tree's record needs `make`. A build on a platform that is not recorded is refused (E5172); do not edit `recorded` to pass it. It says what of a build a table cannot hold: leave those programs in place and report what it said |
 | `tests` | No manifest says how a Python project's tests are run | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command` |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
@@ -138,6 +138,26 @@ its build backend writes into the metadata directory (setuptools' `top_level.txt
 ```sh
 neojac arch --text
 ```
+
+## When the repository is to stay on neojac
+
+Only once every step above holds, and only where the maintainers mean neojac to be the build
+from now on:
+
+```sh
+git rm --cached pyproject.toml Cargo.toml     # the command absorb printed: neojac writes these now
+git rm setup.py MANIFEST.in                   # what absorb listed as replaced by the record
+```
+
+- **Untrack a manifest; do not delete it.** npm, pip and cargo still read it, and neojac writes
+  it again in a fresh clone.
+- **Delete a build script only when every platform the project is built for is recorded.** A
+  record is of one platform, and the script is the only description of the others until then:
+  the `recorded` lists of `[extensions]` say which are.
+- **Prove it from a fresh clone** of the commit: `neojac install --frozen`, `neojac build`,
+  `neojac test`, with the same tests passing.
+- **Say what the repository gives up**: an install from its source by pip or npm, and tools
+  that read its manifests without neojac.
 
 ## What a correct result looks like
 

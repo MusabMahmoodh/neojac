@@ -335,6 +335,14 @@ graph import {
   comes from.
 - A function or a variable belongs to the file that defines it, whichever header declares it. A
   type, an enumerator and a macro belong to the file that holds them.
+- A name each platform defines in a file of its own, `heap_info` in `arch/linux/heap.c` and in
+  `arch/osx/heap.c`, is wired from each: a use belongs to the file that defines the name for
+  the platform the use was read for. Where a platform has no file that defines it, the use is
+  of the header that declares it.
+- A platform's sources that this machine cannot read are not read: macOS's that use a framework
+  the toolchain carries no headers of (IOKit), on a machine without the macOS SDK. What such a
+  file gives is then not known there, so wires written on one system may not hold on another
+  for those files.
 - A C module is the project's own where `jac.toml` holds its table (`[c."geom"]`). One with a
   `cmodule.toml` that `jac.toml` does not hold is a dependency, one module whole, and so are a
   system's and a library's headers.

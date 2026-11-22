@@ -1,5 +1,5 @@
 ---
-description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
+description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, lock.pypi, lock.npm, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
 keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
@@ -185,6 +185,27 @@ The project's Python packages, which `neojac install` installs into `.jac/venv/`
 | `jac.toml: [dependencies] is not a table`, `jac.toml: [dependencies.pypi] is not a table` | The key has another type |
 | E5157 | `install` or `remove` on a dotted or inline form |
 
+## [lock.pypi] and [lock.npm]
+
+What of another tool's lock is taken as installed, where `neojac install` could not reproduce a pin of it ([A lock another tool wrote](../toolchain/packages.md#a-lock-another-tool-wrote)).
+
+```toml
+[lock.pypi]
+accept = ["cffi", "rignore"]
+
+[lock.npm]
+accept = ["ajv-formats"]
+```
+
+| Key | Type | Meaning |
+|---|---|---|
+| `lock.pypi.accept` | list of strings | Packages a `uv.lock` pins at a version pip does not install here. Each is no longer held to that pin, and `neojac absorb` no longer lists it as a difference. A name is matched as PyPI matches names: case, `-`, `_` and `.` aside |
+| `lock.npm.accept` | list of strings | The same for a `pnpm-lock.yaml` or a `bun.lock` and npm, a name as npm has it (`@scope/name`) |
+
+| Message | Cause |
+|---|---|
+| E5158 | `lock`, `lock.pypi` or `lock.npm` is not a table, `accept` is not a list of strings, or there is another key |
+
 ## [npm."\<directory\>"]
 
 One npm tree of the project: a package and the packages it depends on. The table is that tree's `package.json`, key for key and in the table's order, with npm's own names for its keys (`dependencies`, `devDependencies`, `type`, `scripts`, ...). neojac writes it to `package.json` in that directory and `neojac install` installs it there, pinning what npm resolved in `jac.lock`. See [Packages](../toolchain/packages.md) (`neojac docs packages`).
@@ -224,6 +245,7 @@ A module that a build makes from native code and an interpreter loads: a CPython
 | `extensions."<path>".cargo` | string | The crate it is built from, by the directory of its `[cargo."<directory>"]` table |
 | `extensions."<path>".features` | list of strings | The crate's features it is built with |
 | `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
+| `extensions."<path>".recorded` | list of strings | The platforms its build was recorded on (`macos-aarch64`, `linux-x86_64`, ...), which `neojac absorb --record` writes. It is built on those, and on every platform with no list. A project all of whose extension modules are recorded for other platforms is refused there (E5172) |
 
 ```toml
 [cargo."."]
@@ -232,13 +254,14 @@ A module that a build makes from native code and an interpreter loads: a CPython
 [extensions."tiktoken/_tiktoken"]
 cargo = "."
 features = ["python"]
+recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
 An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). It is built with the Python project whose `[wheel]` its path is under ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
 
 | Code | Cause |
 |---|---|
-| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, or has another key |
+| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, lists a platform neojac has no name for in `recorded`, or has another key |
 
 ## [wheel."\<directory\>"]
 
@@ -406,7 +429,7 @@ What a phone app's Android build is made with. With no `[android]` table neojac 
 
 | File | What it is |
 |---|---|
-| `jac.lock` | Written by neojac: what each ecosystem's own resolver pinned for `jac.toml`, the Python distributions of `[dependencies.pypi]` (`[pypi]`) and each npm tree's lock as npm wrote it (`[npm."<directory>"]`). Keep it in version control; `neojac install --frozen` installs exactly it ([Packages](../toolchain/packages.md)) |
+| `jac.lock` | Written by neojac: what each ecosystem's own resolver pinned for `jac.toml`, the Python distributions of `[dependencies.pypi]` and of the Python projects (`[pypi]`) each npm tree's lock as npm wrote it (`[npm."<directory>"]`), and each other tool's lock those were resolved under, by a hash of it (`[held_to]`). Keep it in version control; `neojac install --frozen` installs exactly it ([Packages](../toolchain/packages.md)) |
 | An npm tree's directory (`eco/web/`) | Where the tree's `package.json` stands: the files its tools are configured by, which are the project's, and the `package.json`, `package-lock.json` and `node_modules` neojac writes there, which are not tracked |
 | `archwire.jac` | The project's spaces, apps and import wiring, in Jac ([Archwire](../apps/archwire.md)) |
 | `cmodule.toml`, `Cargo.toml`, `Cargo.lock`, `pyproject.toml` | In a project, written by neojac from the `[c."<directory>"]`, `[cargo."<directory>"]` and `[pypi."<directory>"]` tables above, and not tracked. A program with no `jac.toml` above it keeps them as files ([C modules](../interop/c-modules.md), [Rust modules](../interop/rust-modules.md)) |

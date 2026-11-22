@@ -480,11 +480,17 @@ is a Rust crate, psutil's `psutil._psutil` a C library. No file of the project i
 [extensions."tiktoken/_tiktoken"]
 cargo = "."
 features = ["python"]
+recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
 - **It is named by the module's path** from the project's root, and names the crate
   (`cargo`, with the `features` it is built with) or the C module (`c`) of the project it is built
   from, by the directory of that unit's table.
+- **`recorded` lists the platforms its build was recorded on**, and it is built on those. One
+  with no list, written by hand, is built on every platform. A project or a tree all of whose
+  extension modules are recorded for other platforms is refused there (E5172): what its build
+  compiles on this one is not known until it is recorded on it
+  ([A record is of one platform](#a-record-is-of-one-platform)).
 - **It is a module of the project.** A file that imports it is wired from it, and until the table
   is there the import names nothing: `neojac absorb` reports it (E1145).
 - **`neojac absorb --record` writes the table**, for a module linked from a crate or from C,
@@ -652,7 +658,7 @@ item**. `absorb` lists each at its file, and does not guess:
 | Kind | Reported for | What closes it |
 |---|---|---|
 | `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
-| `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
+| `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` ([A lock another tool wrote](#a-lock-another-tool-wrote)) |
 | `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
 | `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
@@ -670,6 +676,122 @@ open items
 
 nothing written
 ```
+
+### A lock another tool wrote
+
+A lock neojac's engines do not read is not copied into `jac.lock`. Its pins are what
+`neojac install` holds the engine to, and `jac.lock` records what the engine then installed.
+
+| Lock | Read as | Held by |
+|---|---|---|
+| `uv.lock` | Each package a registry gives, at its version | pip |
+| `pnpm-lock.yaml` (format 9) | Each package and the versions of its dependencies; the range each is asked for by is read from the registry, where the lock leaves it out | npm |
+| `bun.lock` (format 1) | Each package, the ranges it asks for its dependencies by, and the versions they get | npm |
+
+`poetry.lock`, `pdm.lock`, `Pipfile.lock`, `yarn.lock` and `bun.lockb` are not read, and stay
+open items.
+
+```text
+$ neojac install
+neojac install: cffi: pinned 2.0.0 by another tool's lock, which has no wheel for this Python and does not build (.jac/pins/cffi-2.0.0.log): 2.1.1 is used
+neojac install: 73 PyPI distributions in .jac/venv
+neojac install: the npm tree ., with its workspaces frontend, packages/react-email
+$ neojac absorb --check
+...
+locks
+  bun.lock: 530 of 531 pins reproduced by npm
+  uv.lock: 72 of 73 pins reproduced by pip
+
+open items
+   1  bun.lock: 1 of its pins is not what npm installs: ajv-formats (pinned 3.0.1, 2.1.1 installed): accept each by name in jac.toml, [lock.npm] accept
+   2  uv.lock: 1 of its pins is not what pip installs: cffi (pinned 2.0.0, 2.1.1 installed): accept each by name in jac.toml, [lock.pypi] accept
+```
+
+- **Every pin the engine can install is the version installed,** though a newer one fits what
+  the project asks for.
+- **The lock stays an open item until every difference is accepted by name:**
+
+  ```toml
+  [lock.pypi]
+  accept = ["cffi"]
+
+  [lock.npm]
+  accept = ["ajv-formats"]
+  ```
+
+  A name accepted is no longer held to the other lock's pin. `absorb` lists it beside the count,
+  `and cffi accepted as installed`.
+- **While the other lock stands, it is what `jac.lock` is resolved under.** `jac.lock`'s
+  `[held_to]` names each such lock with a hash of its bytes, and a `neojac install` after one
+  changed resolves again under it. Where it and `jac.lock` disagree on a version, the other
+  lock's is taken.
+- **Once it is reproduced, the other lock can go.** `jac.lock` pins the same versions, and
+  `neojac install --frozen` installs them, with the lock there or not.
+- **`absorb` reads and compares; it resolves nothing.** Before the first `neojac install` the
+  item says that an install resolves with the pins.
+
+What pip does with a `uv.lock`:
+
+- **A name the lock pins at two versions,** one for each of two platforms, is left to pip.
+- **A pin with no wheel for neojac's CPython is built from its source,** with the toolchain's
+  compilers and cargo. The first install under a lock takes as long as those builds do; pip
+  keeps the wheels.
+- **A pin that cannot be installed is not held.** pip picks that package's version, and
+  `neojac install` names the package, the pin, the version used and the log of the build that
+  failed (`.jac/pins/`).
+
+What npm does with a `pnpm-lock.yaml` or a `bun.lock`:
+
+- **npm resolves by the lock's pins, and lays the tree out itself.** neojac hands them to npm as
+  a `yarn.lock`, the one other lock npm reads while it resolves: each thing npm will ask for (a
+  name and a range, as a `package.json` has them), with the version and the integrity the lock
+  gives it. The file stands beside the tree only while npm resolves; what was handed over is
+  kept as `.jac/pins/<lock>-yarn.lock`.
+- **The tree is resolved from nothing:** its `node_modules`, and its workspaces', are removed
+  first, since npm keeps what is installed over what a lock says. `jac.lock` then holds the
+  `package-lock.json` npm wrote, and the install that follows runs the packages' scripts.
+- **A pin is handed over only where npm would take it:** the package npm asks for by that name,
+  at a version the range admits. pnpm installs a peer a range does not admit, and npm does not;
+  such a pin is a difference, named in the item.
+- **One range has one version.** Where the lock gives one name and range two versions, for two
+  packages that ask alike, npm is handed the one given more often, and the other is a
+  difference.
+- **A package another package carries inside its own archive** (`bundleDependencies`) is not
+  compared: the other tools do not list it.
+- **pnpm's lock is YAML,** which neojac reads with the `yaml` package it pins (2.9.1), fetched
+  from the npm registry the first time a `pnpm-lock.yaml` is read and kept in neojac's cache. A
+  package's ranges come from the registry the tree's own `.npmrc` names, as npm asks it.
+- **A lock in another format is said,** `its format is 6.0, and neojac reads 9`, and npm
+  resolves without its pins. So it does where npm cannot install the pins together: the install
+  says so, with npm's log.
+
+### What neojac writes from now on, and what can go
+
+Once a repository is absorbed, some of its files are neojac's to write and some have nothing
+left to do. absorb says which, and changes nothing of git's:
+
+```text
+neojac writes these from jac.toml and jac.lock now, and git still tracks them
+  git rm --cached Cargo.toml pyproject.toml
+
+the record stands in for these, which can go once every system built for is recorded
+  setup.py, MANIFEST.in
+```
+
+- **A manifest `jac.toml` holds is written by neojac** where it stands, before any command reads
+  it, and absorb lists it in `.gitignore`. git goes on tracking a file it already tracks, so
+  absorb prints the command that stops it. Untracked, the file is still there for npm, pip and
+  cargo: a fresh clone has it as soon as a neojac command runs.
+- **A build script the record replaced** (`setup.py`, `MANIFEST.in`, `binding.gyp`) is read by
+  nothing once its build is recorded ([Recording a build](#recording-a-build)), on the systems
+  it was recorded on. It is still the only description of what another system compiles, so it
+  goes when every system the project is built for has its record.
+- **neojac deletes nothing and stages nothing.** `--json` has both lists, `tracked` and
+  `replaced`.
+- **What goes with them is what only they offered**: an install from the repository's source by
+  pip or npm, which reads `pyproject.toml`, `setup.py` or `binding.gyp`, and whatever reads a
+  manifest from the repository itself, a dependency scanner or an editor before any neojac
+  command has run.
 
 ### What absorb rewrites
 
@@ -736,20 +858,27 @@ recorded
   libraries of the link are the module's.
 
   ```toml
-  [c.psutil.target.darwin]
+  [c.psutil]
   sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
   include = ["{lib}/cpython/include/python3.15"]
   defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]
+
+  [c.psutil.target.darwin]
   frameworks = ["CoreFoundation", "IOKit"]
 
-  [extensions."psutil/_psutil"]
+  [extensions."psutil/_psutil_osx"]
   c = "psutil"
+  recorded = ["macos-aarch64"]
   ```
 
 - **An npm tree with a `binding.gyp` is recorded by its node-gyp build**, npm's own, run in the
   tree with its packages installed (`neojac install` first). Each addon it links
   (`build/Release/<name>.node`) is traced as a Python project's module is. Node's headers, which
-  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`).
+  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`). node-gyp
+  runs `make`, which the system has to have.
+- **An addon is where the build put it.** On Linux node-gyp links `build/Release/obj.target/<name>.node`
+  and copies it to `build/Release/<name>.node`: the module is the copy nearest the tree's root,
+  found by its bytes, so it has one path on every system.
 - **A static library the link took is a C module of its own.** Each of its members is the object
   a recorded run compiled, found by its bytes, so whichever archiver made the library need not
   be neojac's (on macOS node-gyp uses the machine's `libtool`).
@@ -764,22 +893,21 @@ recorded
   and where it put its own output (`-L./Release`) is not recorded.
 
   ```toml
-  [c.src.target.darwin]
+  [c.src]
   sources = ["better_sqlite3.cpp"]
   include = ["{lib}/node/include", "../node_modules/node-addon-api", "../deps/sqlite3"]
   cxxflags = ["-O3", "-fvisibility=hidden", "-flto", "-std=c++20"]
   ldflags = ["-Wl,-search_paths_first", "-Wl,-dead_strip"]
 
-  [c."deps/sqlite3".target.darwin]
+  [c."deps/sqlite3"]
   sources = ["sqlite3.c"]
   defines = ["SQLITE_DQS=0", "SQLITE_ENABLE_FTS5"]
 
   [extensions."build/Release/better_sqlite3"]
   c = "src"
+  recorded = ["macos-aarch64"]
   ```
 
-- **A record is of the system it was made on**, so the whole of it is under that system's
-  `[target.<os>]`: what another system compiles is not known until the build is recorded there.
 - **What a table cannot say is reported, and the module is not taken**: an object no recorded run
   compiled, a source or a header directory outside the project and the toolchain, a flag of the
   link that is none of a library, a framework or how an extension links, and a crate built with
@@ -789,12 +917,63 @@ recorded
 - **It is a program of the repository that runs**, as it does under `pip install`: record a
   repository you would build.
 
+#### A record is of one platform
+
+A build compiles what its program decides for the system it runs on, so a record says what one
+platform's build did: `macos-aarch64`, `linux-x86_64`. `neojac absorb --record`, run again on
+another, adds that platform's record to the same tables.
+
+```toml
+[c.psutil]                             # what every recorded platform compiles
+sources = ["arch/all/errors.c", "arch/posix/init.c"]
+include = ["{lib}/cpython/include/python3.15"]
+defines = ["PSUTIL_POSIX=1"]
+
+[c.psutil.target.darwin]               # what macOS's build adds
+sources = ["_psutil_osx.c", "arch/osx/cpu.c"]
+defines = ["PSUTIL_MACOS=1"]
+frameworks = ["CoreFoundation", "IOKit"]
+
+[c.psutil.target.linux]                # what Linux's adds
+sources = ["_psutil_linux.c", "arch/linux/mem.c"]
+defines = ["PSUTIL_LINUX=1"]
+
+[extensions."psutil/_psutil_osx"]
+c = "psutil"
+recorded = ["macos-aarch64"]
+
+[extensions."psutil/_psutil_linux"]
+c = "psutil"
+recorded = ["linux-aarch64"]
+```
+
+- **Each extension module lists the platforms it was recorded on** (`recorded`), and is built
+  on those. A build that links different modules on different systems, as psutil's does, has a
+  table for each.
+- **What every recorded platform's build compiled is the C module's own**, and what only some
+  did is under a target table: an operating system's (`[target.linux]`), an architecture's
+  (`[target.aarch64]`), or one platform's (`[target."linux.aarch64"]`), the narrowest that all
+  of them share. The build reads them back as the same lists
+  ([C modules](../interop/c-modules.md#the-manifest)).
+- **Sources, header directories, defines, libraries and frameworks are shared one by one.** A
+  list of arguments (`cflags`, `cxxflags`, `ldflags`) is shared only as far as every platform's
+  begins alike, and the rest of each is its target's, so a platform's arguments are read back
+  in the order its build gave them, repeats included.
+- **`frameworks` are always macOS's**, under `[target.darwin]`.
+- **Recording a platform again replaces its record** and leaves the others': a table is taken
+  apart into each recorded platform's lists, and put together again with the new one.
+- **A platform that is not recorded is refused** (E5172). The tables say nothing of what its
+  build compiles; a source list that happens to hold for it is not known to.
+- **An extension module built from a crate has one crate and one list of features.** A platform
+  whose build links another is reported, and its table is left as it was.
+- **A key a record does not write stays where it is**: an `export`, `archives` you added.
+
 - **`--check` writes nothing.** It finds the trees, the data and the open items. It does not
   read the sources for their imports, so what the wires would say it does not judge.
 - **`--json` prints the same as one document**: `trees` (each with its `ecosystem`, `directory`,
   `manifest`, `table`, `lock` and the tree it is a `member_of`), `data`, `open` (each with its
-  `kind`, the file it is `at`, and what it `says`), and after an `absorb` that wrote, `wrote` and
-  the count of `problems`.
+  `kind`, the file it is `at`, and what it `says`), `locks` (what of each other tool's lock is
+  reproduced), and after an `absorb` that wrote, `wrote` and the count of `problems`.
 - **A step that fails leaves every file as it was**: a manifest that cannot be taken whole
   (E5156, E5157) is refused, and nothing of the others stays written.
 - **Absorbing again changes nothing**, and takes in what was added since.
@@ -835,6 +1014,7 @@ yet, and no space holds one.
 | E5167 | A Python project built or tested with no `[wheel."<directory>"]`: `neojac absorb --record` |
 | E5168 | `[wheel."<directory>"]` lists a file the project no longer has |
 | E5169 | `neojac build` given a `pyproject.toml` that `jac.toml` holds no `[pypi."<directory>"]` for |
+| E5172 | A build on a platform none of the project's extension modules is `recorded` for |
 | E5170 | A `workspace:` link to a package that is no tree of the same workspace |
 | E5171 | A `workspace:` link in a form npm is given no range for: a path, an alias |
 | `install --frozen: jac.lock pins nothing for the package 'units' as jac.toml asks for it; run neojac install` | `--frozen` after `jac.toml` came to ask for a package, or for another `git` or `rev` of one |
