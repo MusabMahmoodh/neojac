@@ -1,0 +1,7 @@
+.jac/
+.build/
+build/
+vendor/
+.bench_seconds
+.bench_result
+.flock

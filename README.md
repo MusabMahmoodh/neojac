@@ -191,6 +191,8 @@ A prompt:
   are in [`docs/`](docs/), starting at [docs/start](docs/start/index.md).
 - **[`examples/jaclang_org`](examples/jaclang_org/)** is a whole project: a website with its
   server, a desktop app, a phone app and a command-line program, built from one source tree.
+- **[`examples/raylib_shooter`](examples/raylib_shooter/)** is one small 3D game written four
+  times, in Jac, C, Rust and Python, each built and run by neojac and timed against the others.
 - **[Coming from Python](docs/start/coming-from-python.md)** is the short way in for someone
   who reads Python.
 
