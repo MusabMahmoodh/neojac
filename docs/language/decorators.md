@@ -249,8 +249,11 @@ enum Signal {
 
 A function that wraps another as the program runs is not a decorator: `@`
 before a declaration names a `comptime` function, and anything else is
-refused (E1490). Call the wrapper and bind its result where the program
-needs it:
+refused (E1490); a Python callable is E5174. In a `cpython` space a
+decorator that is not a `comptime` function runs as Python runs it, as the
+function or class is made
+([Classes and decorators in a cpython space](../interop/python-classes.md#decorators)).
+Elsewhere, call the wrapper and bind its result where the program needs it:
 
 ```jac
 def logged(f: Callable[[int], int]) -> Callable[[int], int] {
@@ -370,6 +373,7 @@ with entry {
 | Code | Meaning |
 |---|---|
 | E1490 | The decorator is not a `comptime` function (a run-time wrapper, a C function). Call a wrapper instead. |
+| E5174 | Outside a `cpython` space, the decorator is a Python callable (`@dataclass`). |
 | E1491 | A fact is recorded outside a decorator's evaluation, or on a declaration other than the one the decorator was given. |
 | E1492 | A fact is applied to a declaration it is not of: a class (but `align` of a struct), a C function, a `comptime` function, an abstract method. |
 | E1493 | `@inline` of a function on a cycle of calls. |
