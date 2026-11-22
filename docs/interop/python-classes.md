@@ -1,5 +1,5 @@
 ---
-description: What a cpython space makes as Python does - a class with a Python base, a Python decorator or a run-time if in its body, made where its statement runs; decorators that run as a function is made; annotations Python reads; doc strings; imports in a code body; generators and raise of any object - and what each is refused as elsewhere.
+description: What a cpython space makes as Python does - a class with a Python base, a Python decorator or a run-time if in its body, and a class in a code body, made where its statement runs; decorators that run as a function is made; annotations Python reads; doc strings; imports in a code body; generators and raise of any object - and what each is refused as elsewhere.
 keywords: host-made class, Python base, NamedTuple, dataclass, total_ordering, class decorator, run-time decorator, staticmethod, classmethod, annotations, inspect.signature, __annotations__, Annotated, typing.Any, Python class in Jac
 ---
 # Classes and decorators in a cpython space
@@ -133,6 +133,41 @@ with entry {
 An `if` that tests the platform is a `comptime if`, which every host decides as the program
 compiles ([comptime if](../language/compile-time.md#among-declarations-and-members)).
 
+### A class in a code body
+
+A class declared in a function, a method or a `with entry` block is made by Python where its
+statement runs, each time it runs, as a Python `class` statement in a function is: two calls make
+two classes.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import reprlib;
+
+def shower -> any {
+    class Short(reprlib.Repr) {
+        has kind: str = "short";
+
+        def repr_str(x: any, level: any) -> str {
+            return x[:3];
+        }
+    }
+    return Short;
+}
+
+with entry {
+    first = shower();
+    print(first().repr("abcdef"), first.kind, first is shower());
+}
+```
+
+```text
+abc short False
+```
+
+A class there that reads a name of the body it is in (a parameter, a local) is not made yet
+(E5177): Python would close over the name, and neojac does not check a class's methods as
+closures of the body.
+
 ### In a space of another host
 
 A native or JavaScript program's classes are known as it compiles, so none of these is made there:
@@ -141,6 +176,7 @@ A native or JavaScript program's classes are known as it compiles, so none of th
 |---|---|
 | E5174 | A class or a function decorated by a Python callable |
 | E5175 | An `if` among a class's members that is not `comptime` |
+| E5176 | A class in a code body: declare it at the module's top level |
 | E2101 | Keywords after a class's bases |
 
 A class whose base is a Python class is, natively, a subclass of it in the embedded interpreter
@@ -262,6 +298,12 @@ with entry {
 ['127.0.0.1', 'b.txt']
 ```
 
+## A module's `__file__`
+
+In a cpython space a module's `__file__` is its Jac source's whole path, as natively
+([Modules](../language/modules.md#module-variables)): `os.path.basename(__file__)` is `main.jac`,
+and a module that finds its files beside itself (`os.path.dirname(__file__)`) finds them there.
+
 ## Generators and `raise`
 
 - **A function whose result is `any` and that yields is a generator**, as a Python `def` is: a
@@ -278,4 +320,6 @@ with entry {
 | E5173 | An import in a code body of what Python cannot load as it runs |
 | E5174 | Outside a cpython space: a class or function decorated by a Python callable |
 | E5175 | Outside a cpython space: an `if` among a class's members that is not `comptime` |
+| E5176 | Outside a cpython space: a class in a code body |
+| E5177 | A class in a code body that reads a name of that body |
 | E0077 | A member declared in two arms of a class body's `if` |
