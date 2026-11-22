@@ -795,6 +795,9 @@ neojac writes these from jac.toml and jac.lock now, and git still tracks them
   where it was before any command reads it, since npm, pip and cargo read it there. git goes on
   tracking a path it already tracks, so absorb prints the command that stops it. neojac changes
   nothing of git's index.
+- **A moved file's wires go with it.** Where `archwire.jac` wired a file absorb moves (a
+  `setup.py` that imports the package is `_bootstrap --> setup`), the wire is dropped as the file
+  moves, so that no wire names a file that is not there (E2097).
 - **A build's own files move only when the record is whole**
   ([Recording a build](#recording-a-build)): every native module of the build is an
   `[extensions]` table and the wheel is a `[wheel]` table. Where the record leaves something

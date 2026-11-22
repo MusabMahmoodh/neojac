@@ -157,7 +157,10 @@ port: 6 sources would port
 - moves the source to `replaced-by-neojac/`, at its path in the project;
 - writes its imports of the project's modules as wires in `archwire.jac`: a module that
   `shop/use.py` imported, `from .mathx import gcd`, is the wire `shop.mathx ++> shop.use { gcd }`,
-  and the module's Jac imports nothing of the project;
+  naming what the Jac reads, and the module's Jac imports nothing of the project at its top level.
+  An import in a function stays where it loads ([an import in a code body](../language/modules.md#an-import-in-a-code-body))
+  and gets its wire too; a re-export (`export { total as summed } from "./total"`) is an `include`
+  wire, `include web.total ++> web.gives { total as summed }`, naming every name it gives;
 - keeps the wires of the files that stay in their language and use it: a `-->` wire declares an
   import their own source writes (C's `#include` and calls, JavaScript's `import`), and it now
   names what they take of a Jac module; a C source leaves its module's table in `jac.toml`;
@@ -173,8 +176,12 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **The C that stays calls the Jac.** A C source of the module that is not ported, and called a
   function of the ported file, calls the Jac module's function through its wire, by the header
   beside the Jac module ([C modules](../interop/c-modules.md#calling-jac-from-c)).
-- **A module imported by a file of no space** (a script beside the project) is refused (E4009):
-  that file would have nothing to import.
+- **A Python project's tests and scripts are its space's clients.** A file of the project's tree
+  that its wheel does not list (`tests/`, `scripts/`, a `setup.py`) imports the package as the
+  space builds it, so a module it imports ports, and the file's Python import reaches the Jac
+  module. A module of a wheel is refused while the wheel's build makes no Jac module (E5090).
+- **A module imported by a file of no space** (a script beside a project that is no Python
+  project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
 
 ## Outside a project
