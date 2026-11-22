@@ -1,6 +1,6 @@
 ---
 description: Rust crates as modules of a Jac program - what a crate's interface gives Jac, Rust's own API used natively (std's types, a crate's items, generics, enums, traits a Jac struct conforms to, closures, panics, drops), calling back into Jac and C, how crates are compiled, cached and linked into the one binary, and what goes wrong.
-keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
+keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, slice_bytes, slice_str, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
 ---
 # Rust modules
 
@@ -264,6 +264,61 @@ with entry {
 Ordering.Greater Ordering.Less
 1 (4, 8)
 panic: called `Option::unwrap()` on a `None` value
+```
+
+### Keys, references to numbers and ranges
+
+- **A method generic over the borrowed form of a key** (`HashMap::get<Q>`, `contains_key`,
+  `remove`) is bound once, with `Q` the key's `Deref` target: a `Vec<u8>` key is looked up by
+  `bytes` (`[u8]`), a `String` key by a `str`, and a key with no `Deref` target by the key
+  itself. Jac has no overloading, so this one instance stands for those Rust makes per call.
+- **A map is indexed by the same form**: `ranks[b"ab"]` is Rust's `ranks[&b"ab"[..]]`, through
+  `Index<&Q>`, and panics where the key is missing, as Rust's does.
+- **A shared reference to a number crosses as the number**: `Option<&u32>` is `Option[u32]`, the
+  number copied, as Rust's own `.copied()` gives it.
+- **A range of a slice or a `str`** is a function of `rust`: `slice_bytes(b, start, end)` and
+  `slice_bytes_from(b, start)` for `&b[start..end]` and `&b[start..]`, `slice_str` and
+  `slice_str_from` for a `&str`, whose bounds are UTF-8 byte offsets. Each panics where Rust
+  panics (a bound past the end, reversed bounds, a bound inside a character), where Jac's slicing
+  would clamp: `neojac port` writes them for Rust's ranges.
+
+```jac
+import from rust { RustPanic, slice_bytes, slice_str_from }
+import from std.collections { HashMap }
+import from std.string { String }
+import from std.vec { Vec }
+
+with entry {
+    ranks: own HashMap[Vec[u8], u32] = HashMap[Vec[u8], u32].new();
+    key: own Vec[u8] = Vec[u8].new();
+    key.push(u8(97));
+    key.push(u8(98));
+    ranks.insert(key, u32(7));
+    print(
+        ranks.get(b"ab").unwrap(),
+        ranks.get(b"zz").is_none(),
+        ranks.contains_key(b"ab"),
+        ranks[b"ab"],
+    );
+    names: own HashMap[String, u32] = HashMap[String, u32].new();
+    ann: own String = String.new();
+    ann.push_str("ann");
+    names.insert(ann, u32(3));
+    print(names.get("ann").unwrap(), names["ann"]);
+    print(slice_bytes(b"hello", u64(1), u64(3)), slice_str_from("héllo", u64(3)));
+    try {
+        slice_str_from("héllo", u64(2));
+    } except RustPanic as e {
+        print("panic:", e);
+    }
+}
+```
+
+```output
+7 True True 7
+3 3
+b'el' llo
+panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `héllo`
 ```
 
 An item rustc reports that Jac cannot bind is left out with its reason (E5138): a type that
