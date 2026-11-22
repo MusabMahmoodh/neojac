@@ -98,6 +98,7 @@ neojac build [<program>...] -o <out> [<option>...]
 neojac build [<app>...] [--profile <profile>]
 neojac build [<package>...]
 neojac build <directory>/pyproject.toml
+neojac build <directory>/package.json
 ```
 
 | Option | What it does |
@@ -125,7 +126,7 @@ Several Jac programs are built into one executable that holds each of them and r
 
 In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's or a package's: the ones named, or every one, are each built into dist/, and where each one is is printed. A package (`package <name> { ship <space>; }`) of a space that holds a Python project is that project's wheel.
 
-A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against.
+A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it.
 
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
@@ -416,7 +417,7 @@ neojac absorb [<directory>] [--check | --record] [--json]
 | Option | What it does |
 |---|---|
 | `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
-| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it |
+| `--record` | Run each Python project's own build, and the node-gyp build of each npm tree with a binding.gyp, with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it |
 | `--json` | Print what it found, and what it wrote, as data |
 
 Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.

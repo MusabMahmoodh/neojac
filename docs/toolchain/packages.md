@@ -481,6 +481,19 @@ features = ["python"]
   a shared library with those features, a C module's sources linked into one, each linked as an
   extension of neojac's CPython and named with the ending that interpreter loads. On Windows it
   is refused (E5090).
+- **Under an npm tree it is a Node addon**, built from a C module where the tree's own code looks
+  for it, `<path>.node`: `neojac build <directory>/package.json` builds the tree's, and
+  `neojac test` builds them before the tree's suite.
+
+  ```toml
+  [extensions."build/Release/better_sqlite3"]
+  c = "src"
+  ```
+
+- **The C modules it links are linked with it.** A wire from a file of one C module to a file
+  of the extension's says so: that module's objects are made a library and given to the link,
+  as a build system gives a static library. What each exports is what its sources and its flags
+  say, with nothing hidden on neojac's account.
 
 ## Building and testing a Python project
 
@@ -569,12 +582,8 @@ source distribution) is built with neojac's own compilers, not with whatever the
 - **What a build needs besides is the machine's**: `make` for `node-gyp`, and on macOS the
   `libtool` that node-gyp makes a static library with.
 
-```text
-$ neojac install                       # better-sqlite3's own packages
-$ neojac npm run build-release         # node-gyp: its addon, compiled by neojac c++
-$ neojac npm test
-  369 passing (3s)
-```
+A tree's own addon is recorded once and built from `jac.toml` from then on
+([Recording a build](#recording-a-build)).
 
 ## Taking in a repository: neojac absorb
 
@@ -629,7 +638,7 @@ item**. `absorb` lists each at its file, and does not guess:
 
 | Kind | Reported for | What closes it |
 |---|---|---|
-| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | For a Python project, `neojac absorb --record` ([Recording a build](#recording-a-build)), for a module linked from a crate or from C. A `binding.gyp` is not recorded yet |
+| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
 | `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
 | `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
@@ -702,6 +711,38 @@ recorded
   c = "psutil"
   ```
 
+- **An npm tree with a `binding.gyp` is recorded by its node-gyp build**, npm's own, run in the
+  tree with its packages installed (`neojac install` first). Each addon it links
+  (`build/Release/<name>.node`) is traced as a Python project's module is. Node's headers, which
+  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`).
+- **A static library the link took is a C module of its own.** Each of its members is the object
+  a recorded run compiled, found by its bytes, so whichever archiver made the library need not
+  be neojac's (on macOS node-gyp uses the machine's `libtool`).
+- **What a build compiled from a copy is recorded as the file of the project it is a copy of.**
+  node-gyp compiles `sqlite3.c` from its build directory: the table names `deps/sqlite3`, and a
+  header directory of such copies is the directory they were copied from. What is "of the
+  project" is what git does not ignore, where the project is git's; a compiled file that is no
+  copy of one is reported, and the module is not taken.
+- **An option for the linker (`-Wl,...`) is the module's `ldflags`**
+  ([C modules](../interop/c-modules.md#the-manifest)). What only says which system the build is
+  for (`-arch`, `-mmacosx-version-min`), where it writes its dependency files (`-MMD`, `-MF`),
+  and where it put its own output (`-L./Release`) is not recorded.
+
+  ```toml
+  [c.src.target.darwin]
+  sources = ["better_sqlite3.cpp"]
+  include = ["{lib}/node/include", "../node_modules/node-addon-api", "../deps/sqlite3"]
+  cxxflags = ["-O3", "-fvisibility=hidden", "-flto", "-std=c++20"]
+  ldflags = ["-Wl,-search_paths_first", "-Wl,-dead_strip"]
+
+  [c."deps/sqlite3".target.darwin]
+  sources = ["sqlite3.c"]
+  defines = ["SQLITE_DQS=0", "SQLITE_ENABLE_FTS5"]
+
+  [extensions."build/Release/better_sqlite3"]
+  c = "src"
+  ```
+
 - **A record is of the system it was made on**, so the whole of it is under that system's
   `[target.<os>]`: what another system compiles is not known until the build is recorded there.
 - **What a table cannot say is reported, and the module is not taken**: an object no recorded run
@@ -723,10 +764,10 @@ recorded
   (E5156, E5157) is refused, and nothing of the others stays written.
 - **Absorbing again changes nothing**, and takes in what was added since.
 
-`neojac absorb` does not yet write the project's spaces. A Python project it takes in is
-installed for, built and tested
-([Building and testing a Python project](#building-and-testing-a-python-project)); an npm
-package with a `binding.gyp` is held and drawn, not yet built.
+A Python project `neojac absorb` takes in is installed for, built, tested and packed
+([Building and testing a Python project](#building-and-testing-a-python-project)), and an npm
+tree's addon is recorded, built and tested with the tree's suite. An npm package is not packed
+yet, and no space holds one.
 
 ## What keeps the two in step
 

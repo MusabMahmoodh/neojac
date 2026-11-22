@@ -76,7 +76,7 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 |---|---|---|
 | `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
 | `form` | A manifest form npm does not read (`workspace:` links, `pnpm.*`, `pnpm-workspace.yaml`) | Not yet rewritten by neojac. Do not hand-edit the table to make npm take it: say what you found |
-| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. A record is of the system it runs on. It does not take a `binding.gyp` yet, and says what of a build a table cannot hold: leave those programs in place and report what it said |
+| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the system it runs on. It says what of a build a table cannot hold: leave those programs in place and report what it said |
 | `tests` | No manifest says how a Python project's tests are run | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command` |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
@@ -111,9 +111,9 @@ neojac test                        # builds the project from the tables, then ru
 - **What the tests need that no group or extra lists** (tiktoken's `pytest` and `hypothesis`
   are named only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
   `neojac install --pypi pytest hypothesis`.
-- **An npm tree's addon is built by the tree's own script first** (`neojac npm run
-  build-release`, or what its `install` runs): neojac does not build a `binding.gyp` yet. Leave
-  a script that needs a tool neojac does not ship (`bun`, `turbo`) unnamed, and report it.
+- **An npm tree's addon is built from its recorded tables** before its suite runs: record it
+  first (`neojac install`, then `neojac absorb --record`). Leave a script that needs a tool
+  neojac does not ship (`bun`, `turbo`) unnamed, and report it.
 - **Compare with the repository's own run.** The bar is the same tests passing. A test that
   fails the same way under the repository's own tools on this machine is not yours to fix:
   report it, and deselect it in the command only if the repository's own run does.

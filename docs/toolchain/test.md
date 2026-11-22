@@ -316,7 +316,8 @@ backend/pyproject.toml: pytest tests
 - **A Python project is built first** (`neojac build backend/pyproject.toml`), and its suite runs
   against that build, with `.jac/venv` first on `PATH`.
 - **An npm tree's script and a crate's tests run as `neojac npm` and `neojac cargo` run
-  anything**: the tree's manifest written first, with the toolchain's compilers.
+  anything**: the tree's manifest written first, with the toolchain's compilers. A tree's
+  extension modules, its addons, are built first (`neojac build <directory>/package.json`).
 - **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
 - **A suite that exits with another status than 0 fails the run**:
   `FAILED backend/pyproject.toml (its suite exited with status 1)`.
