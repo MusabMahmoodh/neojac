@@ -996,6 +996,10 @@
               "page": "reference/diagnostics/e51.md"
             },
             {
+              "title": "E5173 to E5200: what a host makes, JSX, C calling Jac, Rust and C++ instances",
+              "page": "reference/diagnostics/e51-2.md"
+            },
+            {
               "title": "W0060 to W2001: stray strings, inference, modules and names",
               "page": "reference/diagnostics/w00-w20.md"
             },
