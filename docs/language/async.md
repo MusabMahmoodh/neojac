@@ -165,6 +165,13 @@ tick 1 42
 A module whose code awaits, started from inside a running event loop (a module a coroutine
 imports in a code body), raises `asyncio.run`'s `RuntimeError` there.
 
+- **On wasm32-wasi**, where asyncio cannot be loaded, the module's code runs on a driver of its
+  one task, as asyncio's `Task` drives one: a bare yield is a turn. Nothing asyncio makes is
+  there to await.
+- **A yield that is no awaitable's, nor a bare one,** reaching the loop is thrown back into the
+  code as asyncio's `RuntimeError` (`Task got bad yield: ...`), on every host, a JavaScript
+  host's included.
+
 ### Awaitable objects
 
 An object is awaitable when its class defines `__await__`, written as a generator method. What it
