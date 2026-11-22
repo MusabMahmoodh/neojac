@@ -181,9 +181,11 @@ ldflags = ["-Wl,--gc-sections"]    # options for the linker of what it is linked
 archives = ["lib/libfoo.a"]        # static libraries linked with its code
 whole_archives = ["lib/libapi.a"]  # static libraries linked whole
 also_in = ["vendor.engine"]        # C modules whose archives hold this code already (below)
+crates = ["{lib}/node/crates"]     # Rust crates outside the project its code links (below)
 inline = true                      # compiled to bitcode, inlined with the Jac (below)
 export = true                      # the program exports its symbols (below)
 shared = "counter"                 # built into a shared library beside the program (below)
+vendored = true                    # another project's code, kept in this one (below)
 
 [files."counter.c"]                # flags for one source, besides the module's:
 defines = ["COUNTER_FAST"]         # include, defines and cflags
@@ -202,7 +204,10 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   `neojac absorb --record` writes them from what each platform's build read; where it lists none,
   every header of its directory. A directory that holds every platform's headers
   (`arch/linux/init.h` beside `arch/osx/init.h`) names each target's, so that no target reads
-  another's.
+  another's. A header of the project outside the module's directory that its build reads
+  (`../include/clamp.h`) is the module's when `headers` names it: its `static inline` functions
+  are bound with the module's, and a header of the project that defines such functions belongs
+  to one C module, the one whose build reads it, as `absorb --record` writes it.
 - Paths in `headers`, `sources`, `include`, `archives`, `whole_archives`, a files table's name
   and its `include` are relative to the module's directory, and may climb out of it
   (`archives = ["../../api/libplain.a"]`). A files table's `include` must name a directory
@@ -233,6 +238,15 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   `libfoo.so`). On Linux a plain build then links the library, not the archive, and the program
   finds it where it was at the build; a `--release` build links the archive in
   ([build](../toolchain/build.md#--release)). neojac's own `lib/` says this of LLVM's archives.
+- `crates` names Rust crates the module's code links, by their directories, each holding a
+  `Cargo.toml`: each is built in the program's one Rust link, against its one standard library,
+  and wired whole into the C module, as `crate ++> cmod` does. It is for a crate the project's
+  `archwire.jac` cannot name, outside the project (the toolchain's own: Node's crate is
+  `{lib}/node/crates`); the project's own crate there is E5132, since its wire is the one way.
+- `vendored = true` says the module is another project's code kept in this repository (a
+  library's amalgamation, a dependency's sources): it is built as it is, and
+  [`neojac port`](../toolchain/port.md#in-a-project) reads none of it (a path into it is E4011).
+  No tool can tell that from the files, so `absorb` never writes it: the project says it.
 - A key the manifest does not know is E5132.
 
 ### Shared, exported and whole
