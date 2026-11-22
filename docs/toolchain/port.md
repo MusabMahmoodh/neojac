@@ -130,7 +130,9 @@ E4006.
 a module of the project; C with its module's table in `jac.toml` (its includes, its defines, its
 own file's flags), for the platforms the module compiles it for (one compiled for none is E4007);
 TypeScript with its `tsconfig.json`. A C file a unity build compiles only through another
-source's `#include` is read in that source's translation unit, and ports with it (E4010 alone).
+source's `#include` is read in that source's translation unit, and ports with it: the source and
+the files it includes port together or not at all (E4010 for such a file ported alone or held
+back, E4043 for the source held back).
 
 **The plan.** `neojac port --check` prints what would port and what is refused, and in a project
 the plan: each module after the modules of the project it imports, so that each step leaves a
@@ -233,6 +235,7 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4008 | In a project, a port after which the project would not check |
 | E4009 | In a project, a module a file of no space imports |
 | E4010 | A file a unity build compiles only inside a source not ported with it |
+| E4043 | A unity build's source, held back because a file it includes is refused |
 
 - **A source its own compiler rejects** is reported by that compiler, under its own code
   (`error[cpython SyntaxError]`, `error[tsc TS2322]`, Clang's and rustc's own messages).
