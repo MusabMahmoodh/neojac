@@ -355,6 +355,19 @@ name = "emails"
   the workspace's `package.json` files, and to the root's lock, is taken back.
 - **Every member is a table.** A member npm finds that `jac.toml` holds none for is E5159:
   `neojac absorb` of the root's directory takes each in.
+- **A member links another by `workspace:`**, as pnpm's and yarn's users write it. It is
+  `jac.toml`'s own form, and the one place a tree's table is not its `package.json` key for key:
+
+  ```toml
+  [npm."frontend".dependencies]
+  emails = "workspace:*"
+  ```
+
+  npm does not read `workspace:`, so the `package.json` neojac writes has the range npm links a
+  member by: `*` for `workspace:*`, `workspace:^` and `workspace:~`, and the range itself for
+  `workspace:<range>`. What npm writes back there is taken as the link it was written from, so
+  the table keeps it. The package named must be one of the same workspace (E5170), and a link
+  in another form, a path or an alias, is E5171.
 - **An app's artifact does not carry a member's packages yet.** An app whose node space runs on a
   member's tree is refused (E5090).
 
@@ -640,7 +653,7 @@ item**. `absorb` lists each at its file, and does not guess:
 |---|---|---|
 | `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
-| `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
+| `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
 | `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
 ```text
@@ -657,6 +670,28 @@ open items
 
 nothing written
 ```
+
+### What absorb rewrites
+
+A manifest is taken as it stands, but for a form its own engine does not read and another
+engine's form says exactly. absorb rewrites those once, and says so:
+
+```text
+rewritten
+  package.json: pnpm.overrides is written as npm's `overrides`
+  package.json: devDependencies.@types/react is 19.2.2, as the override has it, and was ^18.2.65: npm takes no override that its own package asks otherwise of
+```
+
+- **`pnpm.overrides` becomes npm's `overrides`.** A plain name and a name with a range are the
+  same key in both; pnpm's `parent>child` is npm's nesting, `{ parent = { child = "..." } }`.
+- **What the root itself asks for of an overridden package becomes the override's value.** pnpm
+  lets an override replace its own package's dependency, and npm refuses one that contradicts it
+  (`EOVERRIDE`), so the root's own range is set to what pnpm installs.
+- **It is left alone, and stays an open item,** where npm has no counterpart: an override that
+  removes a dependency (`"-"`), one to a `link:`, `catalog:` or `workspace:` target, or a root
+  that already has `overrides` of npm's own.
+- **A `package.json` absorb rewrote, and one with a `workspace:` link, is no longer the bytes it
+  was**: `git diff` shows the change, which is the rewrite.
 
 ### Recording a build
 
@@ -800,6 +835,8 @@ yet, and no space holds one.
 | E5167 | A Python project built or tested with no `[wheel."<directory>"]`: `neojac absorb --record` |
 | E5168 | `[wheel."<directory>"]` lists a file the project no longer has |
 | E5169 | `neojac build` given a `pyproject.toml` that `jac.toml` holds no `[pypi."<directory>"]` for |
+| E5170 | A `workspace:` link to a package that is no tree of the same workspace |
+| E5171 | A `workspace:` link in a form npm is given no range for: a path, an alias |
 | `install --frozen: jac.lock pins nothing for the package 'units' as jac.toml asks for it; run neojac install` | `--frozen` after `jac.toml` came to ask for a package, or for another `git` or `rev` of one |
 | E2216, E2219, E2220, E2221, E2222 | A package that is not where it is declared or is neither a library nor a plugin, a library imported that the package does not declare, a declaration that does not hold of the copy the program holds (another place, or a version that does not satisfy it), a library or a plugin that declares or binds a plugin, a library whose name the project's tree also has: `neojac docs E2219` |
 | E2226, E2227, E2228, E2229 | A `[libraries]` or a `[plugins]` table, a plugin a project declares and never uses, a version or a requirement that is not one, a package that needs a later neojac |

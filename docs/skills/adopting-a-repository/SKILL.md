@@ -58,7 +58,9 @@ git status --short
 
 It writes `jac.toml`, `jac.lock` where a lock neojac's engines read was there, `archwire.jac`, and
 the lines of `.gitignore` for the manifests it now writes. Each manifest is the same bytes as
-before: `git diff` on one shows nothing. If a step fails, every file is as it was.
+before, so `git diff` on one shows nothing, with two exceptions it tells you of: a
+`package.json` whose `pnpm.overrides` it rewrote as npm's (listed under `rewritten`), and one
+with a `workspace:` link, which npm is given as a range. If a step fails, every file is as it was.
 
 3. **Read what stands between the archwire and a check that passes.** `absorb` prints the
    diagnostics every command would give and exits 1 when there are any. Each is at a wire or at
@@ -75,7 +77,7 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 | Kind | What it is | What closes it today |
 |---|---|---|
 | `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
-| `form` | A manifest form npm does not read (`workspace:` links, `pnpm.*`, `pnpm-workspace.yaml`) | Not yet rewritten by neojac. Do not hand-edit the table to make npm take it: say what you found |
+| `form` | A manifest form npm does not read and neojac does not rewrite (`pnpm-workspace.yaml`, `pnpm.packageExtensions`) | Do not hand-edit the table to make npm take it: say what you found. `pnpm.overrides` and `workspace:` links are no open item: absorb rewrites the first, and prints what it rewrote, and `jac.toml` keeps the second as written |
 | `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the system it runs on. It says what of a build a table cannot hold: leave those programs in place and report what it said |
 | `tests` | No manifest says how a Python project's tests are run | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command` |
 
