@@ -976,6 +976,10 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
+              "title": "E2240 to E2290: imports in code, defaults, unions, bit-fields, crates and comptime if",
+              "page": "reference/diagnostics/e22-4.md"
+            },
+            {
               "title": "E30xx: lint",
               "page": "reference/diagnostics/e30.md"
             },
