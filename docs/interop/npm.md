@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -274,12 +274,15 @@ operator it names; natively each runs in the program's Node.
 | `js_inc(x)`, `js_dec(x)`, `js_number(x)` | What `x++` and `x--` make `x`; `+x` |
 | `js_same(a, b)` | `a === b` |
 | `js_typeof(x)` | `typeof x` |
-| `js_item(o, k)`, `js_set_item(o, k, v)` | `o[k]`, `o[k] = v` |
+| `js_item(o, k)`, `js_set_item(o, k, v)` | `o[k]`; `o[k] = v`, whose value is `v` |
+| `js_delete(o, k)` | `delete o[k]` in strict code: `True`, a `TypeError` where the property cannot be removed |
+| `js_rest(o, keys)` | The `...rest` of the pattern `{ a, b, ...rest } = o` whose other names `keys` lists: a new object of `o`'s own enumerable properties but those |
 | `js_method(o, name, ...)` | `o[name](...)`, an array's or a string's own method among them |
 | `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
 | `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
 | `js_new_target()` | `new.target` of the call that reached the function it is written in: the function JavaScript called with `new`, else `None` ([below](#a-class-with-a-javascript-base)) |
 | `js_global(name)` | The global `name` read where the call is written |
+| `js_prototype(f)` | `f.prototype`: of a Jac function, that of the face JavaScript calls with `new` (JavaScript's `f.prototype.m = ...` is `js_prototype(f).m = ...`); on a JS host only, a `RuntimeError` natively |
 | `js_error(e)` | What JavaScript threw that the Jac exception `e` is |
 | `JsNull` | `null` |
 

@@ -104,9 +104,11 @@ ENOENT
      `js_pow`, `js_mod` for `%`, `js_shl`, `js_shr`, `js_ushr`, `js_band`, `js_bor`, `js_bxor`
      for the shifts and bitwise operators, `js_lt`, `js_le`, `js_gt`, `js_ge`, `js_inc`,
      `js_dec`, `js_number`, `js_same` for `===`, `js_typeof`, `js_item(o, k)` and
-     `js_set_item(o, k, v)` for `o[k]`, `js_method(o, "join", ", ")`, `js_iter(x)` for
-     `for ... of`, `js_for_in(o)`, `js_meta()` for `import.meta`, `js_new_target()` for
-     `new.target`, `js_global(name)` (`neojac docs js_add`).
+     `js_set_item(o, k, v)` for `o[k]` and `o[k] = v` (whose value is `v`), `js_delete(o, k)`
+     for `delete o[k]`, `js_rest(o, ["a", "b"])` for `{ a, b, ...rest } = o`,
+     `js_method(o, "join", ", ")`, `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
+     for `import.meta`, `js_new_target()` for `new.target`, `js_prototype(f)` for
+     `f.prototype`, `js_global(name)` (`neojac docs js_add`).
    - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
      JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
      it uses `self` (`neojac docs E2252`).
