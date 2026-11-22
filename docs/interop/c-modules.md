@@ -144,7 +144,6 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | A trailing array of no length (`int32_t data[];`) | Left out of the record, whose size stays C's: it is the memory past the record |
 | A `union`, a `typedef union` | A [union](../language/structs.md#unions), used by address and as a field |
 | A record with no name that is a field's type (`struct { union { ... } amount; }`) | A record named by its record and field (`shape_tagged_amount`), reached through the field |
-| A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
 | An `extern` variable | A global the program reads and assigns in place; one of an opaque type is used through `addressof()` |
 | An enum constant, an integer `#define` | An `int` constant; a sign and a suffix (`(-17)`, `0xff00u`) are kept |
 | A `static inline` function of a header | A function of its C name, called through a C shim the module compiles |
