@@ -1,7 +1,7 @@
 ---
-description: What a module is, what its top level may hold, import and include, with entry blocks and when they run, docstrings, how a module's file is found, and impl and test annexes.
-keywords: module, import, include, from, import from, relative import, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
-grammar: module, element, import_stmt, from_path, import_items, import_item, module_code, access_tag
+description: What a module is, what its top level may hold, import and include, an import in a code body, a module's default, with entry blocks and when they run, docstrings, how a module's file is found, and impl and test annexes.
+keywords: module, import, include, from, import from, relative import, import in a function, local import, default, default export, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
+grammar: module, element, default_element, import_stmt, from_path, import_items, import_item, module_code, access_tag
 ---
 # Modules
 
@@ -21,11 +21,13 @@ element ::=
     | enum_decl
     | test_decl
     | docstring_target
+    | default_element
     | ability
     | global_vars
     | comptime_element
     | graph_import
     | graph_spaces
+    | graph_layers
     | impl_def
     | sem_def
     | module_code
@@ -43,6 +45,7 @@ block; a bare statement at the top level is an error (E0005).
 | `def`, `async def` | Functions | [Functions](functions.md), [Async](async.md) |
 | `type` | A type alias | [Types](types.md) |
 | `with entry` | Code that runs when the module loads | this page |
+| `default` | Marks one declaration the module's default | this page |
 | `test` | A test | [Tests](tests.md) |
 | `obj`, `class`, `struct`, `node`, `edge`, `walker`, `enum`, `impl`, `sem` | Archetypes and their implementations | `neojac docs obj` |
 | `comptime` | Compile-time declarations | `neojac docs comptime` |
@@ -100,7 +103,8 @@ modules on this page are such modules.
   class of a module that imports its own module, and every class of both modules is set up before
   either module's `with entry` code runs.
 - **Imports are written at the top level**, anywhere among the declarations: an import after a
-  class is as good as one at the top of the file. An import inside a function is refused (E5090).
+  class is as good as one at the top of the file. An import in a function's body is its own, and
+  starts its module where it runs ([below](#an-import-in-a-code-body)).
 - **A class belongs to its module.** Two classes of one name in two modules are two types:
   `ma.Item` and `mb.Item` are not equal and neither is an instance of the other.
 - **A name is declared once.** Importing a name the module also declares is E2036.
@@ -183,13 +187,116 @@ Dots before the path of an `import from` make it relative to the importing file,
 
 A relative import looks in that one place only. One that finds nothing is E1134.
 
+### An import in a code body
+
+An `import` written in a function, or in any other code, is that code's, as a Python import in a
+function is:
+
+- **Its names are the body's**, from the import on: a nested function written after it sees them
+  too. A use of one anywhere else in the module, or before the import, is E2240.
+- **A Jac module it names starts where the import first runs**, once, with the modules only it
+  brings in, and not when the program starts. Modules that import each other this way start in
+  the order Python's would.
+- **It is synchronous on every host**: a JavaScript host starts the module at the statement, as
+  a native program and a `cpython` space do.
+- **On a `cpython` host** it may also name a Python module, which Python loads where the import
+  runs (its names are `any` to the checker). A module of Python's that the native library does
+  not have is refused in a native program (E5090), and so is, in a `cpython` space, an import in
+  a code body of anything Python cannot load as it runs: a path, an `include` (E5173).
+- **Under an `archwire.jac`**, the wire into the module admits the import, and names what it may
+  import (`units ++> shapes { label }`); the import in the body binds them where the module
+  starts. A name the wire lacks is E2094, as for any wired import.
+
+`main.jac`, `shapes.jac` and `units.jac`:
+
+<!-- example: not checked: needs the files shapes.jac and units.jac beside it -->
+```jac
+import from shapes { area_of }
+
+with entry {
+    print("main starts");
+    print(area_of(2));
+    print(area_of(3));
+}
+```
+
+<!-- example: not checked: needs the file units.jac beside it -->
+```jac
+def area_of(side: int) -> str {
+    import from units { label }
+    return label(side * side);
+}
+```
+
+```jac
+glob SUFFIX: str = " sq m";
+
+with entry {
+    print("units starts");
+}
+
+def label(n: int) -> str {
+    return str(n) + SUFFIX;
+}
+```
+
+```text
+main starts
+units starts
+4 sq m
+9 sq m
+```
+
+`units` starts at the first call of `area_of`, and its code runs once.
+
+### A module's default
+
+```ebnf
+default_element ::= "default" (global_vars | decorated)
+```
+
+`default` before a declaration makes it the module's default: a function, a class of any kind, an
+enum, or a `glob` of one name. It comes after the declaration's docstring and before its
+decorators. A module has at most one (E2250), and `default` marks one declaration (E0175).
+
+- **`import from greet { default as hello }`** binds a module's default under a name of the
+  importer's, on every host, and so does a wire (`greet ++> page { default as hello }`). The
+  declaration keeps its own name too.
+- **On a JavaScript host** it is the module's default export, which a JavaScript file's
+  `import hello from "./greet.js"` takes, and a CommonJS `require` gives.
+
+`greet.jac`:
+
+```jac
+"""How a visitor is greeted."""
+default def welcome(name: str) -> str {
+    return "welcome, " + name;
+}
+```
+
+`main.jac`, beside it:
+
+<!-- example: not checked: needs the file greet.jac beside it -->
+```jac
+import from greet { default as hello, welcome }
+
+with entry {
+    print(hello("ann"), welcome("bo"));
+}
+```
+
+```text
+welcome, ann welcome, bo
+```
+
 ### Other import forms
 
 - `import from "<library file>" { def ...; }` declares functions of a C library, and an import of a
   Python or npm package reaches code in another language. See `neojac docs interop`.
 - `import type` names a type of a JavaScript package or of another space, for annotations.
 - `comptime import` makes a module available to compile-time code. See `neojac docs comptime`.
-- `default` as an import item is a JavaScript module's default export.
+- `default` as an import item is a module's default: a Jac module's (above) or a JavaScript
+  module's default export.
 
 ### What is rejected
 
@@ -214,9 +321,26 @@ with entry {
 
 ```jac
 # expect: E5090
-def cwd -> str {
-    import os;
-    return os.getcwd();
+def opcodes -> any {
+    import dis;
+    return dis.opname;
+}
+```
+
+```jac
+# expect: E0175
+default glob first: int = 1,
+     second: int = 2;
+```
+
+```jac
+# expect: E2250
+default def a -> int {
+    return 1;
+}
+
+default def b -> int {
+    return 2;
 }
 ```
 
@@ -227,7 +351,11 @@ def cwd -> str {
 | E1134 | A relative import names no module |
 | E1145 | The module has no such name, as an import item or as `module.name` |
 | E2036 | The imported name is already declared in this module |
-| E5090 | An import inside a function |
+| E5090 | An import in a code body of a Python module the native library does not have, natively |
+| E2240 | A name an import in a code body binds, used outside that body or before the import |
+| E5173 | In a `cpython` space, an import in a code body of what Python cannot load as it runs |
+| E0175 | `default` on something that is not one declaration |
+| E2250 | A second declaration marked `default` |
 | E0157 | A backtick in a module path, where every word is taken as it stands |
 | E1144, E2094 | The import is written in a module that takes its imports from wires; see [Import wiring](modules-wiring.md) |
 
@@ -278,7 +406,8 @@ uses it, and one the program never uses never starts: its code is not in the exe
 
 - **What starts a module:** the first of a call of one of its functions, a read or write of one of
   its globals, or making an instance of one of its classes (or of a class derived from one).
-  Importing it does not. Its code then runs once, before that use goes ahead.
+  Importing it at the top level does not; an import in a code body does, where it runs. Its code
+  then runs once, before that use goes ahead.
 - **Order within a module:** globals are given their values in the order written, and `with entry`
   blocks run in the order written. Declare a global above the entry blocks that read it.
 - **A module imported for what its code does** is started by calling a function of it. The
@@ -299,6 +428,8 @@ uses it, and one the program never uses never starts: its code is not in the exe
 - **Names assigned in an entry block** are the module code's locals. Later entry blocks of the same
   module see them, and so does a `lambda` or a `def` written inside a block, which may assign them
   too; the module's top-level functions do not (W2001). State that functions share is a `glob`.
+- **A module whose code awaits** runs all its entry blocks as one coroutine, to its end, when it
+  starts ([Async](async.md#module-code-that-awaits)).
 - **`return;`** in an entry block ends its module's code there: the rest of the block, and the
   module's entry blocks after it, do not run. The modules that import it run on.
 - **A module with no entry block** runs nothing; a program whose main module has none starts and
