@@ -1,0 +1,18 @@
+# The standard `files` plugin: each file's bytes in a file of the
+# app's data directory, and what is known of each in a SQLite file beside
+# them.
+[project]
+name = "local_files"
+kind = "plugin"
+
+[plugin]
+fills = "files"
+interface_ver = 1
+class = "local_files.files.LocalFiles"
+
+# What opens its file at a layout, and upgrades an older one.
+[packages]
+sqlfile = { path = "../../../libraries/sqlfile" }
+
+[check.lint]
+select = []
