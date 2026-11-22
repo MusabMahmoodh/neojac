@@ -41,6 +41,7 @@ A crate is ported from its root file, `src/lib.rs`.
 | `a < b`, `<=`, `>`, `>=`, `==`, `!=`, `a && b`, `a \\|\\| b`, `!a`, `-a` | The same comparisons, `a and b`, `a or b`, `not a`, `-a` |
 | `x as i64`, `x as f64` (a type that holds every value); `x as u8` | `i64(x)`, `float(x)`; `u8.wrap(x)`: it keeps the low bits |
 | `f(a, b)` | `f(a, b)` |
+| `\|x\| x + 1`, given to another crate's method that calls it before it returns | `lambda (x: i32) -> i32 { return x + 1; }` |
 | `5`, `5u8`, `1.5`, `true` | `5` where its type is given by what takes it, else `i32(5)`, `u8(5)`; `1.5`, `True` |
 | `b"ab"` given as a `&[u8]` | `b"ab"` |
 

@@ -876,7 +876,7 @@
               "page": "reference/diagnostics/e01-1.md"
             },
             {
-              "title": "E0120 to E0168: parameters, assignments, patterns, spellings, layers and connects",
+              "title": "E0120 to E0181: parameters, assignments, patterns, spellings, layers, connects, defaults, defer and bit-fields",
               "page": "reference/diagnostics/e01-2.md"
             },
             {
@@ -908,7 +908,7 @@
               "page": "reference/diagnostics/e12-2.md"
             },
             {
-              "title": "E1229-E1248: specialization, fields, tensors and reflection",
+              "title": "E1229-E1256: specialization, fields, tensors, reflection, calls from C and drops",
               "page": "reference/diagnostics/e12-3.md"
             },
             {
