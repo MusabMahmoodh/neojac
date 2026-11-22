@@ -180,7 +180,10 @@ neojac test                        # the same tests passing, after each step
 
 Port in the plan's order: each module after the modules of the project it imports. Each port is
 one change, made only if the project then checks (E4008), and a C file the rest of its C module
-still calls is called through the header beside its Jac. Commit after each step.
+still calls is called through the header beside its Jac; a C function defined with `...` ports
+with every C file that calls it (E4031). Commit after each step. A port that was killed leaves
+its change journalled, and `check` and `build` refuse the project (E4013) until the next
+`neojac port` in it undoes the change.
 
 ## What a correct result looks like
 
