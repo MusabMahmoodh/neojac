@@ -99,6 +99,12 @@ ENOENT
      `*rest: any`.
    - JavaScript's `TypeError` and `RangeError` arrive as `TypeError` and `ValueError`, anything
      else as `RuntimeError`; `js_error(e)` is what was thrown, with its `.code` and `.name`.
+   - Where a value's type is not known and JavaScript's own meaning is wanted, `js` has each
+     operation as a function: `js_truthy(x)` for `!!x`, `js_add`, `js_sub`, `js_mul`, `js_div`,
+     `js_pow`, `js_lt`, `js_le`, `js_gt`, `js_ge`, `js_inc`, `js_dec`, `js_number`, `js_same` for
+     `===`, `js_typeof`, `js_item(o, k)` and `js_set_item(o, k, v)` for `o[k]`,
+     `js_method(o, "join", ", ")`, `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()` for
+     `import.meta`, `js_global(name)` (`neojac docs js_add`).
 
 4. **Check, build, run.**
 
