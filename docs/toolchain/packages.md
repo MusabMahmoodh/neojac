@@ -555,6 +555,26 @@ Only the tree's table changes. The rest of `jac.toml`, its comments with it, is 
 In a directory that is no Jac project (no `jac.toml` in it or above it), `neojac npm` is npm as it
 is anywhere, on that directory's own `package.json`.
 
+### What a package's script builds
+
+A package that compiles as it is installed (a Node addon by `node-gyp`, a Python package from its
+source distribution) is built with neojac's own compilers, not with whatever the machine has:
+
+- **npm's scripts, and a Python build backend, are given `CC`, `CXX` and `AR`**: `neojac cc`,
+  `neojac c++` and `neojac ar` of the neojac that is running, each left as it is where the
+  environment already names one. `neojac install`, `neojac npm` and `neojac npx` all do.
+- **neojac's cargo is first on `PATH`**, with the rest of what `neojac cargo` gives a build,
+  where the toolchain has Rust.
+- **What a build needs besides is the machine's**: `make` for `node-gyp`, and on macOS the
+  `libtool` that node-gyp makes a static library with.
+
+```text
+$ neojac install                       # better-sqlite3's own packages
+$ neojac npm run build-release         # node-gyp: its addon, compiled by neojac c++
+$ neojac npm test
+  369 passing (3s)
+```
+
 ## Taking in a repository: neojac absorb
 
 `neojac absorb` takes the manifests a repository already has into `jac.toml`, each where it
