@@ -178,9 +178,10 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   beside the Jac module ([C modules](../interop/c-modules.md#calling-jac-from-c)).
 - **A Python project's tests and scripts are its space's clients.** A file of the project's tree
   that its wheel does not list (`tests/`, `scripts/`, a `setup.py`) imports the package as the
-  space builds it, so a module it imports ports, and the file's Python import reaches the Jac
-  module. A module of a wheel is refused while the wheel's build makes no Jac module (E5090).
-- **A module imported by a file of no space** (a script beside a project that is no Python
+  space builds it, so it holds no module back, and its Python import of a ported module reaches
+  the Jac. A module the wheel ships is refused for now (E5090): a wheel's build makes no Jac
+  module yet.
+- **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
 
