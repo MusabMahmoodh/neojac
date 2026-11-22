@@ -642,6 +642,10 @@
           "page": "interop/python-modules.md"
         },
         {
+          "title": "Classes and decorators in a cpython space",
+          "page": "interop/python-classes.md"
+        },
+        {
           "title": "npm and Node",
           "page": "interop/npm.md"
         },

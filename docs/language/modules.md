@@ -1,6 +1,6 @@
 ---
 description: What a module is, what its top level may hold, import and include, an import in a code body, a module's default, with entry blocks and when they run, docstrings, how a module's file is found, and impl and test annexes.
-keywords: module, import, include, from, import from, relative import, import in a function, local import, default, default export, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
+keywords: module, import, include, from, import from, relative import, import in a function, local import, module default, default export, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
 grammar: module, element, default_element, import_stmt, from_path, import_items, import_item, module_code, access_tag
 ---
 # Modules

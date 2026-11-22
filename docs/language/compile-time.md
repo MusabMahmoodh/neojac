@@ -288,7 +288,7 @@ differs throughout may instead have a file per target (variants, in
 Without `comptime`, an `if` among an archetype's members tests what only the
 running program knows. That is a class Python makes as its statement runs,
 which a `cpython` space has
-([Python modules](../interop/python-modules.md#classes-python-makes)); in any
+([Classes and decorators in a cpython space](../interop/python-classes.md#classes-python-makes)); in any
 other space it is E5175.
 
 ## comptime for

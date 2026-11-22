@@ -1,6 +1,6 @@
 ---
-description: The struct archetype, a value held in place and copied where it goes: how it is declared and made, what copying means, how fields and methods reach it in place, equality, and how it conforms to interfaces.
-keywords: struct, value type, held in place, temporary copy
+description: The struct archetype, a value held in place and copied where it goes: how it is declared and made, what copying means, how fields and methods reach it in place, equality, how it conforms to interfaces, and a union, a struct whose fields share their memory.
+keywords: struct, value type, held in place, temporary copy, union declaration, C union
 ---
 # Structs
 
@@ -279,6 +279,44 @@ mark no binding of one (E1507), and no field of a struct owns what it holds
 (E1506): every copy would own it. `&` and `&mut` lend a struct's place as
 they lend any.
 
+## Unions
+
+`union` declares a struct whose fields all start at its first byte, as a C union's do: its size
+is its largest field's, rounded up to its largest alignment. Writing one field and reading another
+reads the same bytes as the other field's type.
+
+```jac
+union Word {
+    has whole: u32,
+        half: u16,
+        ratio: f32;
+}
+
+with entry {
+    a = Word(whole=u32(0x3f800000));
+    print(a.ratio, a.half, Word().whole);
+    a.half = u16(1);
+    print(a.whole);
+}
+```
+
+```output
+1.0 0 0
+1065353217
+```
+
+The output is a little-endian machine's, which every target neojac builds for is.
+
+- **It is made zeroed, then from at most one field, given by name** (E2260 otherwise).
+  `Word()` is all zero bytes.
+- **Its fields take no default** (E2261): there is no one field whose default would stand.
+- **Every other rule is a struct's**: it is copied where it goes, compared and hashed by its
+  bytes' fields, and held in place in an `obj`, a list or C memory.
+- **A C header's `union`** is bound as a union by an import of C, and a union is passed to C by
+  address ([C modules](../interop/c-modules.md#what-jac-binds-from-the-headers)).
+- **`union` is a word only where a declaration starts**, as `struct` is.
+- A union is native: in a `cpython` or JavaScript space it is E5090.
+
 ## What is rejected
 
 A declaration's errors are reported first, as the program's declarations are
@@ -361,6 +399,20 @@ with entry {
 | E1506 | A struct's field is marked `own`. |
 | E1507 | A binding of a struct is marked `own`, `lin` or `imm`. |
 | E1562 | A struct is made a `dyn` of an interface that requires a method changing it. |
+| E2260 | A union is made from more than one field, or from one given by position. |
+| E2261 | A union's field has a default. |
+
+```jac
+# expect: E2260 x2
+union Word {
+    has whole: u32,
+        half: u16;
+}
+
+with entry {
+    print(Word(whole=u32(1), half=u16(2)).whole, Word(u32(1)).whole);
+}
+```
 
 ## Differences from Python and the reference design
 
