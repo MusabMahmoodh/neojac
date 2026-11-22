@@ -36,11 +36,10 @@ node = "none"
 #   boot = "@jac/runtime"   # the module whose `startApp` starts a routed app
 #
 #   [ui.jsx]
-#   source = "react"        # the package whose jsx-runtime makes a node space's elements
+#   source = "react"        # the package whose `jsx-runtime` makes a node space's elements
 #   lowercase_tags = true   # whether <div> exists
 #   no_text_in = []         # tags that show no bare text
 #   keys = true             # whether the library reads an element's `key`
-#   source = "react"        # the package whose `jsx-runtime` makes a node space's elements
 #
 #   [ui.state]              # `has`
 #   from = "react"          # the npm module the function is imported from
