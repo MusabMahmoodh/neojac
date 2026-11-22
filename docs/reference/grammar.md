@@ -147,7 +147,7 @@ impl_target_name ::=
 
 block_rest ::= stmts "}"
 
-type_param ::= "comptime"? NAME (":" pipe)? ("=" pipe)?
+type_param ::= "*" NAME | "comptime"? NAME (":" pipe)? ("=" pipe)?
 
 pipe_back ::= logical_or ("<|" logical_or)*
 

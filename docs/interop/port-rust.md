@@ -60,7 +60,7 @@ else its defaults.
 
 Anything not in the table is refused with E4001, and nothing is written for the file: among
 them enums whose variants hold fields and their patterns, generics, iterator chains
-(`collect`, `map`, `enumerate`) and a `for` over anything but a range, `?`, `Display` impls
+(`collect`, `map`) and a `for` over another iterator (a slice's, another crate's), `?`, `Display` impls
 (`Formatter`), a value of another crate that borrows (`Option<Match>`, `HashSet<&str>`),
 `char`, raw pointers and `unsafe`, and a call of another crate whose types Jac does not hold.
 So is a construct in the table whose Jac would mean something else (E4005):

@@ -23,11 +23,14 @@ the module `geom`.
 | `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32]`, `array[i8, 16]` |
 | `char`, whose sign is the target's: `int n = c;`, `c == 'a'` | `i8` on every target. Its value as a number is the target's: `n = i32(c);`, and `n = i32(u8.wrap(c));` where `char` is unsigned (Linux arm64), the two under `comptime if` where the targets differ |
 | `int f(int a, double b) { }`, `void g(void) { }` | `def f(a: i32, b: float) -> i32 { }`, `def g { }` |
+| `CFSTR("name")` (CoreFoundation's `__builtin___CFStringMakeConstantString`) | `__CFStringMakeConstantString(ptr[i8]("name"))`, the function CoreFoundation's header names for it where the compiler has no builtin, declared in `import from c` |
+| `int say(const char *fmt, ...) { va_list ap; va_start(ap, fmt); n = vprintf(fmt, ap); va_end(ap); }` | `def say[*Ts](fmt: ptr[i8], *ap: *Ts) -> i32 { n = printf(fmt, *ap); }`: a pack of type parameters, compiled for each call's arguments; `va_start` and `va_end` are nothing, and a `v` function of the C library or CPython given the `va_list` is its plain one given the pack (`vsnprintf` is `snprintf`, `PyErr_FormatV` is `PyErr_Format`). C cannot call it: a C file that calls it ports in the same run (E4031) |
 | `int main(void) { }` | `def main -> i32 { }` and `with entry { sys.exit(int(main())); }` |
 | `int total = 0;` at file scope, `int x = 1;` in a function, `int x;`, a local of a name another variable of the function or of the file has | `glob total: i32 = 0;`, `x: i32 = 1;`, `x: i32 = 0;`, the name with `_2` (`_3`, ...): a Jac function has one variable of a name, of one type |
 | `int x; f(&x);`, `int xs[3] = {1, 2};`, `char name[] = "ab";`: a local whose address is taken, a local array | `x = ptr[i32](__alloca(4)); f(x);`, `xs = ptr[i32](__alloca(12)); memset(xs, 0, 12); xs[0] = 1; xs[1] = 2;`: it lives in the function's frame, and is read and written through its address |
 | `static int n = 0;` in a function `next` | `glob next_n: i32 = 0;`, beside the function |
 | `struct point { double x; int n; };`, `struct point p = {1.5, 2};`, `p.x` | `struct point { has x: float = 0.0, n: i32 = 0; }`, `p: point = point(x=1.5, n=2);`, `p.x` |
+| `lldiv_t q = lldiv(47, 5);`, `union sigval v; v.sival_int = 9;`: a record or a union a system header declares, held by value, or a record of no name a named one's field has (`extern_proc`'s `p_un`); a record of a header of the project's C module | `obj lldiv_t { has quot: int, rem: int; }` and `union sigval { has sival_int: i32, sival_ptr: ptr; }` in `import from c`, the fields from Clang's layout, a record of no name by the two names (`extern_proc_p_un`); the module's record by the wire from its header |
 | `enum { RED, GREEN = 5 };` | `comptime RED: i32 = 0;`, `comptime GREEN: i32 = 5;` |
 | `typedef struct { } point;`, `typedef int count;` | The record by its typedef's name; any other typedef is the type it names |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }` | `if c { } elif d { } else { }`, `while c { }`; a condition that is a number is `c != 0` |
@@ -59,9 +62,10 @@ the module `geom`.
 ## What is refused
 
 Anything not in the table is refused with E4001, and nothing is written for the file: a union,
-a record with no name and a bit-field the file declares, a union a system header declares held
-by value, a `goto` other than the forward one to a function's cleanup the table maps, a function
-defined with `...`, a pointer to an array or to a function pointer, a function pointer that may
+a record with no name and a bit-field the file declares, a copy of a union a system header
+declares, a `goto` other than the forward one to a function's cleanup the table maps, a
+`va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last argument
+of a `v` function, a pointer to an array or to a function pointer, a function pointer that may
 be null, a conversion of a function pointer a variable holds, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 

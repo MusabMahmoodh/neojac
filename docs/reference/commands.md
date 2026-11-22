@@ -491,15 +491,19 @@ Run neojac's CPython.
 
 ```sh
 neojac python [<python argument>...]
+neojac python <space directory> [-m <module> | -c <code>] [<argument>...]
 ```
 
 CPython 3.15, with its own command line. In a project with a virtual environment (.jac/venv), it is that environment's Python.
+
+A cpython space, as `neojac emit-py <space> -o <space directory>` writes it, is run by its directory: alone, its entry; with -m, a module run over its modules as `python -m` runs it (`-m pytest` runs a suite the space holds); with -c, code run over them as `python -c` runs it. A space with no entry takes -m or -c.
 
 Its arguments, --help among them, are that program's own: `neojac python --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac python -c 'import sys; print(sys.version)'` |  |
+| `neojac python py -m pytest tests --import-mode=importlib` | The suite of the cpython space emitted into py |
 
 Its guide: [interop/python](../interop/python.md) (`neojac docs interop/python`).
 
