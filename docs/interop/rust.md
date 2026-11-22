@@ -88,8 +88,12 @@ neojac build: a crate's build takes -o and --release, and '--target' is an optio
   `rustdoc` and `cargo` are links to neojac, which runs as the tool it is named. On Windows they
   are programs of their own, and `neojac` puts the directory of the LLVM library they load on
   their `PATH`.
-- `neojac rustc -vV` prints rustc's version, and one `neojac-build: <64 hex digits>` line naming
-  the build of the toolchain, which is how cargo tells one build of it from another.
+- `neojac rustc -vV` prints rustc's version, and two lines of 64 hex digits each, which are how
+  cargo tells one build of the toolchain from another. `neojac-build:` names the build of rustc.
+  `neojac-std:` names the standard libraries that rustc compiles against, as they are installed
+  here: one neojac's rustc compiles the standard library as that neojac plans it, so the same
+  rustc is not always the same standard library. cargo compiles again what it compiled under
+  other lines.
 
 ## Differences from rustup's Rust
 
