@@ -15,8 +15,16 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `int C::get() { return n; }`, defined outside its class | `def get -> i32;` in the struct, and `impl C.get -> i32 { return self.n; }` |
 | `C c(1);`, `C c;`, `C d = c;`, `c.get()`, `this->n`, `true` | `c: C = C.make(1);`, `c: C = C();`, `d: C = c;`, `c.get()`, `self.n`, `True` |
 
+## Overloads
+
+Jac has one function to a name, so port names each member of a C++ overload set, a class's
+constructors included, by the interface types of its parameters, joined by `_`: `scaled(double)`
+is `scaled_f64`, `scaled(int, int)` is `scaled_i32_i32`, and a second constructor `C(int)` is
+`C.make_i32`. A name with one member keeps its name. Clang says which member a call names, and
+a C++ module's native import names its members the same way.
+
 ## What is refused
 
 Anything not in the table or in C's is refused with E4001: inheritance and virtual functions,
 templates, overloaded operators, destructors, references, namespaces, exceptions, `new` and
-`delete`, static members, a class with more than one constructor, and the standard library.
+`delete`, static members, and the standard library.
