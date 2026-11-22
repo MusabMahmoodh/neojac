@@ -23,24 +23,10 @@ obj FieldCheck {
         value: str = "";
 }
 
-obj AvatarCheck {
-    has ok: bool = False,
-        error: str = "",
-        mime: str = "",
-        data: str = "";
-}
-
 obj ProfileResult {
     has ok: bool = False,
         error: str = "",
         bundle: ProfileBundle | None = None;
-}
-
-obj AvatarResult {
-    has ok: bool = False,
-        error: str = "",
-        avatar_v: str = "",
-        avatar_url: str = "";
 }
 
 node Profile {
@@ -50,14 +36,8 @@ node Profile {
         location: str = "",
         website: str = "",
         github: str = "",
-        avatar_v: str = "",
+        avatar: File | None = None,
         created_at: str = "";
-}
-
-node Avatar {
-    has mime: str = "image/jpeg",
-        data: str = "",
-        updated_at: str = "";
 }
 
 node Tweet {

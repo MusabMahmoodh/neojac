@@ -6,7 +6,7 @@ kind = "plugin"
 
 [plugin]
 fills = "transport"
-interface_ver = 1
+interface_ver = 2
 class = "http.transport.HttpTransport"
 
 [check.lint]

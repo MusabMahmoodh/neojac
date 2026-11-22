@@ -99,7 +99,8 @@ The calls a server answers at once work on one graph in memory. It is written:
 - **What is taken out of what is kept:** an edge the program deleted, and a node with no edge into
   it that is no root, with its edges out, and so on down from it. Nodes that lead to each other
   and are cut off together keep their rows: nothing reaches them, and nothing in memory tells them
-  from nodes another walk still reaches. `sweep()` takes those out.
+  from nodes another walk still reaches. `sweep()` takes those out, and with them the files no
+  kept row holds any longer ([Files](files.md#when-a-file-goes)).
 - An endpoint that raises, and a stream that raises, writes nothing of its own; what it changed
   in memory is written with the next write.
 
@@ -157,7 +158,7 @@ These functions, from `stdjac`, work with ids:
 | `remove(n)` | Takes node `n` and its edges out of the graph |
 | `allroots()` | Every caller's root |
 | `commit()` | Writes what changed in the graph, now (above) |
-| `sweep()` | Takes out of what is kept every node and edge no root leads to, and gives how many rows went. It reads the id of everything kept, so its cost grows with the store: it is for a quiet hour, from a scheduled function or by hand |
+| `sweep()` | Takes out of what is kept every node and edge no root leads to, and every file no kept row then holds that was left long enough ([Files](files.md#when-a-file-goes)), and gives how many rows and files went. It reads the id of everything kept, so its cost grows with the store: it is for a quiet hour, from a scheduled function or by hand |
 
 ```jac
 import from stdjac { jobj, remove }
@@ -200,6 +201,7 @@ and `n: Note | None = jobj(id)` raises `TypeError: expected Note, found Tag`.
 | `graph.db` | The graph: one row per node and per edge, in SQLite. It is what the standard `store` plugin keeps: a project that binds another keeps its graph where that plugin does ([Plugins](plugins.md)) |
 | `accounts.db` | Accounts and sessions ([Serving a space](server.md)) |
 | `jobs/` | The input and progress of running jobs |
+| `files/` | The files the app's nodes hold, and `files.db`, what is known of each. It is what the standard `files` plugin keeps, for an app whose nodes or endpoints hold a `File` ([Files](files.md)) |
 | `arrangement` | The arrangement its user chose, for an app whose artifact holds several ([Building apps](building.md#several-arrangements-in-one-artifact)) |
 | `local-user` | Who is using it now, for a desktop app with local users ([Hosts](hosts.md#local-users)) |
 
@@ -213,7 +215,7 @@ JAC_API_DATA=/var/lib/api dist/api-linux-x86_64
 ```
 
 A `cpython` space that a native app runs in its own process keeps a graph of its own, in
-`<data directory>/<space>/graph.db`.
+`<data directory>/<space>/graph.db`. Its files are the app's, in `files/` with the rest.
 
 ## Data that no longer fits
 

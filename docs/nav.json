@@ -581,6 +581,10 @@
           "page": "apps/data.md"
         },
         {
+          "title": "Files",
+          "page": "apps/files.md"
+        },
+        {
           "title": "Pages",
           "page": "apps/pages.md"
         },

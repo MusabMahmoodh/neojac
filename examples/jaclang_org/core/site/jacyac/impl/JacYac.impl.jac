@@ -14,10 +14,13 @@ impl JacYac(initialTab: str = "feed") -> JsxElement {
             return;
         }
         try {
-            await model.handleAvatarData(await shrink_avatar(file));
+            await model.handleAvatar(File(await shrink_avatar(file)));
         } except Exception {
             model.reportError("That file could not be read as an image");
         }
+    }
+    async def handleAvatarGone {
+        await model.handleAvatar(None);
     }
     if model.session.checking {
         return <div
@@ -193,11 +196,12 @@ impl JacYac(initialTab: str = "feed") -> JsxElement {
                             }}
                             avatarBusy={model.avatarBusy}
                             onAvatarFile={handleAvatarFile}
-                            onClearAvatar={model.handleClearAvatar}
+                            onClearAvatar={handleAvatarGone}
                         />
                         if model.profileError {
                             <p className="px-4 pb-2 text-sm text-destructive" id="lx-profile-error">
-                            profileError={model.profileError}</p>
+                                {model.profileError}
+                            </p>
                         }
                     }
                     <div className="border-t border-border">
@@ -282,13 +286,11 @@ impl JacYac(initialTab: str = "feed") -> JsxElement {
     </div>;
 }
 
-impl shrink_avatar(file: any) -> str {
+impl shrink_avatar(file: any) -> any {
     win: any = window;
     bmp: any = await win.createImageBitmap(file);
     side = bmp.width if bmp.width < bmp.height else bmp.height;
-    canvas: any = document.createElement("canvas");
-    canvas.width = AVATAR_SIDE;
-    canvas.height = AVATAR_SIDE;
+    canvas: any = new(win.OffscreenCanvas, AVATAR_SIDE, AVATAR_SIDE);
     ctx: any = canvas.getContext("2d");
     ctx.drawImage(
         bmp,
@@ -302,5 +304,5 @@ impl shrink_avatar(file: any) -> str {
         AVATAR_SIDE,
     );
     bmp.close();
-    return canvas.toDataURL("image/jpeg", 0.86);
+    return await canvas.convertToBlob({"type": "image/jpeg", "quality": 0.86});
 }

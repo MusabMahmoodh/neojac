@@ -9,6 +9,7 @@ An app whose spaces have no `entry` is a server. It listens on one address and s
 - each endpoint of the spaces it runs, at a URL made from its space, module and name;
 - the functions given paths of their own with `@restspec`;
 - signing in and out, as the project's auth plugin has it;
+- the bytes of the files it keeps, and those a caller sends it ([Files](files.md#the-apps-__jacfiles));
 - the pages of the browser spaces it serves ([Pages](pages.md));
 - and its scheduled functions, when they are due.
 
@@ -23,6 +24,7 @@ library code compiled into the app, and what carries each thing out is a
 | `@limit`, `consume_limit` | `limits` | `memory_limits`: counts in the program's memory |
 | `@schedule` | `schedule` | `loop_schedule`: the thread that listens runs each when it is due |
 | `@job`, `flow`, `wait` | `jobs` | `process_jobs`: a copy of the program for each |
+| `File`, `@accepts` | `files` | `local_files`: a directory of the app's data ([Files](files.md)) |
 
 This page describes a server with the standard plugins. A `native` space and a `cpython` space
 serve identically; a `node` space serves a subset ([Hosts](hosts.md)).
@@ -154,8 +156,8 @@ any other.
 | 409 | `conflict` | What the call changed in the graph, other instances of the app changed first, each of the 4 times it ran ([An app's data](data.md#several-instances-on-one-store)) |
 | 500 | `failed` | The endpoint raised. The reply says only `<name> failed`; the exception is printed on the server's output. |
 
-A request that is not a `POST` to an endpoint, a `restspec` route or a served page's file is
-`404 not found`. The server never serves files from the directory it runs in.
+A request that is not a `POST` to an endpoint, a `restspec` route, a file's bytes or a served
+page's file is `404 not found`. The server never serves files from the directory it runs in.
 
 ### Streams
 

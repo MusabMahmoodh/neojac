@@ -271,8 +271,6 @@ test "users only see their own profile via get_profile" {
     close_client(client);
 }
 
-glob PNG_1PX: str = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-
 test "update_profile validates and stores standard fields" {
     client = make_client();
     login_as(client, "alice", "secret123");
@@ -310,48 +308,6 @@ test "update_profile validates and stores standard fields" {
     assert cleared["ok"] == True;
     assert cleared["bundle"]["profile"]["location"] == "";
     assert cleared["bundle"]["profile"]["github"] == "";
-
-    close_client(client);
-}
-
-test "avatar upload round-trips and is visible to other users" {
-    client = make_client();
-    client.register_user("alice", "secret123");
-    client.register_user("bob", "secret123");
-    client.login("alice", "secret123");
-    client.post("/walker/setup_profile", json={"username": "alice"});
-
-    rejected = first_report(
-        client.post("/walker/set_avatar", json={"data_url": "data:text/plain;base64,aGVsbG8="})
-    );
-    assert rejected["ok"] == False;
-
-    forged = first_report(
-        client.post("/walker/set_avatar", json={"data_url": "data:image/jpeg;base64,aGVsbG8="})
-    );
-    assert forged["ok"] == False;
-
-    stored = first_report(client.post("/walker/set_avatar", json={"data_url": PNG_1PX}));
-    assert stored["ok"] == True, stored;
-    assert stored["avatar_url"] == PNG_1PX;
-    assert stored["avatar_v"] != "";
-
-    me = first_report(client.post("/walker/get_profile", json={}));
-    assert me["profile"]["avatar_v"] == stored["avatar_v"];
-
-    client.login("bob", "secret123");
-    client.post("/walker/setup_profile", json={"username": "bob"});
-    seen = first_report(
-        client.post("/walker/get_avatars", json={"usernames": ["alice", "bob", "nobody"]})
-    );
-    assert seen["alice"] == PNG_1PX;
-    assert "bob" not in seen;
-
-    client.login("alice", "secret123");
-    gone = first_report(client.post("/walker/clear_avatar", json={}));
-    assert gone["ok"] == True;
-    me_again = first_report(client.post("/walker/get_profile", json={}));
-    assert me_again["profile"]["avatar_v"] == "";
 
     close_client(client);
 }
