@@ -25,8 +25,10 @@ it does not fit where an `int` is wanted.
 `float()` read a number's text.
 
 `PyObject` is the runtime's name for such a value, not a type a program writes (`-> PyObject` is
-E2018), and a Python class is not a Jac type (`-> ast.Module` is E1163). Declare a Python
-value `any`, or convert it to the Jac type it stands for where it arrives:
+E2018). A Python class written as a type (`-> ast.Module`, `uuid.UUID`), and any subscript of one
+(`Literal["a", "b"]`), is `any` to the checker, and `Annotated[T, ...]` is `T`: Python reads the
+annotation as it is in a `cpython` space ([Annotations](python-classes.md#annotations)). Declare a
+Python value `any`, or convert it to the Jac type it stands for where it arrives:
 
 ```jac
 import builtins;
@@ -444,7 +446,7 @@ with entry {
 ```
 
 ```jac
-# expect: E2018, E1163
+# expect: E2018
 import ast;
 
 def total -> PyObject {
@@ -464,7 +466,6 @@ with entry {
 |---|---|
 | E2191 | A class deriving from a Python class derives from something else too |
 | E2018 | `PyObject` written as a type |
-| E1163 | A Python class written as a type |
 
 Misusing a Python value that its stubs describe is a compile error too; see
 [Python](python.md#checking).
