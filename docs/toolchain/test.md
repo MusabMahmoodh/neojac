@@ -254,8 +254,8 @@ This is how to build runners for a platform the tests cannot run on here, and to
 
 | Status | Meaning |
 |---|---|
-| 0 | Every module's tests passed |
-| 1 | A test failed, a runner did not build, or the command line was wrong |
+| 0 | Every module's tests passed, and every suite of the project's own |
+| 1 | A test failed, a suite of the project's own did, a runner did not build, or the command line was wrong |
 | 5 | No tests: nothing under the paths has a `test` block, or `-k` matches no test's name |
 
 ```text
@@ -278,6 +278,54 @@ For any other platform that is not this machine's, `neojac test` stops and says 
 ```text
 neojac: test: linux-x86_64 test runners don't run on macos-aarch64; build one with `neojac test <module> -o <runner> --target linux-x86_64`
 ```
+
+## A project's own suites
+
+A project that holds trees of other ecosystems has their suites too, which `neojac test` runs
+after the Jac tests where `jac.toml` names them. A tree with no table is not tested, whatever
+its manifest says: a `test` script written for another tool is simply not named.
+
+| Table | The tree | What is run, in the tree's directory |
+|---|---|---|
+| `[test.pypi."<directory>"]` | A Python project | Its `command`, against what `neojac build` makes of the project ([Packages](packages.md#building-and-testing-a-python-project)) |
+| `[test.npm."<directory>"]` | An npm tree | `neojac npm run <script>` |
+| `[test.cargo."<directory>"]` | A crate | `neojac cargo test`, with its `args` |
+
+```toml
+[test.pypi.backend]
+command = ["pytest", "tests"]
+groups = ["dev"]
+
+[test.npm."."]
+script = "test"
+```
+
+```text
+$ neojac test
+neojac test: 2 modules with tests, 0 to build, on macos-aarch64
+shapes.jac: 3 passed
+main.jac: 1 passed
+
+backend/pyproject.toml: pytest tests
+...
+============================== 12 passed in 0.41s ==============================
+
+4 passed; 2 of 2 modules passed, 1 of 1 suite of the project's own passed in 1.2s
+```
+
+- **A Python project is built first** (`neojac build backend/pyproject.toml`), and its suite runs
+  against that build, with `.jac/venv` first on `PATH`.
+- **An npm tree's script and a crate's tests run as `neojac npm` and `neojac cargo` run
+  anything**: the tree's manifest written first, with the toolchain's compilers.
+- **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
+- **A suite that exits with another status than 0 fails the run**:
+  `FAILED backend/pyproject.toml (its suite exited with status 1)`.
+- **A path that is a tree's manifest runs that suite alone**:
+  `neojac test backend/pyproject.toml`, `neojac test package.json`. Any other path, and `-k`,
+  run no suite.
+- **What the command needs is installed by `neojac install`**, which reads the table's `groups`
+  and `extras`. A command that is not there is said to be:
+  `'pytest' is not installed: neojac install installs what the project's tests need`.
 
 ## What goes wrong
 

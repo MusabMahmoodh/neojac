@@ -13,10 +13,10 @@ and `jac.lock` before it runs a tool, and takes back what the tool changed as it
 |---|---|---|---|
 | Jac | `[packages]`, each package by its version or by where it is | `[jac.<name>]`, for each installed one, whoever installed it | `eco/jac/<name>`, for one declared by a version or a repository |
 | npm | `[npm."<directory>"]`, one for each tree of packages | `[npm."<directory>"]` | `<directory>/node_modules` |
-| PyPI | `[dependencies.pypi]` | `[pypi]` | `.jac/venv` ([Python](../interop/python.md#pypi-packages)) |
+| PyPI | `[dependencies.pypi]`, and what each Python project below depends on | `[pypi]` | `.jac/venv` ([Python](../interop/python.md#pypi-packages)) |
 | Rust | `[cargo."<directory>"]`, a crate's or a workspace's `Cargo.toml` | `[cargo."<directory>"]`, its `Cargo.lock` | nothing: cargo builds from the crate's directory |
 | C and C++ | `[c."<directory>"]`, a C module's `cmodule.toml` | | nothing |
-| A Python project | `[pypi."<directory>"]`, its `pyproject.toml` | | nothing yet |
+| A Python project | `[pypi."<directory>"]`, its `pyproject.toml`, with `[wheel."<directory>"]` and `[test.pypi."<directory>"]` | | nothing of its own: what it depends on is in `.jac/venv` |
 
 ```sh
 neojac install                        # everything jac.toml lists
@@ -448,14 +448,97 @@ dependencies = ["fastapi>=0.141"]
 - **`neojac absorb <directory>`** takes in every `Cargo.toml`, `cmodule.toml` and `pyproject.toml`
   under a directory, into the `jac.toml` of the project each is in. A workspace is a table for
   its root and one for each member.
-- **A `pyproject.toml` is held, and not yet installed from.** Its table is the project's manifest
-  as its own tools read it: its build backend's, pytest's, a linter's. `neojac install` installs
-  what `[dependencies.pypi]` lists, and does not read a `pyproject.toml`'s `dependencies` yet.
+- **A `pyproject.toml`'s table is the project's manifest as its own tools read it**: its build
+  backend's, pytest's, a linter's. `neojac install` installs what it depends on, beside what
+  `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)).
 - **`neojac cargo`** writes the project's manifests first, and takes back what cargo changed as it
   ends (`cargo add`, `cargo update`).
 
 A program with no `jac.toml` above it keeps its manifests as files: a loose `main.jac` beside a
 `geom/cmodule.toml` builds as it did.
+
+## Extension modules
+
+A Python package's module may be native code that a build makes: tiktoken's `tiktoken._tiktoken`
+is a Rust crate, psutil's `psutil._psutil` a C library. No file of the project is that module, so
+`jac.toml` says which unit is:
+
+```toml
+[extensions."tiktoken/_tiktoken"]
+cargo = "."
+features = ["python"]
+```
+
+- **It is named by the module's path** from the project's root, and names the crate
+  (`cargo`, with the `features` it is built with) or the C module (`c`) of the project it is built
+  from, by the directory of that unit's table.
+- **It is a module of the project.** A file that imports it is wired from it, and until the table
+  is there the import names nothing: `neojac absorb` reports it (E1145).
+- **`neojac absorb --record` writes the table**, for a module linked from a crate or from C,
+  from what the repository's own build does ([Recording a build](#recording-a-build)).
+- **neojac builds it** with the Python project it is a module of
+  ([Building and testing a Python project](#building-and-testing-a-python-project)): a crate as
+  a shared library with those features, a C module's sources linked into one, each linked as an
+  extension of neojac's CPython and named with the ending that interpreter loads. On Windows it
+  is refused (E5090).
+
+## Building and testing a Python project
+
+A Python project the repository holds is built from `jac.toml` alone, with no build backend:
+
+```toml
+[pypi."."]                            # pyproject.toml, as it stands
+
+[wheel."."]                           # what its wheel holds: written by `neojac absorb --record`
+files = ["tiktoken/__init__.py", "tiktoken/core.py", "tiktoken/py.typed"]
+
+[extensions."tiktoken/_tiktoken"]
+cargo = "."
+features = ["python"]
+
+[test.pypi."."]                       # how its tests are run: yours to write
+command = ["pytest", "tests", "--import-mode=append"]
+```
+
+```text
+$ neojac build pyproject.toml
+.jac/build/pypi/top/site
+$ neojac test
+pyproject.toml: pytest tests --import-mode=append
+...
+============================== 33 passed in 1.11s ==============================
+
+1 of 1 suite of the project's own passed in 1.84s
+```
+
+- **`[wheel."<directory>"]` is what the project's wheel holds of its files**, each by its path
+  in the wheel. `root` is where those paths start below the project's directory (`src`), and is
+  left out where that is the directory itself. Only the project's build backend knows the list,
+  so `neojac absorb --record` writes it from the wheel that backend makes, and no build reads the
+  directory for it: a module added later is added to `files`, or the build is recorded again.
+- **`neojac build <directory>/pyproject.toml` makes that wheel's contents** in a directory of
+  `.jac/build/pypi/`, and prints it: the listed files, each extension module whose path is the
+  project's ([Extension modules](#extension-modules)), and a `.dist-info` with its `METADATA`,
+  `WHEEL`, `RECORD`, `entry_points.txt` and licenses.
+- **Its metadata is its `[project]` table's.** What the project's build states instead
+  (a `setup.py`'s `name` and `version`, a field `dynamic` lists) is recorded beside the files,
+  `[wheel."<directory>".metadata]`, each field by its name in `METADATA`, and is used in place of
+  the table's.
+- **`tag` is recorded where the build names one the interpreter would not**: `cp38-abi3`, for
+  extension modules built against CPython's stable ABI.
+- **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`
+  after the Jac tests, in the project's directory, with `.jac/venv` first on `PATH`. It names the
+  `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
+  `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
+- **The suite runs against what was built.** The build is first on Python's path, and the
+  directory a Python is started in is not on it (`PYTHONSAFEPATH`), in the command and in every
+  Python it starts. A package's directory beside the tests holds no extension module, so pytest
+  is told not to put it first either: `--import-mode=append`, or `importlib`.
+- **A suite that fails fails the run**, with its own output as it printed it.
+- **The project's wheel is a package of the archwire**: a `cpython` space that holds the project
+  by its directory, and `package <name> { ship <space>; }`. `neojac absorb --record` writes both,
+  named for the project, and `neojac build` packs the built directory into `dist/`
+  ([archwire](../apps/archwire.md#packages)).
 
 ## Running npm
 
@@ -473,6 +556,26 @@ Only the tree's table changes. The rest of `jac.toml`, its comments with it, is 
 In a directory that is no Jac project (no `jac.toml` in it or above it), `neojac npm` is npm as it
 is anywhere, on that directory's own `package.json`.
 
+### What a package's script builds
+
+A package that compiles as it is installed (a Node addon by `node-gyp`, a Python package from its
+source distribution) is built with neojac's own compilers, not with whatever the machine has:
+
+- **npm's scripts, and a Python build backend, are given `CC`, `CXX` and `AR`**: `neojac cc`,
+  `neojac c++` and `neojac ar` of the neojac that is running, each left as it is where the
+  environment already names one. `neojac install`, `neojac npm` and `neojac npx` all do.
+- **neojac's cargo is first on `PATH`**, with the rest of what `neojac cargo` gives a build,
+  where the toolchain has Rust.
+- **What a build needs besides is the machine's**: `make` for `node-gyp`, and on macOS the
+  `libtool` that node-gyp makes a static library with.
+
+```text
+$ neojac install                       # better-sqlite3's own packages
+$ neojac npm run build-release         # node-gyp: its addon, compiled by neojac c++
+$ neojac npm test
+  369 passing (3s)
+```
+
 ## Taking in a repository: neojac absorb
 
 `neojac absorb` takes the manifests a repository already has into `jac.toml`, each where it
@@ -481,6 +584,7 @@ stands, and writes the project's `archwire.jac`. No source file changes.
 ```sh
 neojac absorb --check          # what this repository is: nothing is written
 neojac absorb                  # make it a project
+neojac absorb --record         # and run its build, to write what that links
 neojac absorb crates           # the manifests under crates/, into the project this directory is in
 ```
 
@@ -525,10 +629,10 @@ item**. `absorb` lists each at its file, and does not guess:
 
 | Kind | Reported for | What closes it |
 |---|---|---|
-| `build` | A `setup.py` beside a `pyproject.toml`; a `binding.gyp` beside a `package.json` | A record of what that program compiles, which neojac does not take yet |
+| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | For a Python project, `neojac absorb --record` ([Recording a build](#recording-a-build)), for a module linked from a crate or from C. A `binding.gyp` is not recorded yet |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
 | `form` | `pnpm-workspace.yaml`, a `pnpm` table in `package.json`, a `workspace:` dependency | The form npm reads |
-| `tests` | A Python project | The command that runs its tests |
+| `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
 ```text
 $ neojac absorb --check
@@ -545,6 +649,70 @@ open items
 nothing written
 ```
 
+### Recording a build
+
+What a build program compiles is in no manifest, and is not read out of the program: neojac runs
+it and watches.
+
+```text
+$ neojac absorb --record
+...
+recorded
+  [extensions."tiktoken/_tiktoken"]  the crate ., with pyo3/extension-module, python
+```
+
+- **It runs the project's own build**, the wheel its build backend makes, on neojac's CPython in
+  a virtual environment of its own (`.jac/absorb/`), with the toolchain's `cc` and `cargo`
+  [recording each run](../interop/c-and-cpp.md#recording-what-a-build-ran). That needs what the
+  build needs: the network, for the packages its backend asks for.
+- **A native module the wheel holds is traced to what linked it**: the library whose bytes it is,
+  the run of cargo whose target directory that library is in, and so the crate and the features
+  it was built with. `jac.toml` gains `[extensions."<path>"]`
+  ([Extension modules](#extension-modules)), and the `build` open item is closed.
+- **What the wheel holds of the project's files is `[wheel."<directory>"]`**
+  ([Building and testing a Python project](#building-and-testing-a-python-project)): each file
+  of the wheel is found in the project by its bytes, under one directory. A wheel that holds a
+  file the project has none of (one its build generated), a file it installs outside its
+  packages, or entry points its `[project]` table does not state, is reported, and its table is
+  not written. Every Python project with a build is recorded, one with no native code too.
+- **The project's space and its package are declared in `archwire.jac`**, once its wheel is
+  recorded: `space <name>: cpython { "<directory>"; }` and `package <name> { ship <name>; }`,
+  named for the project, in the `graph spaces` block that is there or in a new one. A project a
+  space already holds, and a name a space, an app or a package already has, are left alone.
+- **A build that finds everything already made runs no compiler**, so the record is kept from
+  one run to the next. Where a module was built before any record was kept, absorb says so:
+  remove what the build left (`build/`, `target/`) and record again.
+- **The features are cargo's arguments as given**, a dependency's feature among them
+  (`pyo3/extension-module`): nothing is left out for being the build tool's own.
+- **A module linked from C becomes a C module of the project**: its sources are the units
+  compiled into the library, in the order they were linked, with the directory they share as the
+  module's. The flags every unit was given are the module's `include`, `defines` and `cflags`,
+  and what one unit alone was given is in its `[files."<source>"]`. The interpreter's own headers
+  are named as the toolchain's (`{lib}/cpython/include/python3.15`), and the frameworks and
+  libraries of the link are the module's.
+
+  ```toml
+  [c.psutil.target.darwin]
+  sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
+  include = ["{lib}/cpython/include/python3.15"]
+  defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]
+  frameworks = ["CoreFoundation", "IOKit"]
+
+  [extensions."psutil/_psutil"]
+  c = "psutil"
+  ```
+
+- **A record is of the system it was made on**, so the whole of it is under that system's
+  `[target.<os>]`: what another system compiles is not known until the build is recorded there.
+- **What a table cannot say is reported, and the module is not taken**: an object no recorded run
+  compiled, a source or a header directory outside the project and the toolchain, a flag of the
+  link that is none of a library, a framework or how an extension links, and a crate built with
+  `--no-default-features` or `--all-features`.
+- **The build's own leavings stay**: `build/`, `target/`, an `.egg-info`, which the repository's
+  `.gitignore` usually names already. neojac adds `.jac/` to it.
+- **It is a program of the repository that runs**, as it does under `pip install`: record a
+  repository you would build.
+
 - **`--check` writes nothing.** It finds the trees, the data and the open items. It does not
   read the sources for their imports, so what the wires would say it does not judge.
 - **`--json` prints the same as one document**: `trees` (each with its `ecosystem`, `directory`,
@@ -555,9 +723,10 @@ nothing written
   (E5156, E5157) is refused, and nothing of the others stays written.
 - **Absorbing again changes nothing**, and takes in what was added since.
 
-`neojac absorb` does not yet write the project's spaces, install from a `pyproject.toml`, or
-build what a `build` item names: a project it makes is one neojac holds and draws
-(`neojac arch`), not yet one it builds.
+`neojac absorb` does not yet write the project's spaces. A Python project it takes in is
+installed for, built and tested
+([Building and testing a Python project](#building-and-testing-a-python-project)); an npm
+package with a `binding.gyp` is held and drawn, not yet built.
 
 ## What keeps the two in step
 
@@ -587,6 +756,9 @@ build what a `build` item names: a project it makes is one neojac holds and draw
 | E5162 | Two askers of one npm package, at different ranges |
 | E5163, E5164, E5165 | An installed package with no record of what installed it, a record or a `jac.lock` of another format, and a package another installer put where `neojac install` is asked to fetch one |
 | E5166 | An installed package that is not what `jac.lock` pins: its files changed, or under `--frozen` its version or where it came from |
+| E5167 | A Python project built or tested with no `[wheel."<directory>"]`: `neojac absorb --record` |
+| E5168 | `[wheel."<directory>"]` lists a file the project no longer has |
+| E5169 | `neojac build` given a `pyproject.toml` that `jac.toml` holds no `[pypi."<directory>"]` for |
 | `install --frozen: jac.lock pins nothing for the package 'units' as jac.toml asks for it; run neojac install` | `--frozen` after `jac.toml` came to ask for a package, or for another `git` or `rev` of one |
 | E2216, E2219, E2220, E2221, E2222 | A package that is not where it is declared or is neither a library nor a plugin, a library imported that the package does not declare, a declaration that does not hold of the copy the program holds (another place, or a version that does not satisfy it), a library or a plugin that declares or binds a plugin, a library whose name the project's tree also has: `neojac docs E2219` |
 | E2226, E2227, E2228, E2229 | A `[libraries]` or a `[plugins]` table, a plugin a project declares and never uses, a version or a requirement that is not one, a package that needs a later neojac |

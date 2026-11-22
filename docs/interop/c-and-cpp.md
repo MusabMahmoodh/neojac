@@ -39,7 +39,9 @@ and its link. A program built with them is an ordinary native program for its ta
   runs on. `-std=c++23` with `<format>` and `<filesystem>` works on every target.
 - On macOS the toolchain carries stubs of libSystem and of the CoreFoundation, Foundation, Security
   and SystemConfiguration frameworks. For other frameworks, name an SDK to compile and link
-  against: `-isysroot <sdk>`, or the `SDKROOT` environment variable.
+  against: `-isysroot <sdk>`, or the `SDKROOT` environment variable. `SDKROOT` is taken by a
+  [C module](c-modules.md)'s build and by the reading of its files too, so a module that uses
+  another framework (`IOKit`) builds, and is read for its wires, where the variable is set.
 
 | Message | Cause |
 |---|---|

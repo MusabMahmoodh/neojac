@@ -101,8 +101,8 @@ numpy = "~=2.5"
 tabulate = "~=0.10"
 ```
 
-`jac.lock` lists every distribution the install resolved, dependencies included, and a hash of the
-`[dependencies.pypi]` they were resolved for. An install whose `jac.toml` still lists what the lock
+`jac.lock` lists every distribution the install resolved, dependencies included, and a hash of
+what they were resolved for. An install whose `jac.toml` still lists what the lock
 was made for installs the lock's versions; otherwise it resolves again and rewrites the lock. An
 install also removes from `.jac/venv` what the lock no longer lists. Commit both files.
 
@@ -134,9 +134,50 @@ with entry {
 | `'./helpers' is not a PyPI package's name` | `--pypi` was given something other than a package's name, with a version specifier or without: a directory or an archive, which `jac.lock` could not pin |
 | `jac.toml: <what TOML says is wrong>` | `jac.toml` is not valid TOML |
 | `install --frozen: there is no jac.lock; run neojac install` | `--frozen` needs a lock |
-| `install --frozen: jac.lock was not made for jac.toml's [dependencies.pypi]; run neojac install` | `jac.toml` changed since the lock was written |
+| `install --frozen: jac.lock was not made for jac.toml's [dependencies.pypi], its packages' and its Python projects'; run neojac install` | `jac.toml` changed since the lock was written |
 | `remove: jac.toml's [dependencies.pypi] has no <name>` | The package is not listed |
-| pip's own errors, then `install: pip cannot resolve [dependencies.pypi]` | pip found no distribution that satisfies a listed requirement; the install exits with status 1 |
+| pip's own errors, then `install: pip cannot resolve the project's PyPI packages` | pip found no distribution that satisfies a listed requirement; the install exits with status 1 |
+| pip's own errors, then `install: pip cannot read what the project's Python projects depend on` | A Python project's build backend failed as pip asked it for its metadata |
+| `install: <name> is asked for at <address>: jac.lock pins a package by its version on an index, by a revision of a repository or by an archive's digest, and this has none` | A requirement names a directory |
+
+### A Python project of the repository
+
+A repository that holds a Python project has its `pyproject.toml` as a table of `jac.toml`,
+`[pypi."<directory>"]` ([Packages](../toolchain/packages.md#rust-crates-c-modules-and-python-projects)).
+`neojac install` installs what each one depends on into the same `.jac/venv`, resolved together
+with `[dependencies.pypi]` and pinned in the same `[pypi]` of `jac.lock`:
+
+```toml
+[pypi.backend.project]
+name = "app"
+version = "0.1.0"
+dependencies = ["fastapi[standard]>=0.141", "httpx<1.0.0,>=0.25.1"]
+
+[dependencies.pypi]
+pytest = "~=9.0"                # the project's own list, beside it
+```
+
+- **What a project depends on is its `[project]` table's `dependencies`**, as written:
+  specifiers, extras and markers are pip's to read.
+- **Where its build says so instead** (`dynamic = ["dependencies"]`, or a `setup.py` and no
+  `[project]` table), pip asks the project's build backend for its metadata, as
+  `pip install <directory>` does. That runs the backend, which pip fetches what it requires for,
+  and such a project is asked again by every `neojac install` that is not `--frozen`.
+- **A dependency on another Python project of the repository** (a workspace's member) is that
+  project, and is asked of no index.
+- **The project itself is not installed**: its modules are the repository's source.
+- **Its dependency groups and its extras are installed where its tests name them**:
+  `[test.pypi."<directory>"]`'s `groups` and `extras`
+  ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)), a group with the
+  groups it includes. No other group or extra is installed. What a project's tools need that no
+  group lists is added with `neojac install --pypi <package>`.
+- **A package asked for at an address** (`name @ git+https://...`, `name @ https://.../x.whl`)
+  is pinned by what was fetched from it: a repository's commit, an archive's digest.
+
+  ```toml
+  [pypi]
+  resolved = ["psleak @ git+https://github.com/giampaolo/psleak@c60c155c23f1bf98991d4cf588d4f465c02bed2f", "pytest==9.2.0"]
+  ```
 
 pip's own environment variables apply to an install, so a project installs from wheels in a
 directory of its own with `PIP_NO_INDEX=1 PIP_FIND_LINKS=wheels neojac install`. A package that is
