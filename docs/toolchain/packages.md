@@ -675,46 +675,89 @@ nothing written
 
 A lock neojac's engines do not read is not copied into `jac.lock`. Its pins are what
 `neojac install` holds the engine to, and `jac.lock` records what the engine then installed.
-Today that is `uv.lock`, for pip; the other locks stay open items.
+
+| Lock | Read as | Held by |
+|---|---|---|
+| `uv.lock` | Each package a registry gives, at its version | pip |
+| `pnpm-lock.yaml` (format 9) | Each package and the versions of its dependencies; the range each is asked for by is read from the registry, where the lock leaves it out | npm |
+| `bun.lock` (format 1) | Each package, the ranges it asks for its dependencies by, and the versions they get | npm |
+
+`poetry.lock`, `pdm.lock`, `Pipfile.lock`, `yarn.lock` and `bun.lockb` are not read, and stay
+open items.
 
 ```text
 $ neojac install
 neojac install: cffi: pinned 2.0.0 by another tool's lock, which has no wheel for this Python and does not build (.jac/pins/cffi-2.0.0.log): 2.1.1 is used
 neojac install: 73 PyPI distributions in .jac/venv
+neojac install: the npm tree ., with its workspaces frontend, packages/react-email
 $ neojac absorb --check
 ...
 locks
-  backend/uv.lock: 72 of 73 pins reproduced by pip
+  bun.lock: 530 of 531 pins reproduced by npm
+  uv.lock: 72 of 73 pins reproduced by pip
 
 open items
-   1  backend/uv.lock: 1 of its pins is not what pip installs: cffi (pinned 2.0.0, 2.1.1 installed): accept each by name in jac.toml, [lock.pypi] accept
+   1  bun.lock: 1 of its pins is not what npm installs: ajv-formats (pinned 3.0.1, 2.1.1 installed): accept each by name in jac.toml, [lock.npm] accept
+   2  uv.lock: 1 of its pins is not what pip installs: cffi (pinned 2.0.0, 2.1.1 installed): accept each by name in jac.toml, [lock.pypi] accept
 ```
 
-- **Every pin pip can install is the version installed,** though a newer one fits what the
-  project asks for. A name the lock pins at two versions, one for each of two platforms, is
-  left to pip.
+- **Every pin the engine can install is the version installed,** though a newer one fits what
+  the project asks for.
+- **The lock stays an open item until every difference is accepted by name:**
+
+  ```toml
+  [lock.pypi]
+  accept = ["cffi"]
+
+  [lock.npm]
+  accept = ["ajv-formats"]
+  ```
+
+  A name accepted is no longer held to the other lock's pin. `absorb` lists it beside the count,
+  `and cffi accepted as installed`.
+- **While the other lock stands, it is what `jac.lock` is resolved under.** `jac.lock`'s
+  `[held_to]` names each such lock with a hash of its bytes, and a `neojac install` after one
+  changed resolves again under it. Where it and `jac.lock` disagree on a version, the other
+  lock's is taken.
+- **Once it is reproduced, the other lock can go.** `jac.lock` pins the same versions, and
+  `neojac install --frozen` installs them, with the lock there or not.
+- **`absorb` reads and compares; it resolves nothing.** Before the first `neojac install` the
+  item says that an install resolves with the pins.
+
+What pip does with a `uv.lock`:
+
+- **A name the lock pins at two versions,** one for each of two platforms, is left to pip.
 - **A pin with no wheel for neojac's CPython is built from its source,** with the toolchain's
   compilers and cargo. The first install under a lock takes as long as those builds do; pip
   keeps the wheels.
 - **A pin that cannot be installed is not held.** pip picks that package's version, and
   `neojac install` names the package, the pin, the version used and the log of the build that
   failed (`.jac/pins/`).
-- **The lock stays an open item until every difference is accepted by name:**
 
-  ```toml
-  [lock.pypi]
-  accept = ["cffi"]
-  ```
+What npm does with a `pnpm-lock.yaml` or a `bun.lock`:
 
-  A name accepted is no longer held to the other lock's pin. `absorb` lists it beside the count,
-  `and cffi accepted as installed`.
-- **While the other lock stands, it is what `jac.lock` is resolved under.** `jac.lock`'s `[pypi]`
-  records which pins that was (`held_to`), and a `neojac install` after the other lock changed
-  resolves again. Where the two disagree on a version, the other lock's is taken.
-- **Once it is reproduced, the other lock can go.** `jac.lock` pins the same versions, and
-  `neojac install --frozen` installs them, with the lock there or not.
-- **`absorb` reads and compares; it resolves nothing.** Before the first `neojac install` the
-  item says that an install resolves with the pins.
+- **npm resolves by the lock's pins, and lays the tree out itself.** neojac hands them to npm as
+  a `yarn.lock`, the one other lock npm reads while it resolves: each thing npm will ask for (a
+  name and a range, as a `package.json` has them), with the version and the integrity the lock
+  gives it. The file stands beside the tree only while npm resolves; what was handed over is
+  kept as `.jac/pins/<lock>-yarn.lock`.
+- **The tree is resolved from nothing:** its `node_modules`, and its workspaces', are removed
+  first, since npm keeps what is installed over what a lock says. `jac.lock` then holds the
+  `package-lock.json` npm wrote, and the install that follows runs the packages' scripts.
+- **A pin is handed over only where npm would take it:** the package npm asks for by that name,
+  at a version the range admits. pnpm installs a peer a range does not admit, and npm does not;
+  such a pin is a difference, named in the item.
+- **One range has one version.** Where the lock gives one name and range two versions, for two
+  packages that ask alike, npm is handed the one given more often, and the other is a
+  difference.
+- **A package another package carries inside its own archive** (`bundleDependencies`) is not
+  compared: the other tools do not list it.
+- **pnpm's lock is YAML,** which neojac reads with the `yaml` package it pins (2.9.1), fetched
+  from the npm registry the first time a `pnpm-lock.yaml` is read and kept in neojac's cache. A
+  package's ranges come from the registry the tree's own `.npmrc` names, as npm asks it.
+- **A lock in another format is said,** `its format is 6.0, and neojac reads 9`, and npm
+  resolves without its pins. So it does where npm cannot install the pins together: the install
+  says so, with npm's log.
 
 ### What neojac writes from now on, and what can go
 
