@@ -480,11 +480,17 @@ is a Rust crate, psutil's `psutil._psutil` a C library. No file of the project i
 [extensions."tiktoken/_tiktoken"]
 cargo = "."
 features = ["python"]
+recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
 - **It is named by the module's path** from the project's root, and names the crate
   (`cargo`, with the `features` it is built with) or the C module (`c`) of the project it is built
   from, by the directory of that unit's table.
+- **`recorded` lists the platforms its build was recorded on**, and it is built on those. One
+  with no list, written by hand, is built on every platform. A project or a tree all of whose
+  extension modules are recorded for other platforms is refused there (E5172): what its build
+  compiles on this one is not known until it is recorded on it
+  ([A record is of one platform](#a-record-is-of-one-platform)).
 - **It is a module of the project.** A file that imports it is wired from it, and until the table
   is there the import names nothing: `neojac absorb` reports it (E1145).
 - **`neojac absorb --record` writes the table**, for a module linked from a crate or from C,
@@ -852,20 +858,27 @@ recorded
   libraries of the link are the module's.
 
   ```toml
-  [c.psutil.target.darwin]
+  [c.psutil]
   sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
   include = ["{lib}/cpython/include/python3.15"]
   defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]
+
+  [c.psutil.target.darwin]
   frameworks = ["CoreFoundation", "IOKit"]
 
-  [extensions."psutil/_psutil"]
+  [extensions."psutil/_psutil_osx"]
   c = "psutil"
+  recorded = ["macos-aarch64"]
   ```
 
 - **An npm tree with a `binding.gyp` is recorded by its node-gyp build**, npm's own, run in the
   tree with its packages installed (`neojac install` first). Each addon it links
   (`build/Release/<name>.node`) is traced as a Python project's module is. Node's headers, which
-  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`).
+  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`). node-gyp
+  runs `make`, which the system has to have.
+- **An addon is where the build put it.** On Linux node-gyp links `build/Release/obj.target/<name>.node`
+  and copies it to `build/Release/<name>.node`: the module is the copy nearest the tree's root,
+  found by its bytes, so it has one path on every system.
 - **A static library the link took is a C module of its own.** Each of its members is the object
   a recorded run compiled, found by its bytes, so whichever archiver made the library need not
   be neojac's (on macOS node-gyp uses the machine's `libtool`).
@@ -880,22 +893,21 @@ recorded
   and where it put its own output (`-L./Release`) is not recorded.
 
   ```toml
-  [c.src.target.darwin]
+  [c.src]
   sources = ["better_sqlite3.cpp"]
   include = ["{lib}/node/include", "../node_modules/node-addon-api", "../deps/sqlite3"]
   cxxflags = ["-O3", "-fvisibility=hidden", "-flto", "-std=c++20"]
   ldflags = ["-Wl,-search_paths_first", "-Wl,-dead_strip"]
 
-  [c."deps/sqlite3".target.darwin]
+  [c."deps/sqlite3"]
   sources = ["sqlite3.c"]
   defines = ["SQLITE_DQS=0", "SQLITE_ENABLE_FTS5"]
 
   [extensions."build/Release/better_sqlite3"]
   c = "src"
+  recorded = ["macos-aarch64"]
   ```
 
-- **A record is of the system it was made on**, so the whole of it is under that system's
-  `[target.<os>]`: what another system compiles is not known until the build is recorded there.
 - **What a table cannot say is reported, and the module is not taken**: an object no recorded run
   compiled, a source or a header directory outside the project and the toolchain, a flag of the
   link that is none of a library, a framework or how an extension links, and a crate built with
@@ -904,6 +916,57 @@ recorded
   `.gitignore` usually names already. neojac adds `.jac/` to it.
 - **It is a program of the repository that runs**, as it does under `pip install`: record a
   repository you would build.
+
+#### A record is of one platform
+
+A build compiles what its program decides for the system it runs on, so a record says what one
+platform's build did: `macos-aarch64`, `linux-x86_64`. `neojac absorb --record`, run again on
+another, adds that platform's record to the same tables.
+
+```toml
+[c.psutil]                             # what every recorded platform compiles
+sources = ["arch/all/errors.c", "arch/posix/init.c"]
+include = ["{lib}/cpython/include/python3.15"]
+defines = ["PSUTIL_POSIX=1"]
+
+[c.psutil.target.darwin]               # what macOS's build adds
+sources = ["_psutil_osx.c", "arch/osx/cpu.c"]
+defines = ["PSUTIL_MACOS=1"]
+frameworks = ["CoreFoundation", "IOKit"]
+
+[c.psutil.target.linux]                # what Linux's adds
+sources = ["_psutil_linux.c", "arch/linux/mem.c"]
+defines = ["PSUTIL_LINUX=1"]
+
+[extensions."psutil/_psutil_osx"]
+c = "psutil"
+recorded = ["macos-aarch64"]
+
+[extensions."psutil/_psutil_linux"]
+c = "psutil"
+recorded = ["linux-aarch64"]
+```
+
+- **Each extension module lists the platforms it was recorded on** (`recorded`), and is built
+  on those. A build that links different modules on different systems, as psutil's does, has a
+  table for each.
+- **What every recorded platform's build compiled is the C module's own**, and what only some
+  did is under a target table: an operating system's (`[target.linux]`), an architecture's
+  (`[target.aarch64]`), or one platform's (`[target."linux.aarch64"]`), the narrowest that all
+  of them share. The build reads them back as the same lists
+  ([C modules](../interop/c-modules.md#the-manifest)).
+- **Sources, header directories, defines, libraries and frameworks are shared one by one.** A
+  list of arguments (`cflags`, `cxxflags`, `ldflags`) is shared only as far as every platform's
+  begins alike, and the rest of each is its target's, so a platform's arguments are read back
+  in the order its build gave them, repeats included.
+- **`frameworks` are always macOS's**, under `[target.darwin]`.
+- **Recording a platform again replaces its record** and leaves the others': a table is taken
+  apart into each recorded platform's lists, and put together again with the new one.
+- **A platform that is not recorded is refused** (E5172). The tables say nothing of what its
+  build compiles; a source list that happens to hold for it is not known to.
+- **An extension module built from a crate has one crate and one list of features.** A platform
+  whose build links another is reported, and its table is left as it was.
+- **A key a record does not write stays where it is**: an `export`, `archives` you added.
 
 - **`--check` writes nothing.** It finds the trees, the data and the open items. It does not
   read the sources for their imports, so what the wires would say it does not judge.
@@ -951,6 +1014,7 @@ yet, and no space holds one.
 | E5167 | A Python project built or tested with no `[wheel."<directory>"]`: `neojac absorb --record` |
 | E5168 | `[wheel."<directory>"]` lists a file the project no longer has |
 | E5169 | `neojac build` given a `pyproject.toml` that `jac.toml` holds no `[pypi."<directory>"]` for |
+| E5172 | A build on a platform none of the project's extension modules is `recorded` for |
 | E5170 | A `workspace:` link to a package that is no tree of the same workspace |
 | E5171 | A `workspace:` link in a form npm is given no range for: a path, an alias |
 | `install --frozen: jac.lock pins nothing for the package 'units' as jac.toml asks for it; run neojac install` | `--frozen` after `jac.toml` came to ask for a package, or for another `git` or `rev` of one |

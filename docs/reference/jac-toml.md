@@ -245,6 +245,7 @@ A module that a build makes from native code and an interpreter loads: a CPython
 | `extensions."<path>".cargo` | string | The crate it is built from, by the directory of its `[cargo."<directory>"]` table |
 | `extensions."<path>".features` | list of strings | The crate's features it is built with |
 | `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
+| `extensions."<path>".recorded` | list of strings | The platforms its build was recorded on (`macos-aarch64`, `linux-x86_64`, ...), which `neojac absorb --record` writes. It is built on those, and on every platform with no list. A project all of whose extension modules are recorded for other platforms is refused there (E5172) |
 
 ```toml
 [cargo."."]
@@ -253,13 +254,14 @@ A module that a build makes from native code and an interpreter loads: a CPython
 [extensions."tiktoken/_tiktoken"]
 cargo = "."
 features = ["python"]
+recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
 An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). It is built with the Python project whose `[wheel]` its path is under ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
 
 | Code | Cause |
 |---|---|
-| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, or has another key |
+| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, lists a platform neojac has no name for in `recorded`, or has another key |
 
 ## [wheel."\<directory\>"]
 
