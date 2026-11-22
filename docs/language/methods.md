@@ -159,9 +159,38 @@ Temp(c=100.0) Temp(c=0.0) Temp(c=0.0)
 ```
 
 Both are called on the class (`Temp.from_f(...)`) or on an instance. Using
-`self` in either is E2111. Python's `@staticmethod` is an error that names
+`self` in either is E2111.
+
+`cls` is the class the method is called on: through a subclass it is the
+subclass, and through an instance it is the instance's own class, whatever
+type the variable holding it has.
+
+```jac
+obj Counter {
+    has n: int = 0;
+
+    class def made(n: int) -> Counter {
+        return cls(n=n);
+    }
+}
+
+obj Score(Counter) {}
+
+with entry {
+    held: Counter = Score(n=5);
+    print(Counter.made(1), Score.made(2), held.made(8));
+}
+```
+
+```output
+Counter(n=1) Score(n=2) Score(n=8)
+```
+
+Python's `@staticmethod` is an error that names
 the Jac spelling (W3001), and `@classmethod` is refused as any decorator
-that is not a compile-time function is (E1490).
+that is not a compile-time function is (E1490); in a `cpython` space,
+`@builtins.staticmethod` among a method's decorators says where Python wraps
+it ([Classes and decorators in a cpython space](../interop/python-classes.md#decorators)).
 
 `static` and `class` apply only to methods: a `static def` at module level
 is a syntax error (E0005).

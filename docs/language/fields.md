@@ -122,6 +122,53 @@ with entry {
   below has no value yet (E2200). See [Variables](variables.md#initialization-order).
 - A static property (a `static has` with accessors) is not built yet (E5090).
 
+**A callable static field is a method.** A static field reached through an
+instance and called is called with the instance first, and read through an
+instance it is bound to it, as a Python class attribute holding a function is.
+One of a function type always binds; one of type `any` binds when its value is
+a function, and gives any other value (a class, a number) as it is. Through the
+class, `Badge.name(b)` calls the value as it is.
+
+```jac
+def bracketed(f: any) -> any {
+    def inner(me: any, *rest: any) -> any {
+        return "<" + f(me, *rest) + ">";
+    }
+    return inner;
+}
+
+def name_of(me: Badge) -> str {
+    return me.who;
+}
+
+def greet(me: Badge, whom: str) -> str {
+    return me.who + " greets " + whom;
+}
+
+obj Badge {
+    has who: str;
+
+    static has name: any = bracketed(name_of);
+    static has hello: Callable[[Badge, str], str] = greet;
+}
+
+with entry {
+    b = Badge("ann");
+    print(b.name(), Badge.name(b), b.hello("bo"));
+    h = b.hello;
+    print(h("fay"));
+}
+```
+
+```output
+<ann> <ann> ann greets bo
+ann greets fay
+```
+
+A function-typed static read through an instance is `any` to the checker: a
+`Callable` carries no parameter names, so a keyword argument through it is
+E1052. Read through a class value, `type(x).name` is the run-time class's.
+
 ## `init`
 
 An archetype that defines `def init` is constructed with that method's
