@@ -34,7 +34,9 @@ A class is made by Python, as its `class` statement runs, when it has any of the
 - **a base that is a Python name** (`NamedTuple`, `enum.Flag`, a SQLModel or pydantic model), or
   a base that is such a class;
 - **keywords** after its bases (`class Item(Base, table=True)`);
-- **a decorator that is a Python callable** (`@dataclass`, `@functools.total_ordering`);
+- **a decorator that is not a compile-time function of the program**: a Python callable
+  (`@dataclass`, `@functools.total_ordering`), or a function of the program's own
+  (`@retry_on_failure()`, [below](#a-class-decorated-by-a-function-of-the-program));
 - **an `if` among its members that is not `comptime`**, whose test is known only as the program
   runs.
 
@@ -95,6 +97,46 @@ Pair(left=1, right=None) 1/None Pair(left=2, right=None)
 ```
 
 `Ver(1).major = 2` raises `dataclasses.FrozenInstanceError`, as Python's does.
+
+### A class decorated by a function of the program
+
+A decorator of the program's own that is not a compile-time function (a function that takes the
+class and gives one back, or a call that makes such a function) is Python's too: it runs as the
+class is made, as `@retry_on_failure()` runs on a test class in Python. The class is then made by
+Python, as with a Python decorator, so Jac generates no constructor for it.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+def tagged(label: str) -> any {
+    def mark(cls: any) -> any {
+        cls.label = label;
+        return cls;
+    }
+    return mark;
+}
+
+@tagged("slow")
+obj Probe {
+    has n: int = 0;
+
+    def twice -> int {
+        return self.n * 2;
+    }
+}
+
+with entry {
+    p = Probe();
+    p.n = 4;
+    print(Probe.label, p.twice());
+}
+```
+
+```text
+slow 8
+```
+
+In a native or JavaScript space the same decorator is E1490: a decorator there is a
+compile-time function.
 
 ### A class body's run-time `if`
 
@@ -175,6 +217,7 @@ A native or JavaScript program's classes are known as it compiles, so none of th
 | Code | In a native or JavaScript space |
 |---|---|
 | E5174 | A class or a function decorated by a Python callable |
+| E1490 | A class or a function decorated by a function of the program that is not compile-time |
 | E5175 | An `if` among a class's members that is not `comptime` |
 | E5176 | A class in a code body: declare it at the module's top level |
 | E2101 | Keywords after a class's bases |
