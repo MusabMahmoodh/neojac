@@ -980,7 +980,7 @@
               "page": "reference/diagnostics/e50.md"
             },
             {
-              "title": "E5114 to E5166: tail calls, C and Rust modules, the native library, programs, manifests and installed packages",
+              "title": "E5114 to E5169: tail calls, C and Rust modules, the native library, programs, manifests and installed packages",
               "page": "reference/diagnostics/e51.md"
             },
             {

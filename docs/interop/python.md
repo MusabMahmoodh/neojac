@@ -138,7 +138,7 @@ with entry {
 | `remove: jac.toml's [dependencies.pypi] has no <name>` | The package is not listed |
 | pip's own errors, then `install: pip cannot resolve the project's PyPI packages` | pip found no distribution that satisfies a listed requirement; the install exits with status 1 |
 | pip's own errors, then `install: pip cannot read what the project's Python projects depend on` | A Python project's build backend failed as pip asked it for its metadata |
-| `install: <name> is asked for at <address>: jac.lock pins a package by its version on an index, and one taken from an address has none` | A requirement names an archive or a repository (`name @ https://...`) |
+| `install: <name> is asked for at <address>: jac.lock pins a package by its version on an index, by a revision of a repository or by an archive's digest, and this has none` | A requirement names a directory |
 
 ### A Python project of the repository
 
@@ -166,8 +166,18 @@ pytest = "~=9.0"                # the project's own list, beside it
 - **A dependency on another Python project of the repository** (a workspace's member) is that
   project, and is asked of no index.
 - **The project itself is not installed**: its modules are the repository's source.
-- **Its dependency groups and its extras are not installed.** `neojac install --pypi <package>`
-  adds what the project's tools need (pytest, a linter) to `[dependencies.pypi]`.
+- **Its dependency groups and its extras are installed where its tests name them**:
+  `[test.pypi."<directory>"]`'s `groups` and `extras`
+  ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)), a group with the
+  groups it includes. No other group or extra is installed. What a project's tools need that no
+  group lists is added with `neojac install --pypi <package>`.
+- **A package asked for at an address** (`name @ git+https://...`, `name @ https://.../x.whl`)
+  is pinned by what was fetched from it: a repository's commit, an archive's digest.
+
+  ```toml
+  [pypi]
+  resolved = ["psleak @ git+https://github.com/giampaolo/psleak@c60c155c23f1bf98991d4cf588d4f465c02bed2f", "pytest==9.2.0"]
+  ```
 
 pip's own environment variables apply to an install, so a project installs from wheels in a
 directory of its own with `PIP_NO_INDEX=1 PIP_FIND_LINKS=wheels neojac install`. A package that is

@@ -76,22 +76,40 @@ before: `git diff` on one shows nothing. If a step fails, every file is as it wa
 |---|---|---|
 | `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | Not yet closed by neojac. Keep the file: its pins are what an install has to land on |
 | `form` | A manifest form npm does not read (`workspace:` links, `pnpm.*`, `pnpm-workspace.yaml`) | Not yet rewritten by neojac. Do not hand-edit the table to make npm take it: say what you found |
-| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table. A record is of the system it runs on. It does not take a `binding.gyp` yet, and says what of a build a table cannot hold: leave those programs in place and report what it said |
-| `tests` | No manifest says how a Python project's tests are run | Find the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command`. Report it; `jac.toml` has no key for it yet |
+| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. A record is of the system it runs on. It does not take a `binding.gyp` yet, and says what of a build a table cannot hold: leave those programs in place and report what it said |
+| `tests` | No manifest says how a Python project's tests are run | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command` |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
 tool stops complaining changes what the repository builds.
 
-5. **Install what it depends on.**
+5. **Say how each Python project's tests are run**, and run them.
 
-```sh
-neojac install
+```toml
+[test.pypi."."]
+command = ["pytest", "tests", "--import-mode=append"]
+groups = ["test"]                  # the [dependency-groups] the command needs
 ```
 
-It installs each npm tree's packages, and into `.jac/venv` what each Python project's
-`pyproject.toml` (or its build) says it depends on, and pins them in `jac.lock`. A Python
-project's dependency groups and extras are not installed: what its tests need that only a group
-lists (pytest) is added with `neojac install --pypi <package>`, and reported.
+```sh
+neojac absorb --record             # every Python project: what its wheel holds, [wheel]
+neojac install                     # its dependencies, and the groups and extras the table names
+neojac test                        # builds the project from the tables, then runs the command
+```
+
+- **Record every Python project**, one with no native code too: `neojac build` and
+  `neojac test` need its `[wheel."<directory>"]`, and refuse without it (E5167).
+- **The suite runs against the build**, not against the package's directory beside the tests,
+  which holds no extension module. Where the tests' directory has an `__init__.py`, pytest puts
+  the project's directory first on Python's path unless it is told `--import-mode=append` (or
+  `importlib`): give it that.
+- **What the tests need that no group or extra lists** (tiktoken's `pytest` and `hypothesis`
+  are named only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
+  `neojac install --pypi pytest hypothesis`.
+- **Compare with the repository's own run.** The bar is the same tests passing. A test that
+  fails the same way under the repository's own tools on this machine is not yours to fix:
+  report it, and deselect it in the command only if the repository's own run does.
+- **Programs the tests start** (`sysctl`, `ifconfig`) must be on `PATH` as they are for the
+  repository's own run.
 
 6. **Draw it.**
 
@@ -104,6 +122,7 @@ neojac arch --text
 - `neojac absorb --check` and `neojac absorb` name the same trees.
 - `git status --short` shows `.gitignore` modified and `jac.toml`, `archwire.jac` (and `jac.lock`)
   new, and nothing else.
+- `neojac test` passes the tests the repository's own run passes, for each Python project.
 - A second `neojac absorb` prints `nothing changed`.
 - `neojac arch --text` draws the project, with one layer, `all`.
 - Every open item is either closed, or listed in your report with what the repository says
@@ -120,3 +139,6 @@ neojac arch --text
 | E5157 | A manifest's text cannot be moved under a table's name as it is | Reformat that part of the manifest as plain tables |
 | `cargo cannot read it` | `cargo metadata` refused the `Cargo.toml` | Fix what cargo says: neojac asks cargo which crates are the workspace's |
 | After `--record` on macOS: `'IOKit/IOKitLib.h' file not found` at a C module's `cmodule.toml` | The C uses a framework the toolchain carries no headers of | Set `SDKROOT` to a macOS SDK, for every command in the project (`neojac docs interop/c-and-cpp`) |
+| `--record` says `no run that was recorded linked it` | The build found the module already made, from before any record was kept | Remove what the build left in the repository (`build/`, `target/`) and record again |
+| The suite fails with `cannot import name '_ext' from 'pkg'`, at a path in the repository | Python imported the package's directory, not the build | `--import-mode=append` for pytest; a test that starts `python -m` in the repository needs the build to hold that module |
+| E5167 | A Python project has no `[wheel."<directory>"]` | `neojac absorb --record` |

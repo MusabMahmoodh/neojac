@@ -1,5 +1,5 @@
 ---
-description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, extensions, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
+description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
 keywords: jac.toml, project.name, project.kind, project.archwire, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
@@ -128,6 +128,26 @@ Where `neojac test` looks for tests when it is given no paths. See [test](../too
 | `<path>/jac.toml: [test] is not a table` | `test` is a key with a value, not a table |
 | `<path>/jac.toml: [test] exclude must be a list of strings` | `exclude` is not a list of strings |
 
+### [test.pypi."\<directory\>"]
+
+The own suite of a Python project the repository holds, `[pypi."<directory>"]`: `neojac test` runs it after the Jac tests, against what `neojac build` makes of the project ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
+
+| Key | Type | Meaning |
+|---|---|---|
+| `test.pypi."<directory>".command` | list of strings | The command and its arguments, run in the project's directory with `.jac/venv` first on `PATH` |
+| `test.pypi."<directory>".groups` | list of strings | The dependency groups of the project's `pyproject.toml` (`[dependency-groups]`) the command needs, each with the groups it includes. `neojac install` installs them |
+| `test.pypi."<directory>".extras` | list of strings | The extras (`[project.optional-dependencies]`, or what the project's build states) the command needs |
+
+```toml
+[test.pypi.backend]
+command = ["pytest", "tests"]
+groups = ["dev"]
+```
+
+| Code | Cause |
+|---|---|
+| E5158 | `test.pypi` is not a table of projects, an entry has no `command`, has a key of another type or another key, or names a group or an extra the `pyproject.toml` has none of |
+
 ## [dependencies.pypi]
 
 The project's Python packages, which `neojac install` installs into `.jac/venv/` on neojac's CPython and pins in `jac.lock`. See [Python](../interop/python.md) (`neojac docs interop/python`).
@@ -172,7 +192,7 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 | E5157 | The table is written inline or with dotted keys where neojac has it to rewrite, or a manifest's text cannot be moved under a table's name as it is |
 | E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
 
-`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are not installed.
+`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are installed where [`[test.pypi."<directory>"]`](#testpypidirectory) names them.
 
 ## [extensions."\<path\>"]
 
@@ -193,11 +213,38 @@ cargo = "."
 features = ["python"]
 ```
 
-An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). neojac does not build one yet.
+An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). It is built with the Python project whose `[wheel]` its path is under ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
 
 | Code | Cause |
 |---|---|
 | E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, or has another key |
+
+## [wheel."\<directory\>"]
+
+What the wheel of a Python project, `[pypi."<directory>"]`, holds. `neojac absorb --record` writes it from the wheel the project's own build makes, and `neojac build` and `neojac test` read it in place of running that build ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
+
+| Key | Type | Meaning |
+|---|---|---|
+| `wheel."<directory>".files` | list of strings | The project's files the wheel holds, each by its path in the wheel |
+| `wheel."<directory>".root` | string | Where those paths start, below the project's directory (`src`). Absent where that is the directory itself |
+| `wheel."<directory>".tag` | string | The wheel's Python and ABI tags where the build names them and they are not the interpreter's own: `cp38-abi3` |
+| `wheel."<directory>".metadata` | table | Fields of the wheel's `METADATA` that the project's build states and its `[project]` table does not, each by its name there (`Name`, `Version`, `Classifier`), a string or a list of strings, with the text after the fields as `Description` |
+
+```toml
+[wheel."."]
+tag = "cp38-abi3"
+files = ["psutil/__init__.py", "psutil/_common.py"]
+
+[wheel.".".metadata]
+Name = "psutil"
+Version = "8.0.0"
+```
+
+| Code | Cause |
+|---|---|
+| E5158 | An entry is not a table, `files` is not a list of strings, or it has another key |
+| E5167 | A Python project built or tested with no table here |
+| E5168 | `files` lists a file the project does not have |
 
 ## [packages]
 

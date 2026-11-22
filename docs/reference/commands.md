@@ -96,6 +96,7 @@ Compile a program, or a project's apps.
 ```sh
 neojac build [<program>...] -o <out> [<option>...]
 neojac build [<app>...] [--profile <profile>]
+neojac build <directory>/pyproject.toml
 ```
 
 | Option | What it does |
@@ -122,6 +123,8 @@ A program is built into one executable, which needs nothing installed where it r
 Several Jac programs are built into one executable that holds each of them and runs the one its first argument names: a program is named by its file, a main.jac by its directory.
 
 In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's: the apps named, or every app, are each built into dist/, and where each one is is printed.
+
+A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against.
 
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
@@ -257,7 +260,9 @@ neojac test <file.jac> -o <runner> [<option>...]
 
 Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
 
-Exits with status 1 when a test fails or a runner doesn't build, and 5 when there are no tests.
+A Python project's own suite is run after them: the command jac.toml's [test.pypi."<directory>"] gives, in the project's directory, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path. A path that is a project's pyproject.toml runs that suite alone, and -k runs none.
+
+Exits with status 1 when a test fails, a suite does or a runner doesn't build, and 5 when there are no tests.
 
 | Example | What it does |
 |---|---|
@@ -410,7 +415,7 @@ neojac absorb [<directory>] [--check | --record] [--json]
 | Option | What it does |
 |---|---|
 | `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
-| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: an extension module made from a crate, as [extensions] |
+| `--record` | Run each Python project's own build with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], and what its wheel holds, as [wheel] |
 | `--json` | Print what it found, and what it wrote, as data |
 
 Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.
