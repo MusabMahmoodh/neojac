@@ -106,6 +106,14 @@ what they were resolved for. An install whose `jac.toml` still lists what the lo
 was made for installs the lock's versions; otherwise it resolves again and rewrites the lock. An
 install also removes from `.jac/venv` what the lock no longer lists. Commit both files.
 
+- **Resolving again keeps the versions the lock pins.** Adding or removing one package leaves
+  every other at its version. Where a pin no longer fits what is asked for, pip resolves all of
+  them afresh, and the install says so.
+- **A package named to `neojac install --pypi` is asked for anew:** it gets the newest version
+  that fits, which is how one package is moved up.
+- **A `uv.lock` beside a Python project of the repository is what pip is held to,** until it is
+  reproduced or removed ([A lock another tool wrote](../toolchain/packages.md#a-lock-another-tool-wrote)).
+
 The project's Jac programs then import the packages:
 
 `main.jac`, in a project whose `jac.toml` lists numpy:

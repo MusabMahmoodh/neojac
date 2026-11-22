@@ -652,7 +652,7 @@ item**. `absorb` lists each at its file, and does not guess:
 | Kind | Reported for | What closes it |
 |---|---|---|
 | `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
-| `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` |
+| `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` ([A lock another tool wrote](#a-lock-another-tool-wrote)) |
 | `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
 | `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
@@ -670,6 +670,51 @@ open items
 
 nothing written
 ```
+
+### A lock another tool wrote
+
+A lock neojac's engines do not read is not copied into `jac.lock`. Its pins are what
+`neojac install` holds the engine to, and `jac.lock` records what the engine then installed.
+Today that is `uv.lock`, for pip; the other locks stay open items.
+
+```text
+$ neojac install
+neojac install: cffi: pinned 2.0.0 by another tool's lock, which has no wheel for this Python and does not build (.jac/pins/cffi-2.0.0.log): 2.1.1 is used
+neojac install: 73 PyPI distributions in .jac/venv
+$ neojac absorb --check
+...
+locks
+  backend/uv.lock: 72 of 73 pins reproduced by pip
+
+open items
+   1  backend/uv.lock: 1 of its pins is not what pip installs: cffi (pinned 2.0.0, 2.1.1 installed): accept each by name in jac.toml, [lock.pypi] accept
+```
+
+- **Every pin pip can install is the version installed,** though a newer one fits what the
+  project asks for. A name the lock pins at two versions, one for each of two platforms, is
+  left to pip.
+- **A pin with no wheel for neojac's CPython is built from its source,** with the toolchain's
+  compilers and cargo. The first install under a lock takes as long as those builds do; pip
+  keeps the wheels.
+- **A pin that cannot be installed is not held.** pip picks that package's version, and
+  `neojac install` names the package, the pin, the version used and the log of the build that
+  failed (`.jac/pins/`).
+- **The lock stays an open item until every difference is accepted by name:**
+
+  ```toml
+  [lock.pypi]
+  accept = ["cffi"]
+  ```
+
+  A name accepted is no longer held to the other lock's pin. `absorb` lists it beside the count,
+  `and cffi accepted as installed`.
+- **While the other lock stands, it is what `jac.lock` is resolved under.** `jac.lock`'s `[pypi]`
+  records which pins that was (`held_to`), and a `neojac install` after the other lock changed
+  resolves again. Where the two disagree on a version, the other lock's is taken.
+- **Once it is reproduced, the other lock can go.** `jac.lock` pins the same versions, and
+  `neojac install --frozen` installs them, with the lock there or not.
+- **`absorb` reads and compares; it resolves nothing.** Before the first `neojac install` the
+  item says that an install resolves with the pins.
 
 ### What neojac writes from now on, and what can go
 
@@ -821,8 +866,8 @@ recorded
   read the sources for their imports, so what the wires would say it does not judge.
 - **`--json` prints the same as one document**: `trees` (each with its `ecosystem`, `directory`,
   `manifest`, `table`, `lock` and the tree it is a `member_of`), `data`, `open` (each with its
-  `kind`, the file it is `at`, and what it `says`), and after an `absorb` that wrote, `wrote` and
-  the count of `problems`.
+  `kind`, the file it is `at`, and what it `says`), `locks` (what of each other tool's lock is
+  reproduced), and after an `absorb` that wrote, `wrote` and the count of `problems`.
 - **A step that fails leaves every file as it was**: a manifest that cannot be taken whole
   (E5156, E5157) is refused, and nothing of the others stays written.
 - **Absorbing again changes nothing**, and takes in what was added since.
