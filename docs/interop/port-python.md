@@ -10,7 +10,10 @@ port translates and the Jac it becomes. It is printed from the table the transla
 reads (`neojac port --mapping python`).
 
 Every name is `any`, which is what a name in Python is: its operations are resolved as the
-program runs, and raise `TypeError` where Python does. Annotations are not carried over yet.
+program runs, and raise `TypeError` where Python does. An annotation is carried as the Python
+object the source names (`skip: builtins.int = 0`, a class by its name), which `check` reads as
+`any` and a cpython space hands Python as written. The port is a program of a cpython space
+(outside a project, it is checked on that host), where an int is Python's.
 Scaffolding keeps Python's meaning where Jac's would differ: a name the module's code binds is a
 `glob` the code assigns, a local a nested function takes is declared at the top of its
 function, a default that is not a constant is held in a variable made where the `def` runs.
@@ -23,9 +26,9 @@ function, a default that is not a constant is held in a variable made where the 
 | `x = v` at module level: of a literal before any module code, or bound by the module's code | `glob x: any = v;`; or `glob x: any = None;`, and `x = v;` in the module's code |
 | Any other statement at module level | A statement of the module's one `with entry { }` |
 | `if __name__ == "__main__":` at module level; an `if` whose every test is the platform (`sys.platform == "win32"`, `sys.platform.startswith("linux")`, `os.name == "nt"`, a module's name bound once to one, `not`, `and`, `or`), at module level, in a class body or in code | `with entry:__main__ { }`; `comptime if target().os == "windows" { }` (`target` from `jaclang.comptime`): at module level, among the declarations for its defs, classes and imports and in the module's code for its statements; in a class body, among the members; a name a def binds under one test and a value under another, a `glob` of the branches that bind the value. A class body's `if` on anything else is the same `if` among the members, of a class Python makes where its statement runs (a cpython space) |
-| `def f(a, b=1):` with a docstring, at module level or in a function; a `def` in the module's code (under an `if`, in a loop or a `try`); `@d` on a `def` at module level, in a function or in a class, with `@staticmethod` or `@classmethod` among them; `@property` alone, and its `@f.setter` | The docstring, then `def f(a: any, b: any = 1) -> any { }`; a local a nested function takes is declared at the top of the function; in the module's code, `def f_(...) { }` and `f = f_;` where the `def` runs, `f` a `glob`; `@d` on the `def`, which a cpython space makes where it stands with its decorators applied (a `static def` or a `class def`, with `@builtins.staticmethod` or `@builtins.classmethod` where the source has it under another decorator; `@builtins.property` under another decorator); a field with a `getter` and a `setter` |
+| `def f(a, b=1):` with a docstring, at module level or in a function; a `def` in the module's code (under an `if`, in a loop or a `try`); `@d` on a `def` at module level, in a function or in a class, with `@staticmethod` or `@classmethod` among them; `@property` alone, and its `@f.setter` | The docstring, then `def f(a: any, b: any = 1) -> any { }`; a local a nested function takes is declared at the top of the function; in the module's code, `def f(...) { }` where the `def` runs, which binds the module's `glob f`; `@d` on the `def`, which a cpython space makes where it stands with its decorators applied (a `static def` or a `class def`, with `@builtins.staticmethod` or `@builtins.classmethod` where the source has it under another decorator; `@builtins.property` under another decorator); a field with a `getter` and a `setter` |
 | `def f(a, /, b, *args, c, d=1, **kw):` | `def f(a: any, /, b: any, *args_: any, c: any, d: any = 1, **kw: any) -> any { args: any = tuple(args_); }`: `*args` is a tuple |
-| `class C(B):` with `__init__` binding `self.x` | `obj C(B) { has x: any; def init(...) { } }`, with an `__eq__` and a `__hash__` of identity when the class defines no `__eq__` |
+| `class C(B):` with `__init__` binding `self.x` | `obj C(B) { has x: any; def init(...) { } }`, with an `__eq__` and a `__hash__` of identity when the class defines no `__eq__`. A class Python makes, in a cpython space, where its statement runs, is written `class C(...) { }`, its annotated names `has` fields and its plain assignments `static has`: one with a base Python makes (an import's class, a builtin class as `builtins.str`, a call such as `namedtuple(...)`, a glob), with keywords, with an annotation without a value, or a method binding an attribute `__init__` does not always bind (`(builtins.object)`), decorated (`@dataclass`, or a function of the module or of an import), with an `if` in its body on what only the running program knows, or in a function or under the module code's `if`; its `__new__(cls, ...)` is a `static def __new__`, its `super()` and `Base.__init__(self, ...)` Python's `super` |
 | `x = v`, `x: T = v` (a first binding) | `x: any = v;` |
 | `x += v`, and the other augmented assignments | `x += v;` |
 | `a, b = v`, `(a, b)`, `return a, b`; `first, *rest = v`, `a, (b, c) = v`; `a = b = v` | `(a, b) = v as any;` (Jac unpacks only a tuple or a list it knows, and an `any` holding any iterable, as Python unpacks it), `(a, b)`, `return (a, b);`; a starred or nested target takes the items of `list(v)` one at a time, raising Python's `ValueError` when they do not fit; `v` is held in a variable and assigned to each target in turn |
@@ -46,7 +49,7 @@ function, a default that is not a constant is held in a variable made where the 
 | An int, a float, a str, bytes, `True`, `False`, `None`, `...` | The same literal |
 | A name that is a Jac keyword, such as `by` | The name behind a backtick, `` `by `` |
 | `+ - * / // % ** @ << >> & \| ^`, `- + ~ not`, `and`, `or` | The same operators |
-| `== != < <= > >= in`, `not in`, `is`, `is not`, chained | The same comparisons |
+| `== != < <= > >= in`, `not in`, `is`, `is not`, chained | The same comparisons, where only their truth is used (an `if`, a `while`, `assert`, `not`, a test's `and` and `or`); one whose value is kept (assigned, returned, an argument) is Python's operator, `operator.eq(a, b)`, and a kept chain one after another, `operator.lt(a, b) and operator.lt(b, c)`, a middle operand that is computed held where it is computed, `operator.lt(a, (b_ := f())) and operator.lt(b_, c)` |
 | `f(a, k=v)`, `o.m(a)`, `C(a)` | The same call |
 | `o.a`, `xs[i]`, `xs[a:b:c]`; `f.a` of a function `f` declared by `def` with no decorator, read, assigned or augmented | The same; `getattr(f as any, "a")`, `setattr(f as any, "a", v);`, which a Jac function value has on a cpython space |
 | `[a, b]`, `{k: v}`, `{a, b}` | The same displays |
@@ -70,8 +73,6 @@ construct in the table whose Jac would mean something else (E4005):
   knows.** A Jac class declares each member once.
 - **A module-level function, class or import that the module's code binds again.** Its Jac
   name is bound once, as the program starts.
-- **An attribute a method binds that `__init__` does not always bind.** A Jac object has exactly
-  its declared fields.
 - **`from m import *` whose names port cannot know:** of a module not of the project, or of
   one whose `__all__` is not one list of names written out, that imports `*` itself, reaches
   its names through `globals()`, binds one only in a function or deletes one in a block; and
@@ -85,10 +86,13 @@ construct in the table whose Jac would mean something else (E4005):
 - **A read of a name nothing in the module binds, nor Python's builtins** (`left_out()`): Python
   raises NameError where it runs.
 - **A method named `init` or `postinit`, `x is 1`, an int literal past 64 bits.**
+- **A string holding a lone surrogate** (`"\ud83d"`), which a Python `str` holds and no Jac
+  string does.
+- **A module the source imports that neojac cannot find** (E4016): port checks the Jac it
+  writes against it, so the module is installed first, or ported in the same run.
 
 ## What differs in what is written
 
-- **An int is 64 bits.** Arithmetic past that raises `OverflowError` where Python grows the int.
 - **An object with no `__repr__` prints as Jac prints it** (`Counter(count=3)`), where Python
   prints its class and address.
 - **A name is bound from the start of its scope.** A module-level name bound by the module's

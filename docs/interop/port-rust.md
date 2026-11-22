@@ -14,7 +14,9 @@ and port translates the typed tree rustc checks: macros expanded, every expressi
 type. Where the readings agree the Jac is written once; where they differ it is written as
 [C's](port-c.md) is.
 
-A crate is ported from its root file, `src/lib.rs`.
+A crate's every file under `src/` is ported, each to a Jac file of its own, and the crate is
+read with the features the project builds it with: its extension module's (`[extensions]`),
+else its defaults.
 
 | Rust | Jac |
 |---|---|
@@ -44,20 +46,26 @@ A crate is ported from its root file, `src/lib.rs`.
 | `\|x\| x + 1`, given to another crate's method that calls it before it returns | `lambda (x: i32) -> i32 { return x + 1; }` |
 | `5`, `5u8`, `1.5`, `true` | `5` where its type is given by what takes it, else `i32(5)`, `u8(5)`; `1.5`, `True` |
 | `b"ab"` given as a `&[u8]` | `b"ab"` |
+| `Vec<u32>`, `HashMap<Vec<u8>, u32, FxBuildHasher>`, `v.push(x)`, `Vec::with_capacity(4)`, `v[i]`, `v[i] = x`: another crate's types, the standard library's among them | `Vec[u32]`, `HashMap[Vec[u8], u32, FxBuildHasher]`, each imported by its Rust path (`import from std.vec { Vec }`), `v.push(x)`, `Vec[u32].with_capacity(4)`, `v[i]`, `v[i] = x`: Rust's own items, called natively ([Rust modules](rust-modules.md)) |
+| A value whose drop is significant (`HashSet`, `Regex`): a `let`, a by-value parameter, a struct's field | An `own` binding, dropped where its scope ends as Rust drops it; a struct of the crate holding one is an `obj` with an `own` field |
+| `&str`, a string literal, `s.len()`; `&[u8]`, `b"ab"`, `&piece[a..b]`, `&text[..i]` | `str` (its `len` the UTF-8 length); `bytes`; a range through `rust`'s `slice_bytes`, `slice_str` and their `_from` forms, which panic where Rust panics |
+| `m.get(k)` and `m[k]` of a map by its key's borrowed form, `if let Some(&r) = m.get(k)`, `*m.get(k).unwrap_or(&7)`, `.copied()` | The native call by the borrowed form; an `Option<&N>` of a number is the `Option[N]` its `copied` gives: `is_some()`/`unwrap()`, `m.get(k).unwrap_or(7)` |
+| `if let Some(x) = e { } else { }`, `while let Some(x) = e { }` over another crate's `Option` | `if e.is_some() { x = e.unwrap(); ... } else { }`, and the `while` likewise, `e` evaluated once |
+| `(a, b)`, `t.0`, `t.1 += 1`, `Vec<(usize, u32)>` | `(a, b)`, `t[0]`, `t = (t[0], t[1] + 1)`, `Vec[tuple[u64, u32]]` |
+| `impl Ord for Merge { fn cmp(&self, o: &Self) -> Ordering { } }`, `#[derive(PartialEq, Eq)]`, `BinaryHeap<Merge>` | `struct Merge(Ord, PartialOrd, Eq, PartialEq) { def cmp(other: &Merge) -> Ordering { } }`: the struct conforms to Rust's traits, which Rust's generic code calls |
+| `assert!(c)` outside a test | `if not c { raise RustPanic("assertion failed: c"); }`, `RustPanic` imported from `rust` |
+| A file of the crate (`pub mod extra;` in `src/extra.rs`) | Its own Jac file, `src/extra.jac`; a file the crate does not compile with the features the project builds it with (its extension module's, else its defaults) is refused |
 
 ## What is refused
 
-Anything not in the table is refused with E4001, and nothing is written for the crate:
-references other than a method's `self`, enums and `match`, traits and their impls, generics,
-closures, tuples, arrays and slices, strings, modules, `use`, macros that expand to any of
-these (`println!` among them), and every function of another crate, the standard library's
-too, until Jac imports Rust's own items. So is a construct in the table whose Jac would
-mean something else (E4005):
+Anything not in the table is refused with E4001, and nothing is written for the file: among
+them enums whose variants hold fields and their patterns, generics, iterator chains
+(`collect`, `map`, `enumerate`) and a `for` over anything but a range, `?`, `Display` impls
+(`Formatter`), a value of another crate that borrows (`Option<Match>`, `HashSet<&str>`),
+`char`, raw pointers and `unsafe`, and a call of another crate whose types Jac does not hold.
+So is a construct in the table whose Jac would mean something else (E4005):
 
-- **A `let` of a name inside the block of another of that name, or of another type.** A Jac
-  function has one variable of a name, of one type.
 - **A float converted to an integer.** Rust stops at the type's ends and Jac raises.
-- **A `for` whose end is not a literal, a constant or an immutable variable**, which Jac would
-  read again at each pass.
 - **A division whose operands are more than names.** Port tests the operands, and would
   evaluate them twice.
+- **A method named `init` or `postinit`**, which is a Jac object's constructor.
