@@ -199,7 +199,9 @@ compile-time record with these fields.
 | `vector_bits` | The widest vector that processor computes with in one register: 128 on the aarch64 and x86-64 baselines, 256 with AVX2 (`x86-64-v3`), 512 with AVX-512 (`x86-64-v4`), 0 on `wasm32` |
 
 A `comptime if` on it compiles only the branch it picks, so the other
-branches may name what this target does not have. The record itself is no
+branches may name what this target does not have. Among a module's
+declarations and an archetype's members, it picks the declarations a target
+has ([comptime if](compile-time.md#among-declarations-and-members)). The record itself is no
 value of the program (E1245): `t = target()` is refused, while
 `target().os` is a `str` code can read.
 

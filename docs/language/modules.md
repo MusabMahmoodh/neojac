@@ -390,7 +390,9 @@ is used, and the others are not compiled:
 | `X.jac` | anything else |
 
 Every variant declares the same public names; each holds the code, and the imports, that differ on
-its target. A module may also exist only as a variant: with `win.windows.jac` and no `win.jac`,
+its target. A few declarations that differ are written in the one file instead, under a
+`comptime if` on `target()` among the module's declarations
+([comptime if](compile-time.md#among-declarations-and-members)). A module may also exist only as a variant: with `win.windows.jac` and no `win.jac`,
 `win` is a module when building for Windows, and importing it for another target is W1100. In a space that runs on another host, the variant is named by the host instead
 (`X.cpython.jac`, `X.node.jac`); see `neojac docs space`.
 
