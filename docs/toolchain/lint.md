@@ -42,6 +42,10 @@ exclude = ["tests/*/reject/*"]         # files left alone
 - `neojac check` reports each selected rule as an error, at the code it judges: a finding in a body written in an annex is at the annex's line (`impl/simplify_ternary.impl.jac:2:13`), not at the declaration. `neojac build` and `neojac test` do not judge selected rules.
 - Rules are selected by name, not by code. A name in `select` or `ignore` that is no rule is error E3057, at its place in `jac.toml`.
 - **Under `"clean"`, `neojac fmt --fix` deletes every comment and docstring** of the files the rules judge, since `strip-comments` and `strip-docstrings` are among them, and moves every body into its module's annex. That is so in a project that names no rules. `exclude` names the files to leave alone, and `ignore` the rules to leave out: `ignore = ["strip-comments", "strip-docstrings"]` keeps them.
+- **A module of a `cpython` space keeps its docstrings.** There a docstring is the program's, the
+  `__doc__` Python reads ([Classes and decorators in a cpython space](../interop/python-classes.md#doc-strings)),
+  so `strip-docstrings` does not judge it, in `neojac check` or in `neojac fmt --fix`, which reads
+  the project's spaces to know. Its comments and bodies are judged as any module's.
 
 ```text
 jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is no rule a project selects
