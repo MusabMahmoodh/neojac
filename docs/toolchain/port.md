@@ -68,6 +68,7 @@ with entry:__main__ {
 - **It is checked before it is written.** Port runs everything [`neojac check`](check.md) runs on
   what it made, and writes it only when that finds nothing: outside a project, a Python file's
   Jac as a module of a `cpython` space and a `.tsx` or `.jsx` file's as one of a browser space,
+  other JavaScript's and TypeScript's as one of a node space, and C's, C++'s and Rust's natively,
   where what they use runs; in a project, the project as the port leaves it.
 - **The same source gives the same Jac.** Nothing in a port is a guess: every fact comes from the
   source's own compiler.
