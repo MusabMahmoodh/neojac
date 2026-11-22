@@ -137,7 +137,7 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | `const char *` result | `str \| None`, `None` for `NULL` |
 | `char *` | `ptr[i8]`, whatever the target's `char` signedness |
 | Any other pointer `T *` | `ptr[T]`; a parameter also takes `&x` or `&mut x` of a `T` variable, its address for the call |
-| A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL`; a record's field also takes a function of a C module, as its own address |
+| A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL`; a C function of a module is passed as its own address, to a parameter or a record's field: with `int64_t pick(int64_t (*f)(int64_t), int64_t x)` and `twice` of one module wired in, `pick(twice, 21)` is C's `pick(twice, 21)` |
 | A `struct` | A record, constructed by keyword (`point(x=1.0, y=2.0)`, fields left out are zero), passed and returned by value |
 | A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
 | A `struct` holding bit-fields or arrays of numbers | A record with [bit-fields and arrays](c-libraries.md#bit-fields-and-arrays), checked against Clang's layout |
@@ -321,7 +321,10 @@ Nothing needs to be `extern "C"`.
 | A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
+| An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A non-member operator is not bound |
 | A result by value | Owned by Jac; a result by reference is borrowed |
+| A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
+| A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
 | A class template of the module | Instantiated only by a Jac class deriving it with itself (below); the standard library's are `libcxx`'s |
