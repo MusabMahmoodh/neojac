@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -269,6 +269,8 @@ operator it names; natively each runs in the program's Node.
 | `js_truthy(x)` | `!!x`: false for `undefined`, `null`, `false`, `0`, `NaN` and `""` |
 | `js_add(a, b)`, `js_sub(a, b)`, `js_mul`, `js_div`, `js_pow` | `a + b` (a string where either is one), `a - b`, `*`, `/`, `**`, converting as JavaScript does |
 | `js_lt`, `js_le`, `js_gt`, `js_ge` | `<`, `<=`, `>`, `>=`: strings by their UTF-16 code units, else as numbers |
+| `js_mod(a, b)` | `a % b`: the remainder, with the dividend's sign |
+| `js_shl`, `js_shr`, `js_ushr`, `js_band`, `js_bor`, `js_bxor` | `<<`, `>>`, `>>>`, `&`, `\|`, `^`: each operand made a 32-bit integer (both BigInts, or neither), `>>>`'s result unsigned |
 | `js_inc(x)`, `js_dec(x)`, `js_number(x)` | What `x++` and `x--` make `x`; `+x` |
 | `js_same(a, b)` | `a === b` |
 | `js_typeof(x)` | `typeof x` |
@@ -276,17 +278,35 @@ operator it names; natively each runs in the program's Node.
 | `js_method(o, name, ...)` | `o[name](...)`, an array's or a string's own method among them |
 | `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
 | `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
+| `js_new_target()` | `new.target` of the call that reached the function it is written in: the function JavaScript called with `new`, else `None` ([below](#a-class-with-a-javascript-base)) |
 | `js_global(name)` | The global `name` read where the call is written |
 | `js_error(e)` | What JavaScript threw that the Jac exception `e` is |
 | `JsNull` | `null` |
 
 ```jac
-import from js { js_add, js_for_in, js_lt, js_method, js_same, js_truthy, js_typeof }
+import from js {
+    js_add,
+    js_band,
+    js_bor,
+    js_bxor,
+    js_for_in,
+    js_lt,
+    js_method,
+    js_mod,
+    js_same,
+    js_shl,
+    js_shr,
+    js_truthy,
+    js_typeof,
+    js_ushr,
+}
 
 with entry {
     print(js_add(1, "a"), js_add(2, 3), js_lt("10", "9"), js_lt(10, 9));
     print(js_truthy([]), js_truthy(""), js_typeof(None), js_same(0.0, -0.0));
     print(js_method([3, 1, 2], "join", "-"), list(js_for_in({"a": 1, "b": 2})));
+    print(js_mod(-7, 2), js_mod(7.5, 2), js_shl(1, 33), js_shr(-8, 1), js_ushr(-1, 0));
+    print(js_band("6", 3), js_bor(4, "3"), js_bxor(5, 1));
 }
 ```
 
@@ -294,6 +314,64 @@ with entry {
 1a 5 True False
 True False undefined True
 3-1-2 ['a', 'b']
+-1 1.5 2 -4 4294967295
+2 7 4
+```
+
+## A class with a JavaScript base
+
+On a JavaScript host, a class whose base is a JavaScript class (a global such as `Error`, or one an
+npm package exports) is made by JavaScript: it is a JavaScript `class ... extends`, and its objects
+are JavaScript's, so `instanceof`, a stack trace and the base's own methods see what they expect.
+
+- **Its `init` is the constructor**, and `super.init(...)` is `super(...)`, which makes the
+  object. `init` calls it once, as a statement of its own body (E2253), and reads or sets `self`
+  only after it (E2252): what an argument needs is worked out before it.
+- **Its `has` fields are the object's**, its methods the class's, and the base's are inherited as
+  JavaScript inherits them.
+- **It derives from the JavaScript class alone** (E2251).
+- **`js_new_target()`** of `js` is JavaScript's `new.target` where it is written: the class or
+  function JavaScript called with `new`, and `None` where it was called without `new` or by Jac.
+- A raised instance is the JavaScript exception, caught by its class as any Jac exception is.
+
+<!-- example: not checked: runs in a node space -->
+```jac
+import from js { js_new_target }
+
+class AppError(Error) {
+    has code: int = 0;
+
+    def init(m: str, code: int) {
+        super.init(m);
+        self.code = code;
+        print("made by new:", js_new_target() is not None);
+    }
+
+    def describe -> str {
+        return f"{self.message} ({self.code})";
+    }
+}
+
+def plain -> any {
+    return js_new_target();
+}
+
+with entry {
+    e = AppError("bad", 7);
+    print(e.describe(), isinstance(e, Error), plain());
+    try {
+        raise AppError("thrown", 2);
+    } except Error as err {
+        print("caught", err.message);
+    }
+}
+```
+
+```text
+made by new: True
+bad (7) True None
+made by new: True
+caught thrown
 ```
 
 ## Exceptions
