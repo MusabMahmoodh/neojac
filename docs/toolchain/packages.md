@@ -905,6 +905,11 @@ recorded
 - **A static library the link took is a C module of its own.** Each of its members is the object
   a recorded run compiled, found by its bytes, so whichever archiver made the library need not
   be neojac's (on macOS node-gyp uses the machine's `libtool`).
+- **A C module's `headers` are the headers of its directory its build read**, written for each
+  recorded platform under its `[target.<os>]` table, so that the module's interface on each
+  platform is what that platform's build compiled against (`arch/osx/init.h` on macOS, never
+  `arch/aix/init.h`); a header of a C module inside it is that module's
+  ([C modules](../interop/c-modules.md#the-manifest)).
 - **A header library a recorded build includes is a C module of the project too**, from an
   installed package as from the project's own files (node-addon-api's `napi.h`): a
   `[c."<directory>"]` table with its `headers` and no sources, and `language = "c++"` where its

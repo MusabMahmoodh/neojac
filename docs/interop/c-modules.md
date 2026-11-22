@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, header-only library
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, header-only library, C data, extern, std_string, headers per target
 ---
 # C modules
 
@@ -17,7 +17,7 @@ A C module is one of two things, by who holds its manifest:
 | | The project's own | A dependency |
 |---|---|---|
 | Its manifest | A table of `jac.toml`, `[c."<directory>"]` | A `cmodule.toml` in its directory that `jac.toml` does not hold: a vendored library, a loose module beside a program with no `jac.toml` |
-| Its interface | What its own files declare: every header in its directory, and each function and variable its C sources define, whether a header declares it or not. It has no `headers` key (E5158) | The headers its `headers` key lists |
+| Its interface | What its own files declare: the headers its `headers` key lists, per target, or every header in its directory where it lists none; and each function and variable its C sources define, whether a header declares it or not | The headers its `headers` key lists |
 | Under an `archwire.jac` | Its files are modules, and a wire names the file that defines what it brings ([below](#wiring-c-modules)) | One module, whole |
 
 ## The shortest example
@@ -133,11 +133,11 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | A function | A function; a variadic one takes extra arguments as `*args` does |
 | `int32_t`, `int` | `i32`; `int64_t`, `long long` are `int`, the other integer types their sized type |
 | `double`, `float` | `float`, `f32` |
-| `const char *` parameter | `str \| bytes \| bytearray \| None`: the text, the bytes of a buffer, or `NULL` |
+| `const char *` parameter | `str \| bytes \| bytearray \| ptr[i8] \| None`: the text, the bytes of a buffer, a pointer passed as it is, or `NULL` |
 | `const char *` result | `str \| None`, `None` for `NULL` |
 | `char *` | `ptr[i8]`, whatever the target's `char` signedness |
 | Any other pointer `T *` | `ptr[T]`; a parameter also takes `&x` or `&mut x` of a `T` variable, its address for the call |
-| A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL` |
+| A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL`; a record's field also takes a function of a C module, as its own address |
 | A `struct` | A record, constructed by keyword (`point(x=1.0, y=2.0)`, fields left out are zero), passed and returned by value |
 | A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
 | A `struct` holding bit-fields or arrays of numbers | A record with [bit-fields and arrays](c-libraries.md#bit-fields-and-arrays), checked against Clang's layout |
@@ -198,8 +198,12 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
 
 - Every key is optional. A dependency with no `headers` (one that is only `archives`, say: a
   library built elsewhere) has no interface: a program binds its functions by declaring them
-  (below). `headers` is a dependency's key alone: a module of the project's own takes its
-  interface from its files.
+  (below). A module of the project's own takes its interface from its files: the `headers` it
+  lists, which may differ by target (`[target.linux] headers = [...]`), as
+  `neojac absorb --record` writes them from what each platform's build read; where it lists none,
+  every header of its directory. A directory that holds every platform's headers
+  (`arch/linux/init.h` beside `arch/osx/init.h`) names each target's, so that no target reads
+  another's.
 - Paths in `headers`, `sources`, `include`, `archives`, `whole_archives`, a files table's name
   and its `include` are relative to the module's directory, and may climb out of it
   (`archives = ["../../api/libplain.a"]`). A files table's `include` must name a directory
@@ -293,7 +297,7 @@ Nothing needs to be `extern "C"`.
 |---|---|
 | A class | An `obj`, its methods called as Jac's: `r.area()`, `Figure.alive()` for a static one |
 | A constructor | `C.make(args)`; a class that declares none has `make()` |
-| A copy | `v.__copy__()`; the C++ object is destroyed by `__del__`, when the Jac object is freed |
+| A copy | `v.__copy__()`; the C++ object is destroyed where its `own` owner's scope ends when its destructor runs code ([below](#c-values-whose-destructor-runs-code)), and by `__del__`, when the Jac object is freed, when it does not |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
 | A result by value | Owned by Jac; a result by reference is borrowed |
@@ -325,7 +329,7 @@ obj Square(Figure) {
 }
 
 with entry {
-    sq = Square(side=3.0);
+    sq: own Square = Square(side=3.0);
     print(described(sq).c_str(), sq.sides());
 }
 ```
@@ -342,7 +346,8 @@ figure/4/9 4
   override raises `NotImplementedError` when called.
 - **`init_base` raises** `TypeError` when the object's nearest C++ class is not `C`, and
   `RuntimeError` the second time.
-- **The Jac object owns its C++ part**, which is deleted when the Jac object is freed.
+- **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
+  whose destructor runs code makes the deriving class an owned value too, bound `own`.
 - **A virtual method takes** numbers, C strings, pointers and classes (given to Jac borrowed), and
   gives nothing, a number, a pointer or a copyable class by value. A class with any other
   virtual method cannot be derived, and its interface says why (E5133).
@@ -375,7 +380,7 @@ obj Heavy(Counted[Heavy]) {
 }
 
 with entry {
-    hv = Heavy(w=7);
+    hv: own Heavy = Heavy(w=7);
     print(hv.tally(i32(2)), hv.unit());
 }
 ```
@@ -383,6 +388,19 @@ with entry {
 ```text
 13 3
 ```
+
+### C++ values whose destructor runs code
+
+A C++ class whose destructor is not trivial (`std::string`, `std::vector`, a class of the module
+that frees what it holds) is an [owned value](../language/ownership.md): a local or a field holding
+one is declared `own`, and the C++ object is destroyed where its owner's scope ends, as C++
+destroys it (E1256 without `own`). A Jac class deriving such a class is one too.
+
+- **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
+  interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
+- **A wire may name a class the file's interface reaches** though its source declares no class of
+  that name: `shapes.figures ++> main { std_string, text }` binds libc++'s `std::string`, which
+  `text` returns, so that a local holding one can be declared `sep: own std_string = text(" ");`.
 
 ## Wiring C modules
 
@@ -473,6 +491,37 @@ double shapes_jac_scaled(double x, int32_t *calls) {
   module that stays.
 - **A C module built into a shared library** cannot call the program's Jac (E5183): a C module
   that calls Jac is linked into the program.
+- **The face header may give C macros of its own**: a wire from the Jac module into a C file
+  names them beside the module's functions (`native.count --> native.unity { TWICE_BY, twice }`
+  where `count.h` beside `count.jac` defines `TWICE_BY`). A name neither the module nor its face
+  gives is E1145.
+
+### C data a Jac module gives C
+
+A `glob` a Jac module declares in `import from c` is C data of the program, and a wire gives it to
+C as it gives a function: `jac/<module>.h` declares it `extern`, and the C files read and assign
+the one variable the Jac module does.
+
+<!-- example: not checked: needs the C module calc and the archwire.jac that wires knobs into it -->
+```jac
+import from c {
+    glob bias: float = 0.25;
+}
+
+def:pub scale(x: float) -> float {
+    return x * 2.0;
+}
+```
+
+with `knobs --> calc.calc { bias, scale }` in `archwire.jac`, `jac/knobs.h` holds
+
+```c
+extern double bias;
+double scale(double);
+```
+
+and `calc.c`'s `return scale(x) + bias;` gives `2.25` for `1.0`. C data a wire gives C is of
+`int`, `i8` to `u64`, `float`, `f32` or `ptr[...]` (E1237).
 
 An extension module of Python whose C calls Jac is built the same way: with
 `counted --> csrc.spam { counted_words }` in `archwire.jac`, `csrc/spam.c` keeps its
@@ -579,7 +628,10 @@ with entry {
 | E5200 | The C++ instances of class templates Jac classes derive do not compile |
 | E1144 | A Jac module imports its own package's C module instead of taking a wire, or declares the functions of a C module of the project's own |
 | E1576 | A wire from a C module of the project's own, where its files are its modules |
-| E5158 | A `headers` key in the table of a C module of the project's own that has sources |
+| E5158 | A key of a C module's table in `jac.toml` of the wrong kind |
+| E1236 | Two declarations of one C record that disagree |
+| E1237 | C data a Jac module gives C of a type C cannot read |
+| E1256 | A C++ value whose destructor runs code, bound without `own` |
 | E5090 | A C module in a build for `wasm32-wasi` |
 
 `neojac docs E5133` prints any of these with its message.

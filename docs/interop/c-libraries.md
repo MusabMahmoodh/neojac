@@ -294,6 +294,15 @@ with entry {
 A C `union` is a Jac `union` ([Structs](../language/structs.md#unions)), declared in an import
 block as a record is.
 
+### One record across the program
+
+A C record is one type across the program by its C name, as C makes a type two files declare one
+type. Two modules' `import from c` blocks that declare `stamp` name the same type: a `stamp` one
+module's function returns is the `stamp` the other's takes. Their declarations agree, the same
+fields of the same types in the same order, or one of them declares it with no fields, opaque
+(E1236 otherwise). A record a [C module](c-modules.md)'s headers declare is the same type as one
+of that name a block declares.
+
 ## Passing addresses
 
 A parameter declared `&T` or `&mut T` takes the address of a variable or field of the caller:
