@@ -23,7 +23,10 @@ In a project (a `jac.toml` above the file, as `neojac absorb` writes one), port 
 - `neojac port --check <dir>` prints the plan: each module after the modules it imports, and modules that import each other as one group. Port in that order, a step at a time, and run the project's tests after each.
 - `neojac port shop/use.py` writes `shop/use.jac`, moves `use.py` to `replaced-by-neojac/shop/use.py`, writes its imports of the project's modules as wires in `archwire.jac`, and does all of it only if the project then checks (E4008). Nothing is half done: on a refusal, every file is as it was.
 - A module of the project imported by a script in no space is refused (E4009): put the script in a space, or port it too.
-- A class Python makes (a `NamedTuple` or SQLModel base, `@dataclass`, a run-time `if` in its body) and a decorated function stay Python's in a `cpython` space; natively they are E5174 and E5175 (`neojac docs interop/python-classes`).
+- A class Python makes (a `NamedTuple` or SQLModel base, `@dataclass`, a run-time `if` in its body, a class in a function) and a decorated function stay Python's in a `cpython` space; natively they are E5174, E5175 and E5176 (`neojac docs interop/python-classes`).
+- A Python project's tests and scripts (files of its tree its wheel does not list) are its space's clients: they import the package as the space builds it, so the modules they import port.
+- A comparison whose value is kept where an operand is a Python object (`kept = a == b`, SQLModel's `User.email == email`) is written as Python's own, `operator.eq(a, b)`, since Jac's `==` on an `any` is a `bool`; one only tested (`if a < b`) stays an operator.
+- A `def` in module code (under `try`, an `if`) is written where it stands, assigning the module's `glob` of its name, as Python binds it.
 
 Record what the Python does before you change it: run it on inputs that exercise each path and keep the output (`python3 stock.py > py.out`). That file is the port's acceptance test.
 
