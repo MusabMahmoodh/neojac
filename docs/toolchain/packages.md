@@ -485,7 +485,7 @@ recorded = ["linux-aarch64", "macos-aarch64"]
 
 - **It is named by the module's path** from the project's root, and names the crate
   (`cargo`, with the `features` it is built with) or the C module (`c`) of the project it is built
-  from, by the directory of that unit's table.
+  from, by the directory of that unit's table, or the Jac module (`jac`) by its file.
 - **`recorded` lists the platforms its build was recorded on**, and it is built on those. One
   with no list, written by hand, is built on every platform. A project or a tree all of whose
   extension modules are recorded for other platforms is refused there (E5172): what its build
@@ -508,6 +508,23 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   [extensions."build/Release/better_sqlite3"]
   c = "src"
   ```
+
+- **One built from a Jac module is that module, as Python's.** Its public functions and its
+  `obj`s are the extension module's: a function's parameters and result cross as a native
+  space's do ([Python](../interop/python.md)), a Jac exception is the Python exception of its
+  name, and an `obj` is a Python class, whose objects Python makes, calls and reads the fields of.
+  `neojac build native/eggs.jac` builds it alone, and `neojac build pyproject.toml` with its
+  project; it links nothing of the interpreter, whose C API the Python that imports it gives it.
+
+  ```toml
+  [extensions."spamlib/_eggs"]
+  jac = "native/eggs.jac"
+  ```
+
+  With `def halve(n: int) -> int`, which raises `ValueError` for an odd `n`, and
+  `obj Basket { has owner: str, eggs: list[int] = []; def add(n: int) -> int; }` in
+  `native/eggs.jac`, `from spamlib import _eggs` gives `_eggs.halve(8) == 4`, a `ValueError`
+  from `_eggs.halve(3)`, and `_eggs.Basket("ann").add(5) == 1`.
 
 - **The C modules it links are linked with it.** A wire from a file of one C module to a file
   of the extension's says so: that module's objects are made a library and given to the link,
@@ -556,6 +573,14 @@ pyproject.toml: pytest tests --import-mode=append
   (a `setup.py`'s `name` and `version`, a field `dynamic` lists) is recorded beside the files,
   `[wheel."<directory>".metadata]`, each field by its name in `METADATA`, and is used in place of
   the table's.
+- **A module of the wheel may be Jac**: `files` lists it by its `.jac` file
+  (`fastlib/api.jac`), as `neojac port` writes it when it ports the module. The build emits the
+  project's cpython space ([archwire](../apps/archwire.md#a-space-of-a-tree)) and puts in the wheel
+  Python's own module for it, a sourceless `fastlib/api.pyc`, which starts where Python first
+  imports it, with the runtime it needs under a name of the wheel's own (`_jac_fastlib.py`). Its
+  bytecode is the interpreter's, so such a wheel's tag is that interpreter's
+  (`cp315-cp315-<platform>`). A Python file of another cpython space, the `_dev` space's tests,
+  imports it as the package's, in its own process, as it imports the package's Python modules.
 - **`tag` is recorded where the build names one the interpreter would not**: `cp38-abi3`, for
   extension modules built against CPython's stable ABI.
 - **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`

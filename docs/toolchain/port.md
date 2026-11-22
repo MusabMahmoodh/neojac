@@ -189,8 +189,9 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **A Python project's tests and scripts are its space's clients.** A file of the project's tree
   that its wheel does not list (`tests/`, `scripts/`, a `setup.py`) imports the package as the
   space builds it, so it holds no module back, and its Python import of a ported module reaches
-  the Jac. A module the wheel ships is refused for now (E5090): a wheel's build makes no Jac
-  module yet.
+  the Jac. A module the wheel ships ports too: port lists its Jac in the project's `[wheel]`
+  `files` in its source's place (`fastlib/api.py` becomes `fastlib/api.jac`), and the wheel
+  holds it as Python's own module ([Building and testing a Python project](packages.md#building-and-testing-a-python-project)).
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.

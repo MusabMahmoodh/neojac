@@ -186,6 +186,7 @@ inline = true                      # compiled to bitcode, inlined with the Jac (
 export = true                      # the program exports its symbols (below)
 shared = "counter"                 # built into a shared library beside the program (below)
 vendored = true                    # another project's code, kept in this one (below)
+interpreter = true                 # an interpreter's C API: an extension module links none of it (below)
 
 [files."counter.c"]                # flags for one source, besides the module's:
 defines = ["COUNTER_FAST"]         # include, defines and cflags
@@ -247,6 +248,13 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   library's amalgamation, a dependency's sources): it is built as it is, and
   [`neojac port`](../toolchain/port.md#in-a-project) reads none of it (a path into it is E4011).
   No tool can tell that from the files, so `absorb` never writes it: the project says it.
+- `interpreter = true` says the module is an interpreter's C API, which the interpreter that
+  loads an extension module gives it: a program that is an extension module
+  ([Extension modules](../toolchain/packages.md#extension-modules)) compiles against the
+  module's headers and links nothing of it, neither its sources nor its archives, libraries and
+  frameworks, and takes those functions from the interpreter that loads it (on macOS it is linked
+  as a bundle whose undefined symbols the loader resolves, as a C extension is). neojac's CPython
+  says it of itself.
 - A key the manifest does not know is E5132.
 
 ### Shared, exported and whole

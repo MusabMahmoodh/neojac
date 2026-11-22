@@ -147,7 +147,11 @@ graph spaces {
 ```
 
 - **A Python project's space holds what its wheel ships**: the files `jac.toml`'s
-  `[wheel."<directory>"]` lists, and its extension modules.
+  `[wheel."<directory>"]` lists, its Jac modules among them, and its extension modules. Its Jac
+  modules are the package's: the wheel holds each as Python's own module
+  ([Building and testing a Python project](../toolchain/packages.md#building-and-testing-a-python-project)),
+  and the `_dev` space imports them as it imports the package's Python modules, in its own
+  process, not as calls across spaces.
 - **A node space holds what npm ships of its tree**: the package's `files`, its `main` and every
   `exports` target, or the whole tree where it names no `files`. absorb declares one for an npm
   tree that names a `main` or `exports`.

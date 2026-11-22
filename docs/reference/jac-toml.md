@@ -245,6 +245,7 @@ A module that a build makes from native code and an interpreter loads: a CPython
 | `extensions."<path>".cargo` | string | The crate it is built from, by the directory of its `[cargo."<directory>"]` table |
 | `extensions."<path>".features` | list of strings | The crate's features it is built with |
 | `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
+| `extensions."<path>".jac` | string | The Jac module it is built from, by its file's path in the project (`native/eggs.jac`): its public functions and `obj`s are the extension module's |
 | `extensions."<path>".recorded` | list of strings | The platforms its build was recorded on (`macos-aarch64`, `linux-x86_64`, ...), which `neojac absorb --record` writes. It is built on those, and on every platform with no list. A project all of whose extension modules are recorded for other platforms is refused there (E5172) |
 
 ```toml
@@ -261,7 +262,7 @@ An extension module is a module of the project though no file of it is one: it i
 
 | Code | Cause |
 |---|---|
-| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, lists a platform neojac has no name for in `recorded`, or has another key |
+| E5158 | `extensions` is not a table of extension modules, or an entry names none of a crate, a C module and a Jac module, names more than one, names a crate or a C module `jac.toml` holds no table for or a Jac file the project does not have, has `features` without a crate, lists a platform neojac has no name for in `recorded`, or has another key |
 
 ## [wheel."\<directory\>"]
 
@@ -269,7 +270,7 @@ What the wheel of a Python project, `[pypi."<directory>"]`, holds. `neojac absor
 
 | Key | Type | Meaning |
 |---|---|---|
-| `wheel."<directory>".files` | list of strings | The project's files the wheel holds, each by its path in the wheel |
+| `wheel."<directory>".files` | list of strings | The project's files the wheel holds, each by its path in the wheel. A module the project holds as Jac is listed by its `.jac` file (`neojac port` lists the module it ports so) |
 | `wheel."<directory>".root` | string | Where those paths start, below the project's directory (`src`). Absent where that is the directory itself |
 | `wheel."<directory>".tag` | string | The wheel's Python and ABI tags where the build names them and they are not the interpreter's own: `cp38-abi3` |
 | `wheel."<directory>".metadata` | table | Fields of the wheel's `METADATA` that the project's build states and its `[project]` table does not, each by its name there (`Name`, `Version`, `Classifier`), a string or a list of strings, with the text after the fields as `Description` |
