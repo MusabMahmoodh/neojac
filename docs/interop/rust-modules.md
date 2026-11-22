@@ -254,7 +254,8 @@ graph import {
   macro, as cargo would. A build script's output lines mean what they mean to cargo, in both
   spellings (`cargo::rustc-link-lib=static=cadd` and `cargo:rustc-link-lib=static=cadd`).
 - **Profiles.** Each crate compiles with its profile's settings as cargo resolves them for it,
-  `lto = "off"` among them. One package that two Rust modules build with different settings
+  `lto = "off"` among them, and a profile's own `rustflags` (cargo's `profile-rustflags`), which
+  rustc is given ahead of those of `RUSTFLAGS`, as cargo gives them. One package that two Rust modules build with different settings
   (`debug-assertions = false` in one's `[profile.dev]`) is two crates, and the program links
   both.
 - **Each crate is a unit of the build cache**, kept by the content of the files rustc read. A

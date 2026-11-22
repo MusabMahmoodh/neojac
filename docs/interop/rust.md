@@ -47,6 +47,9 @@ neojac: compiling Rust's standard library for x86_64-unknown-linux-musl
 
 neojac fetches the source and keeps it and what it compiled beside the build cache, in a directory
 `fetched/`; an installed toolchain is never written. Only that first build needs the network.
+What it compiled is kept by what it was made from: the library's source, the rustc that compiled
+it, and the arguments each of its crates was compiled with. A neojac that compiles the library the
+same way takes what is there, and one that compiles it another way compiles its own.
 `neojac rustc --print sysroot --target <target>` prints where a target's standard library is: the
 toolchain's own for its machine, the fetched one for any other.
 
