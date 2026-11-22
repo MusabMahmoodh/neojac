@@ -1,6 +1,6 @@
 ---
 description: What a module is, what its top level may hold, import and include, an import in a code body, a module's default, with entry blocks and when they run, docstrings, how a module's file is found, and impl and test annexes.
-keywords: module, import, include, from, import from, relative import, import in a function, local import, module default, default export, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
+keywords: module, import, include, include from, re-export, sibling module, from, import from, relative import, import in a function, local import, module default, default export, with entry, entry point, __main__, __name__, __file__, __doc__, __init__.jac, test annex, variant
 grammar: module, element, default_element, import_stmt, from_path, import_items, import_item, module_code, access_tag
 ---
 # Modules
@@ -90,12 +90,15 @@ modules on this page are such modules.
 | `import pkg.part as p;` | `p`, the module `pkg.part` |
 | `import from util { twice, Tone as Pitch }` | `twice` and `Pitch`. No `;` follows the braces. |
 | `import from .sibling { name }` | `name`, from a module found relative to this file |
+| `import from . { sibling }` | `sibling`, the module beside this file, whole |
 | `include util;` | Every name `util` declares, as if written here |
+| `include from util { pad, trim as strip }` | `pad` and `strip`, as names of this module's own |
 
 - **`import` takes modules; `import from` takes names out of one.** Python's
   `from util import twice` is written `import from util { twice }`.
 - **`include`** brings in every top-level name of the module: functions, archetypes, globals. It
-  is the form for "all of it"; `import from util { * }` is not (E1145).
+  is the form for "all of it"; `import from util { * }` is not (E1145). `include from` names what
+  it takes ([below](#include-and-a-re-export)).
 - **A module is loaded once**, however many modules import it and under however many names.
 - **An imported global is the same variable**, not a copy: an assignment to `util.counter`
   anywhere is seen by every module that imported `counter`.
@@ -186,6 +189,65 @@ Dots before the path of an `import from` make it relative to the importing file,
 | `...name` | Two directories above it |
 
 A relative import looks in that one place only. One that finds nothing is E1134.
+
+`import from . { util }` binds the module `util` beside the importing file, whole, as `import util;`
+binds it by name: `util.twice(2)`. It does so in any directory, a package or not, and `as` renames
+it (`import from . { util as u }`); `import from .. { util }` takes the one a directory above.
+
+### `include` and a re-export
+
+`include` makes another module's names this module's own, as if they were written here: a module
+that imports this one takes them from it. `include util;` takes every name `util` declares;
+`include from util { twice, counter as count }` takes those named, under the names given. A
+relative path takes no items for all of it: `include from .util`, with no `;`.
+
+- **What it takes is the same thing**, not a copy: `count` above is `util`'s global, and an
+  assignment to it either way is seen through both.
+- **It is a re-export.** A module made of other modules' parts gives them on in one place, as
+  JavaScript's `export { a, b as c } from "./x"` and `export * from "./x"` do. On a JavaScript host
+  it is written as that ES re-export, so the binding stays live there too.
+- **Under an `archwire.jac`** it is a wire: `include util ++> shapes { twice }`
+  ([Import wiring](modules-wiring.md#wires)).
+
+`lib/util.jac`, `lib/shapes.jac` and `lib/main.jac`:
+
+```jac
+glob counter: int = 0;
+
+def twice(n: int) -> int {
+    return 2 * n;
+}
+
+def bump {
+    counter += 1;
+}
+```
+
+<!-- example: not checked: needs the file util.jac beside it -->
+```jac
+include from .util { twice, counter as count, bump }
+
+def area(n: int) -> int {
+    return twice(n) * n;
+}
+```
+
+<!-- example: not checked: needs the files util.jac and shapes.jac beside it -->
+```jac
+import from . { util }
+import from . { shapes as sh }
+
+with entry {
+    print(util.twice(2), sh.area(3), sh.twice(4));
+    sh.bump();
+    print(sh.count, util.counter);
+}
+```
+
+```text
+4 18 8
+1 1
+```
 
 ### An import in a code body
 
@@ -430,6 +492,10 @@ uses it, and one the program never uses never starts: its code is not in the exe
 - **Names assigned in an entry block** are the module code's locals. Later entry blocks of the same
   module see them, and so does a `lambda` or a `def` written inside a block, which may assign them
   too; the module's top-level functions do not (W2001). State that functions share is a `glob`.
+- **A `def` in an entry block of a name the module declares a `glob` of** assigns that global,
+  where the `def` stands, by its own name: under a `try` or an `if`, it is how a module chooses a
+  function as it starts, and the module's functions call the one chosen (below). A `def` of any
+  other name is the module code's local, as an assignment is.
 - **A module whose code awaits** runs all its entry blocks as one coroutine, to its end, when it
   starts ([Async](async.md#module-code-that-awaits)).
 - **`return;`** in an entry block ends its module's code there: the rest of the block, and the
@@ -470,6 +536,33 @@ with entry {
 first block: hello, world
 main module: __main__
 last block: world
+```
+
+```jac
+import sys;
+
+glob speak: Callable[[str], str] | None = None;
+
+def shout(s: str) -> str {
+    return speak(s) + "!";
+}
+
+with entry {
+    if len(sys.argv) > 5 {
+        def speak(s: str) -> str {
+            return s.upper();
+        }
+    } else {
+        def speak(s: str) -> str {
+            return s.lower();
+        }
+    }
+    print(shout("Hi"));
+}
+```
+
+```output
+hi!
 ```
 
 ```jac

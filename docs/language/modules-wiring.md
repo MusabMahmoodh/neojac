@@ -108,6 +108,7 @@ A wire is `provider ++> consumer`, read "the provider feeds the consumer".
 | `core.clock as clk ++> main;` | `import core.clock as clk;` |
 | `core.clock ++> main;` | `import core.clock;` |
 | `include core.shared ++> main;` | `include core.shared;` |
+| `include core.shared ++> main { pad, trim as strip }` | `include from core.shared { pad, trim as strip }` |
 
 - A payload `{ ... }` lists names. A wire without a payload binds the module, and ends with `;`.
 - `as` on the provider aliases the module and belongs to a wire without a payload (E0089). A name
@@ -117,8 +118,10 @@ A wire is `provider ++> consumer`, read "the provider feeds the consumer".
   which each consumer has its own payload.
 - A wire that binds a module without an alias is the one wire that need not be used: it loads the
   module for the effect of its `with entry` code.
-- `include` takes no payload (E0091), a payload names each name once (E0090), and an empty payload
-  is an error (E0044).
+- An `include` wire with a payload gives the consumer those names as its own, as
+  [`include from`](modules.md#include-and-a-re-export) does: a module that imports the consumer
+  takes them from it, and the consumer need not use them itself (no E1146).
+- A payload names each name once (E0090), and an empty payload is an error (E0044).
 - `comptime` and `type` before the provider are the wire forms of `comptime import` and
   `import type`.
 - The provider may be a `.py` file of a [cpython space](../apps/hosts.md): the wire binds what the
@@ -439,7 +442,7 @@ neojac build main.jac -o main && ./main
 | E2208 | A flow two rules admit |
 | E2209, E0166 | A docstring of more than one line or 120 characters; one that describes nothing |
 | E0086 | A wire not written `provider ++> consumer` or `provider --> consumer` |
-| E0087, E0089, E0090, E0091, E0044, E0095, E0096 | Malformed wires and payloads |
+| E0087, E0089, E0090, E0044, E0095, E0096 | Malformed wires and payloads |
 
 A `graph import` block written in an ordinary module:
 
