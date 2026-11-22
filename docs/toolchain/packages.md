@@ -905,6 +905,11 @@ recorded
 - **A static library the link took is a C module of its own.** Each of its members is the object
   a recorded run compiled, found by its bytes, so whichever archiver made the library need not
   be neojac's (on macOS node-gyp uses the machine's `libtool`).
+- **A header library a recorded build includes is a C module of the project too**, from an
+  installed package as from the project's own files (node-addon-api's `napi.h`): a
+  `[c."<directory>"]` table with its `headers` and no sources, and `language = "c++"` where its
+  headers are C++ though they end in `.h` ([C modules](../interop/c-modules.md#c-sources)). The
+  record names it after the module that includes it.
 - **What a build compiled from a copy is recorded as the file of the project it is a copy of.**
   node-gyp compiles `sqlite3.c` from its build directory: the table names `deps/sqlite3`, and a
   header directory of such copies is the directory they were copied from. What is "of the

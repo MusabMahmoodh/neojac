@@ -136,12 +136,19 @@ pub extern "C" fn add(a: i64, b: i64) -> i64 {
 }
 ```
 
-`import from adder { add }` then `print(add(2, 3))` prints `5` after `neojac build`. Keep
-Rust values behind an opaque handle: a `pub struct` without `#[repr(C)]` is held as `ptr[T]`,
-made and freed by the crate's own `extern "C"` functions. `i64` is `int`, `usize` is `u64`,
-`*const c_char` is `str`.
+`import from adder { add }` then `print(add(2, 3))` prints `5` after `neojac build`. Rust's own
+API needs no `extern "C"`: `import from std.collections { HashSet }`, and a crate's ordinary
+`pub` items through its wire, are used natively, generics by their arguments
+(`HashSet[u32].new()`), a panic as `RustPanic` (`import from rust { RustPanic }`). A value whose
+drop runs code is bound `own` (E1256). `neojac docs Rust module` has what crosses.
 
-4. **Bind a project library** you build yourself:
+4. **Call Jac from C.** A wire gives a C module a Jac function by name
+   (`jhelp --> shapes.shapes { jhelp_scale }` for the project's own C file), and the C includes
+   `jac/jhelp.h`, which neojac writes. Such a function takes and gives integers, floats and
+   pointers (E1249). A C++ class is an `obj` Jac uses, and derives with `C.init_base(self, ...)`
+   in its `postinit` (`neojac docs C module`).
+
+5. **Bind a project library** you build yourself:
 
 ```sh
 neojac cc -shared -fPIC vendor/tally.c -o vendor/libtally.dylib   # libtally.so on Linux
@@ -150,7 +157,7 @@ neojac cc -shared -fPIC vendor/tally.c -o vendor/libtally.dylib   # libtally.so 
 and declare it with its dotted path: `import from vendor.tally { def tally_add(n: int) -> int; }`.
 The program finds it relative to itself, so keep both where they are.
 
-5. **Build C or Rust alone** with the toolchain neojac carries (no system compiler needed):
+6. **Build C or Rust alone** with the toolchain neojac carries (no system compiler needed):
 
 ```sh
 neojac cc hello.c -o hello                          # this machine
@@ -192,7 +199,8 @@ with entry {
 | E5090 `... as a C type` | A list, dict or Jac object in a declaration | Use the C types (`neojac docs C library`) |
 | E1021 `cannot iterate PtrView` | A view in a `for` | `for i in range(len(v))` |
 | E1145 | The header or crate has no such name | Check spelling; for Rust, `pub` and `#[unsafe(no_mangle)]` |
-| E5138 `it isn't extern "C"` | A Rust item C cannot call | Make it `pub extern "C"` with C types |
+| E5138 | A Rust item Jac cannot bind; the message says why (a type that borrows) | Use what it returns instead, or give it a C signature |
+| E1256 | A Rust value whose drop runs code, bound without `own` | `s: own HashSet[u32] = ...` |
 | E5134, E5135, E5140 | The headers, a C source, or a crate fail to compile | Read Clang's or rustc's errors printed above |
 | E5149, W5021 | A library name that is no file, or absent on the target | `neojac docs C library` (naming the library) |
 | Crash or garbage at run time | A declaration that disagrees with C, or a bad pointer | Recheck the prototype; nothing checks it for you |
