@@ -66,7 +66,9 @@ with entry:__main__ {
 - **The Jac is in neojac's one layout**, as [`neojac fmt`](fmt.md) writes it, with the source's
   comments and docstrings at the declarations and statements they belong to.
 - **It is checked before it is written.** Port runs everything [`neojac check`](check.md) runs on
-  what it made, and writes it only when that finds nothing.
+  what it made, and writes it only when that finds nothing: outside a project, a Python file's
+  Jac as a module of a `cpython` space and a `.tsx` or `.jsx` file's as one of a browser space,
+  where what they use runs; in a project, the project as the port leaves it.
 - **The same source gives the same Jac.** Nothing in a port is a guess: every fact comes from the
   source's own compiler.
 
