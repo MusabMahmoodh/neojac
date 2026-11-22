@@ -96,6 +96,9 @@ Compile a program, or a project's apps.
 ```sh
 neojac build [<program>...] -o <out> [<option>...]
 neojac build [<app>...] [--profile <profile>]
+neojac build [<package>...]
+neojac build <directory>/pyproject.toml
+neojac build <directory>/package.json
 ```
 
 | Option | What it does |
@@ -121,7 +124,9 @@ A program is built into one executable, which needs nothing installed where it r
 
 Several Jac programs are built into one executable that holds each of them and runs the one its first argument names: a program is named by its file, a main.jac by its directory.
 
-In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's: the apps named, or every app, are each built into dist/, and where each one is is printed.
+In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's or a package's: the ones named, or every one, are each built into dist/, and where each one is is printed. A package (`package <name> { ship <space>; }`) of a space that holds a Python project is that project's wheel.
+
+A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it.
 
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
@@ -257,7 +262,9 @@ neojac test <file.jac> -o <runner> [<option>...]
 
 Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
 
-Exits with status 1 when a test fails or a runner doesn't build, and 5 when there are no tests.
+The suites of the project's own trees that jac.toml names are run after them, each in its tree's directory: a Python project's by the command [test.pypi."<directory>"] gives, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path; an npm tree's by the script [test.npm."<directory>"] names; a crate's by `neojac cargo test`, with the arguments of [test.cargo."<directory>"]. A path that is a tree's manifest runs that suite alone, and -k runs none.
+
+Exits with status 1 when a test fails, a suite does or a runner doesn't build, and 5 when there are no tests.
 
 | Example | What it does |
 |---|---|
@@ -404,12 +411,13 @@ Its guide: [toolchain/packages](../toolchain/packages.md) (`neojac docs toolchai
 Take a repository's manifests into jac.toml, and wire its files.
 
 ```sh
-neojac absorb [<directory>] [--check] [--json]
+neojac absorb [<directory>] [--check | --record] [--json]
 ```
 
 | Option | What it does |
 |---|---|
 | `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
+| `--record` | Run each Python project's own build, and the node-gyp build of each npm tree with a binding.gyp, with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it |
 | `--json` | Print what it found, and what it wrote, as data |
 
 Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.

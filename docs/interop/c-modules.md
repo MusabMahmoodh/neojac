@@ -162,6 +162,7 @@ defines = ["NDEBUG", "LEVEL=2"]    # -D, as NAME or NAME=VALUE
 cflags = ["-fwrapv"]               # other Clang flags, for every source
 cxxflags = ["-std=c++20"]          # Clang flags for its C++ sources alone
 libs = ["m"]                       # C libraries its code calls
+ldflags = ["-Wl,--gc-sections"]    # options for the linker of what it is linked into (below)
 archives = ["lib/libfoo.a"]        # static libraries linked with its code
 whole_archives = ["lib/libapi.a"]  # static libraries linked whole
 also_in = ["vendor.engine"]        # C modules whose archives hold this code already (below)
@@ -227,6 +228,10 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   its Jac, the other C modules (what their assembly sources define included) and its Rust
   modules are linked hidden. That holds for an ELF or Mach-O program. A Windows program exports nothing this way: there what an interpreter exports
   is its DLL's, as CPython's C API is `python315.dll`'s.
+- **`ldflags`** are options for the linker of what the module is linked into: the program, or the
+  extension module built from it. One written as a compiler driver is told, `-Wl,a,b`, is the
+  options `a` and `b`. They are the linker's own (ld64's on macOS, ld's on Linux), so they belong
+  under `[target.<os>]` wherever they differ, and an option the linker has none of fails the link.
 - **`whole_archives`** links every object of an archive, not only those the link reaches. That is
   what a module that exports a C API needs of a library whose functions it exports though nothing
   in the program calls them.
