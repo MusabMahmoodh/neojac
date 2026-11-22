@@ -760,9 +760,9 @@ What npm does with a `pnpm-lock.yaml` or a `bun.lock`:
   difference.
 - **A package another package carries inside its own archive** (`bundleDependencies`) is not
   compared: the other tools do not list it.
-- **pnpm's lock is YAML,** which neojac reads with the `yaml` package it pins (2.9.1), fetched
-  from the npm registry the first time a `pnpm-lock.yaml` is read and kept in neojac's cache. A
-  package's ranges come from the registry the tree's own `.npmrc` names, as npm asks it.
+- **pnpm's lock is YAML,** which neojac reads itself, with the YAML reader of the LLVM it is
+  built on: one document, its values by YAML 1.2's core schema. Nothing is fetched to read it.
+  A package's ranges come from the registry the tree's own `.npmrc` names, as npm asks it.
 - **A lock in another format is said,** `its format is 6.0, and neojac reads 9`, and npm
   resolves without its pins. So it does where npm cannot install the pins together: the install
   says so, with npm's log.
