@@ -416,17 +416,19 @@ neojac absorb [<directory>] [--check | --record] [--json]
 
 | Option | What it does |
 |---|---|
-| `--check` | Write nothing: print the trees it would take, the directories that are data, and the open items |
-| `--record` | Run each Python project's own build, and the node-gyp build of each npm tree with a binding.gyp, with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it |
+| `--check` | Write nothing: print the trees it would take, the directories that are data, the open items, and what it would move to replaced-by-neojac/ |
+| `--record` | Run each Python project's own build, and the node-gyp build of each npm tree with a binding.gyp, with the toolchain's tools recording, and write what it built: each extension module, made from a crate or from C, as [extensions], what its wheel holds, as [wheel], and in archwire.jac the space that holds the project and the package that ships it. The build's own files are put back from replaced-by-neojac/ for the run |
 | `--json` | Print what it found, and what it wrote, as data |
 
-Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and nothing moves. A directory with no jac.toml in it or above it becomes a project.
+Takes the manifests a directory holds into the jac.toml of the project it is in, each as a table named by its directory: a package.json with its package-lock.json ([npm]), a pyproject.toml ([pypi]), a Cargo.toml with its Cargo.lock ([cargo]) and a cmodule.toml ([c]). neojac writes each where it stands from then on, and no source moves. A directory with no jac.toml in it or above it becomes a project.
 
 Which manifests are the project's is each ecosystem's own answer. The first manifest of an ecosystem met from the top is a tree, and under it only the workspaces its own tool names are: npm's, cargo's, uv's. Any other manifest there, a fixture's or a template's, is data: its directory is listed in jac.toml's [project] exclude, and nothing under it is taken.
 
 It then writes the project's archwire.jac: one layer where there was no archwire, and a wire for every import between the project's files, as each language's own engine reads them. A step that fails leaves every file as it was.
 
 What no manifest says, and only a program of the repository or a person knows, is an open item: a script that builds native code, a lock another tool wrote, how a tree's tests are run. Each is listed at its file.
+
+What jac.toml, jac.lock and a record now stand in for is moved to replaced-by-neojac/, a folder at the project's top that holds each file at the place it stood and is no part of the project: a manifest as it stood before neojac wrote it, a build's own files (setup.py, MANIFEST.in, binding.gyp) once --record says all the build made, and another tool's lock once each of its pins is reproduced or accepted. Deleting the folder removes them. git's index is not changed: the command that stops git tracking the manifests is printed.
 
 | Example | What it does |
 |---|---|
