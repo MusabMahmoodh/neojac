@@ -124,7 +124,9 @@ its language to Jac in one change.
 **What a path names is what `jac.toml` says.** A directory is every source of the trees
 `jac.toml` describes under it, in every language, and not what `[project] exclude` leaves out
 nor what neojac set aside in `replaced-by-neojac/`. A path that is no source of the project is
-E4006.
+E4006. A C module whose table says `vendored = true` is another project's code kept in this one
+([C modules](../interop/c-modules.md#the-manifest)): it is built as it is, port reads
+none of it, and a path into it is E4011.
 
 **Each file is read as its build reads it.** Python with its package, so a relative import names
 a module of the project; C with its module's table in `jac.toml` (its includes, its defines, its
@@ -150,7 +152,11 @@ the plan, each module after those it imports; a group ports together:
 port: 6 sources would port
 ```
 
-**A port is one change.** Porting a file in a project:
+**A run follows the plan.** Each step of it is one change, made in the plan's order: a module
+that imports one the run refuses, or does not port, is held back with it (E4012), and every other
+step that checks is written.
+
+**A step is one change.** Porting a file in a project:
 
 - writes its Jac beside it, under its name, laid out as the project's lint wants it (under
   `separate-impls`, the declarations in the module and the bodies in its annex, `impl/`);
@@ -164,8 +170,9 @@ port: 6 sources would port
 - keeps the wires of the files that stay in their language and use it: a `-->` wire declares an
   import their own source writes (C's `#include` and calls, JavaScript's `import`), and it now
   names what they take of a Jac module; a C source leaves its module's table in `jac.toml`;
-- and makes all of it only if the project then checks (E4008). Otherwise nothing is written:
-  the source stays, and `archwire.jac` and `jac.toml` are as they were.
+- and makes all of it only if the project then checks. Otherwise nothing of that step is
+  written (E4008, at its first source, after the errors the check found): its sources stay, and
+  `archwire.jac` and `jac.toml` are as they were for it.
 
 ```text
 $ neojac port shop/use.py
@@ -184,6 +191,14 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
+- **One run at a time.** A run claims the project while it works (`.jac/port/claim`), and a
+  second `neojac port` in the same project is refused until it is done; a run that dies lets the
+  claim go.
+- **A run that is stopped leaves nothing half made.** Each change is journalled
+  (`.jac/port/journal.json`: the texts it replaces, the files it makes, the sources it moves)
+  before it is applied, and the journal goes once the change is final. Ctrl-C puts the change
+  back at once; after a kill, the next `neojac port` in the project undoes what the journal
+  holds, and says so, before it does anything else.
 
 ## Outside a project
 
@@ -243,6 +258,10 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4008 | In a project, a port after which the project would not check |
 | E4009 | In a project, a module a file of no space imports |
 | E4010 | A file a unity build compiles only inside a source not ported with it |
+| E4011 | In a project, a path into a C module its table says is another project's code (`vendored = true`) |
+| E4012 | A module that imports one the run does not port, held back with it |
+| E4016 | A Python source importing a module neojac cannot find |
+| E4030 | A C file calling a header's `static inline` function, where no C module holds the header |
 | E4043 | A unity build's source, held back because a file it includes is refused |
 
 - **A source its own compiler rejects** is reported by that compiler, under its own code
