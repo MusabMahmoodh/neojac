@@ -647,6 +647,15 @@ every import between the project's files, as each language's own engine reads th
 ([Declared wires](../language/modules-wiring.md#declared-wires---)), which is what
 `neojac fmt --fix archwire.jac` does. A project that says `archwire = false` gets none.
 
+It declares a space for each npm tree that is a program's
+([A space of a tree](../apps/archwire.md#a-space-of-a-tree)), named for its package, in the
+`graph spaces` block that is there or in a new one: a `node` space for a package that names a
+`main` or `exports` (`space sqlite_lite: node { "sqlite"; }`), and a `browser` space, with
+`[spaces.<space>.ui] plugin` the `ui` plugin its dependencies name, for a tree a bundler builds.
+Once a Python project has its space ([Recording a build](#recording-a-build)), its tests and
+scripts are a second `cpython` space, `<space>_dev`, which each later absorb grows with what came
+since. A tree a space already holds, and a name already taken, are left alone.
+
 What still stands between the archwire and a check that passes is printed as the diagnostics
 every command would give, and `absorb` then exits with status 1. The files it wrote stay.
 
@@ -853,6 +862,8 @@ recorded
   [extensions."tiktoken/_tiktoken"]  the crate ., with pyo3/extension-module, python
 ```
 
+- **It installs an npm tree's packages as `jac.toml` says first**, where a build of it
+  (node-gyp's) needs them, so that a fresh clone records in one run.
 - **It runs the project's own build**, the wheel its build backend makes, on neojac's CPython in
   a virtual environment of its own (`.jac/absorb/`), with the toolchain's `cc` and `cargo`
   [recording each run](../interop/c-and-cpp.md#recording-what-a-build-ran). That needs what the
