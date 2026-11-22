@@ -24,6 +24,11 @@ A crate is ported from its root file, `src/lib.rs`.
 | `impl P { fn area(&self) -> f64 { } fn new(x: f64) -> P { } }`, `p.area()`, `P::new(1.0)` | `def area -> float;` and `static def new(x: float) -> P;` in the struct, each with its `impl P.area -> float { }`; `p.area()`, `P.new(1.0)` |
 | `#[derive(Clone, Copy)]` | Nothing: a Jac struct is copied where it is assigned or passed |
 | `const N: i32 = 5;`, `static LIMIT: i32 = 9;` | `comptime N: i32 = 5;`, `glob LIMIT: i32 = 9;` |
+| `enum Color { Red, Green = 4 }` (no variant holds fields), `Color::Red` | `enum Color { Red = 0, Green = 4, }`, `Color.Red` |
+| `type Rank = u32;` | `type Rank = u32;` |
+| `use std::collections::HashSet;` | Nothing: rustc has resolved every path a `use` names |
+| `match n { 0 => a, 1 \| 2 => b, k if k > 9 => c, _ => d }` over integers, bools and enums of the crate, as a statement or as a `let`'s value | `match n { case 0: ... case 1 \| 2: ... case k if k > 9: ... case _: ... }` |
+| `#[cfg(test)] mod tests { #[test] fn adds() { assert!(add(1, 2) == 3); } }` | `test "adds" { if not (add(1, 2) == 3) { raise AssertionError("assertion failed: add(1, 2) == 3"); } }`: the crate is read once more as a test; a helper function of the module is a function of the file |
 | `let x = 1;`, `let mut x: i64 = 1;`, `let x = x + 1;` in the same block | `x: i32 = 1;`, `x: i64 = 1;`, `x: i32 = x + 1;` |
 | `if c { } else if d { } else { }`; `let x = if c { a } else { b };` | `if c { } elif d { } else { }`; `x: T = a if c else b;` |
 | `while c { }`, `loop { }`, `break`, `continue` | `while c { }`, `while True { }`, `break;`, `continue;` |
@@ -37,6 +42,7 @@ A crate is ported from its root file, `src/lib.rs`.
 | `x as i64`, `x as f64` (a type that holds every value); `x as u8` | `i64(x)`, `float(x)`; `u8.wrap(x)`: it keeps the low bits |
 | `f(a, b)` | `f(a, b)` |
 | `5`, `5u8`, `1.5`, `true` | `5` where its type is given by what takes it, else `i32(5)`, `u8(5)`; `1.5`, `True` |
+| `b"ab"` given as a `&[u8]` | `b"ab"` |
 
 ## What is refused
 
