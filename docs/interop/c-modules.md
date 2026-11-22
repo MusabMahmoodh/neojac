@@ -1,6 +1,6 @@
 ---
-description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, inline modules, C++ sources, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface
+description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, header-only library
 ---
 # C modules
 
@@ -140,15 +140,31 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL` |
 | A `struct` | A record, constructed by keyword (`point(x=1.0, y=2.0)`, fields left out are zero), passed and returned by value |
 | A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
-| An `extern` variable | A global the program reads and assigns in place |
+| A `struct` holding bit-fields or arrays of numbers | A record with [bit-fields and arrays](c-libraries.md#bit-fields-and-arrays), checked against Clang's layout |
+| A trailing array of no length (`int32_t data[];`) | Left out of the record, whose size stays C's: it is the memory past the record |
+| A `union`, a `typedef union` | A [union](../language/structs.md#unions), used by address and as a field |
+| A record with no name that is a field's type (`struct { union { ... } amount; }`) | A record named by its record and field (`shape_tagged_amount`), reached through the field |
+| A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
+| An `extern` variable | A global the program reads and assigns in place; one of an opaque type is used through `addressof()` |
 | An enum constant, an integer `#define` | An `int` constant; a sign and a suffix (`(-17)`, `0xff00u`) are kept |
+| A `static inline` function of a header | A function of its C name, called through a C shim the module compiles |
+
+**A header's `static inline` function** defines no symbol, so neojac writes a shim for it: a C
+function that calls it, compiled with the module's flags (as bitcode in an inline module, so the
+call costs nothing once LLVM inlines it). The interface declares it under its own name, and the
+program calls it as any C function: `shapes_point_sum(&pt)`. Only the shims of the functions a
+Jac module imports are compiled, those of an included header (`Py_INCREF` of `<Python.h>`)
+among them.
 
 A declaration the interface cannot express is left out, and a module that imports it is told why
 (E5133):
 
-- a function taking or returning a `union`;
-- a `static inline` function, which defines no symbol;
-- a record used by value that has a bit-field, or a member whose record type has no name.
+- a function taking or returning a union by value, or a record holding one: the calling
+  convention of such a record is not bound;
+- a `static inline` function taking C's `...`, which a shim cannot pass on;
+- a record whose bound fields do not make C's size: an array of anything but numbers, a
+  bit-field with no name, a layout that differs from Clang's;
+- a global C array.
 
 A name the headers do not declare at all is E1145.
 
@@ -259,22 +275,114 @@ objects, which the archive holds with every other module's.
 
 A source Clang takes for C++ by its name (`.cc`, `.cpp`, `.cxx`, ...) compiles as
 [`neojac c++`](c-and-cpp.md) compiles it, with libc++ and the module's `cxxflags` besides its
-`cflags`. The headers are still read as C, so Jac binds what the module declares `extern "C"`:
+`cflags`. A header ending in `.h` that is C++ (a header-only library) is read as C++ when the
+module's table says `language = "c++"`; a module with no sources may list its `headers` alone.
 
-```c
-#ifdef __cplusplus
-extern "C" {
-#endif
-int64_t words_distinct(const char *csv);
-#ifdef __cplusplus
+C++ static objects are constructed before the program's code runs. Every program and shared
+library links the toolchain's C++ runtime (libc++, libc++abi, and libunwind except on macOS)
+statically, after everything else, so the linker takes only what something references, and a
+program that references none of it links none.
+
+### What Jac uses of C++
+
+A C++ file is wired into Jac as a C file is (`shapes.figures ++> main { Figure, Rect, scaled }`),
+and Jac uses what it declares as C++ means it, through C-ABI shims neojac compiles from it.
+Nothing needs to be `extern "C"`.
+
+| C++ | Jac |
+|---|---|
+| A class | An `obj`, its methods called as Jac's: `r.area()`, `Figure.alive()` for a static one |
+| A constructor | `C.make(args)`; a class that declares none has `make()` |
+| A copy | `v.__copy__()`; the C++ object is destroyed by `__del__`, when the Jac object is freed |
+| Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
+| An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
+| A result by value | Owned by Jac; a result by reference is borrowed |
+| `std::string`, `std::vector<int>` | libc++'s own classes, instantiated where the module's signatures reach them: `v.push_back(i32(42))`, `s.c_str()` |
+| A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
+| A class template | Instantiated only by a Jac class deriving it with itself (below) |
+
+A wire may name an overload set by its C++ name, and binds each member.
+
+### A Jac class deriving a C++ class
+
+A Jac class may list a C++ class as its base, where C++ allows a class to be derived: it is
+polymorphic, not `final`, and its destructor is public or protected. Its `postinit` makes the
+object's C++ part with `C.init_base(self, args)`, C++'s `: Figure(4)`: one `init_base` for each
+constructor a subclass may call, public or protected, named as `make`'s overloads are.
+
+<!-- example: not checked: needs the C module whose figures.hpp declares Figure and described -->
+```jac
+obj Square(Figure) {
+    has side: float = 1.0;
+
+    def postinit {
+        Figure.init_base(self, i32(4));
+    }
+
+    override def area -> float {
+        return self.side * self.side;
+    }
 }
-#endif
+
+with entry {
+    sq = Square(side=3.0);
+    print(described(sq).c_str(), sq.sides());
+}
 ```
 
-C++ static objects are constructed before the program's code runs, and exceptions thrown and
-caught inside the C++ work. Every program and shared library links the toolchain's C++ runtime
-(libc++, libc++abi, and libunwind except on macOS) statically, after everything else, so the linker
-takes only what something references, and a program that references none of it links none.
+```text
+figure/4/9 4
+```
+
+`described` is C++, and calls `area`, which Jac overrides, and `name`, which `Figure` defines.
+
+- **The C++ part is a subclass of `C`** whose overrides of every virtual method of `C` and its
+  bases call the Jac object's method of that name. A method the Jac class does not override, and
+  `super.area()`, run C++'s own definition. A pure virtual method the Jac class does not
+  override raises `NotImplementedError` when called.
+- **`init_base` raises** `TypeError` when the object's nearest C++ class is not `C`, and
+  `RuntimeError` the second time.
+- **The Jac object owns its C++ part**, which is deleted when the Jac object is freed.
+- **A virtual method takes** numbers, C strings, pointers and classes (given to Jac borrowed), and
+  gives nothing, a number, a pointer or a copyable class by value. A class with any other
+  virtual method cannot be derived, and its interface says why (E5133).
+
+**A class template made with the deriving class**, C++'s CRTP, is a base too:
+`obj Heavy(Counted[Heavy])` is `Counted<H>`, where `H` is Heavy's C++ part, a C++ class the
+program's own C++ unit declares. Its members are Heavy's methods of number and `bool` types, each
+calling the Jac method, so what the template calls on `T` reaches Jac, and its overrides of
+`Counted`'s virtual methods call Heavy's. Only an instance whose arguments name the deriving
+class itself, besides number types, is made; any other instance of a C++ template is refused by
+name. A program whose C++ instances do not compile (a Jac method's types disagree with the
+template's virtual of that name) is E5200.
+
+<!-- example: not checked: needs the C module whose figures.hpp declares Counted -->
+```jac
+obj Heavy(Counted[Heavy]) {
+    has w: int = 5;
+
+    def postinit {
+        Heavy.init_base(self);
+    }
+
+    def weight -> int {
+        return self.w;
+    }
+
+    override def unit -> i32 {
+        return i32(3);
+    }
+}
+
+with entry {
+    hv = Heavy(w=7);
+    print(hv.tally(i32(2)), hv.unit());
+}
+```
+
+```text
+13 3
+```
 
 ## Wiring C modules
 
@@ -304,10 +412,74 @@ A dependency is wired whole, and so is a crate:
   the C module's code calls its `extern "C"` functions by name. See
   [Rust modules](rust-modules.md).
 
-A C module takes only another C module's interface or a Rust module, whole: a wire into it from a
-Jac module, or one naming items of a Rust module, is E5136. A Jac module importing a C module of its
+A C module takes another C module's interface and a Rust module whole, and a Jac module's
+functions by name ([Calling Jac from C](#calling-jac-from-c)): a wire of a whole Jac module into
+it, or one naming items of a Rust module, is E5136. A Jac module importing a C module of its
 own top-level package must use a wire (E1144); across top-level packages, an import is governed by
 the edge rules as any other.
+
+## Calling Jac from C
+
+A C module calls a Jac function as it calls any C function, once a wire gives it the function:
+
+- **into a C module of the project's own**, by its file, declared as the C file's own use
+  (`jhelp --> shapes.shapes { jhelp_calls, jhelp_scale }`), since the C source writes the calls;
+- **into a dependency C module**, whole (`helper ++> c { helper_value }`).
+
+<!-- example: not checked: needs the C module shapes and the archwire.jac that wires jhelp into it -->
+```jac
+glob calls: list[int] = [0];
+
+def:pub jhelp_scale(x: float, times: i32, seen: ptr[int]) -> float {
+    calls[0] += 1;
+    seen[0] = 10;
+    return x * float(times);
+}
+
+def:pub jhelp_calls -> int {
+    return calls[0];
+}
+```
+
+neojac writes the header `jac/jhelp.h`, which declares exactly the functions the wires give that
+C module, before Clang reads any of its files:
+
+```c
+int64_t jhelp_calls(void);
+double jhelp_scale(double, int32_t, int64_t *);
+```
+
+and `shapes.c` includes it:
+
+```c
+#include "jac/jhelp.h"
+
+double shapes_jac_scaled(double x, int32_t *calls) {
+    int64_t seen = 0;
+    double out = jhelp_scale(x, 3, &seen);
+    *calls = (int32_t)(seen + jhelp_calls());
+    return out;
+}
+```
+
+- **The named functions are C functions of the program** of those names, as a wire into a crate
+  makes them. A C file's use of one is held to its wires as any import of C is (E1575, E1147).
+- **A function C calls takes and gives** `int`, `i8` to `u64`, `float`, `f32` and `ptr[...]` (a
+  pointer to anything but a number is `void *` in the header), and is neither generic nor
+  `async` (E1249).
+- **A header beside a Jac module of its stem** (`cpu.h` beside `cpu.jac`) is that module's face to
+  C: a C use of a name it declares is a use of the Jac module. This is how a C file that
+  [`neojac port`](../toolchain/port.md#in-a-project) made Jac is still called by the C of its
+  module that stays.
+- **A Jac module's C data** (`glob` in `import from c`) is a name it gives as its functions are:
+  a wire carries it, and its header declares it `extern`.
+- **A C module built into a shared library** cannot call the program's Jac (E5183): a C module
+  that calls Jac is linked into the program.
+
+An extension module of Python whose C calls Jac is built the same way: with
+`counted --> csrc.spam { counted_words }` in `archwire.jac`, `csrc/spam.c` keeps its
+`PyInit__spam` and calls `counted_words`, and `neojac build pyproject.toml` builds the extension
+with the Jac and the runtime linked in ([Python](python.md#a-python-project-of-the-repository)).
 
 ## A C module's files
 
@@ -403,10 +575,13 @@ with entry {
 | E5133 | The name is something the interface cannot express, and the message says what |
 | E1145 | The headers declare no such name |
 | E5145 | A declaration that disagrees with the headers |
-| E5136 | A wire into a C module from a Jac module, or naming items of a Rust module |
+| E5136 | A wire of a whole Jac module into a C module, or one naming items of a Rust module |
+| E1249 | A Jac function a wire gives C takes or gives a type C cannot pass, or is generic or `async` |
+| E5183 | A C module built into a shared library is given a Jac function by a wire |
+| E5200 | The C++ instances of class templates Jac classes derive do not compile |
 | E1144 | A Jac module imports its own package's C module instead of taking a wire, or declares the functions of a C module of the project's own |
 | E1576 | A wire from a C module of the project's own, where its files are its modules |
-| E5158 | A `headers` key in the table of a C module of the project's own |
+| E5158 | A `headers` key in the table of a C module of the project's own that has sources |
 | E5090 | A C module in a build for `wasm32-wasi` |
 
 `neojac docs E5133` prints any of these with its message.
