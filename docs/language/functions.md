@@ -362,6 +362,13 @@ Type parameters (`def first[T](xs: list[T]) -> T`) are in `neojac docs generics`
 parameters (`comptime n: int`) in `neojac docs comptime`, decorators in `neojac docs decorators`,
 `async def` in [Async](async.md), and generator functions in [Generators](generators.md).
 
+## `self` first, outside a class
+
+A function outside a class whose first parameter is named `self` is an ordinary function: Jac
+calls it with the object first (`bump(o, 2)`), on every host. Where JavaScript calls it (a node or
+browser space hands it to JavaScript, or a JavaScript file imports it), `self` is JavaScript's
+`this`, the object it is called on ([npm and Node](../interop/npm.md#jacs-values-in-javascript)).
+
 ## What is rejected
 
 | Code | Condition |

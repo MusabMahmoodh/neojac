@@ -388,7 +388,8 @@ declaration; inside a function it is a syntax error.
 `isinstance(v, T)` takes a class, a builtin type or a tuple of them (E1179 otherwise).
 
 A type is a value: it may be held in an `any` or passed, and keeps its identity there (`held is
-int`), its `__name__` and `__qualname__`, and its call. A container type with its element types
+int`), its `__name__` and `__qualname__`, and its call. So are `int`, `float`, `str` and `bool`:
+`map(bool, [0, 2])` gives `False, True`. A container type with its element types
 is one too: `list[int]` held in an `any` and called makes an empty list or a list of an iterable's
 items, `dict[str, list[int]]()` and `set[str]()` make empty containers, and its `__name__` is the
 bare kind (`list`). A bare `list` given to a `Callable[[], list[int]]` takes that element type.
