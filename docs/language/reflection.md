@@ -188,6 +188,7 @@ name: str, verified: bool | True False ''
 | `members(E)` | An enum's members, in order |
 | `bits(T)`, `signed(T)` | A number type's width in bits (8 for `u8`, 64 for `int` and `float`, 32 for `f32`), and whether it holds negative values; see [Compile-time values](compile-time-values.md) |
 | `sendable(T)` | Whether a value of `T` may be sent to another thread or space; see [Crossing](../accel/crossing.md) |
+| `holds(T, U)` | Whether a value of `T` may hold a value of `U`: `T` is `U`, or one of `T`'s fields, items, keys, values or members may hold one. What a walk over a value's parts is written with, so that it is no code for a type that holds nothing it looks for |
 | `target()` | What the build targets: its `os`, `arch` and `device`; see [Compile-time values](compile-time-values.md) |
 
 `Kind`'s members are `INT`, `FLOAT`, `STR`, `BOOL`, `BYTES`, `NONE`, `ANY`,

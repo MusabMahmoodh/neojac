@@ -28,7 +28,7 @@ project, and a change to the backend would bundle the site again.
 | Variable | What it does |
 |---|---|
 | `JAC_WEB_LISTEN` | The address to listen on (`127.0.0.1:8000`) |
-| `JAC_WEB_DATA` | Where the graph and the accounts are kept |
+| `JAC_WEB_DATA` | Where the graph, the accounts and the files are kept |
 | `JAC_FRESH` | `1` starts with no data, setting aside what `.jac/data/web` held (what `--fresh` sets) |
 | `JAC_WEB_STATIC` | Where the built site is, when not at its build path |
 | `JAC_WEB_DOCS` | Where neojac's `docs/` tree is, when not at its path in this checkout; the docs are labelled with the version in the `VERSION` file beside it (a release's), else in the `jac.toml` beside it (a checkout's) |
@@ -103,9 +103,14 @@ anonymous caller starts at `root.shared`. `root spawn W()` starts at the root of
 
 The modules name abstractions and no mechanism: `root` for what is kept, `:protect` and
 `sign_in()` for who is calling, `by llm()` for the model, `@job` for work too long for the
-server's event loop. What carries each out is a plugin `jac.toml` binds (`neojac docs plugins`):
-here the standard ones, `sqlite`, `accounts`, `anthropic` and `process_jobs`, with their settings
-in `[auth.accounts]` and `[llm.anthropic]`.
+server's event loop, `File` for a profile's picture. What carries each out is a plugin `jac.toml`
+binds (`neojac docs plugins`): here the standard ones, `sqlite`, `accounts`, `anthropic`,
+`process_jobs` and `local_files`, with their settings in `[auth.accounts]` and `[llm.anthropic]`.
+
+A JacYac profile holds its picture as a `File` (`core/model/social.jac`): the page gives
+`set_avatar` what the file input gave it, the bytes go to the app in pieces and are kept under
+`files/` in its data, and every page shows the picture from the address of the file the profile
+holds (`neojac docs File`).
 
 ## UI libraries
 

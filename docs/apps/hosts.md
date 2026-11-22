@@ -434,6 +434,7 @@ defect.
 | `node`, `browser`, `hermes` | A dict whose keys change under a loop over it, its size the same, is walked as JavaScript walks a `Map`: on, past a removed key and through an added one, where native code raises `dictionary keys changed during iteration` for a key removed from the middle. A change of size raises `dictionary changed size during iteration`, as on every host |
 | `node`, `browser`, `hermes` | A whole float held in an `any` is an int: `a: any = 2.0` prints `2`, `-0.0` prints `0`, and `[1, "two", 3.0]` of anys prints `[1, 'two', 3]`. A `float`-typed value prints as natively (`2.0`) |
 | `node`, `browser`, `hermes` | An `int` is a JavaScript number ([Numbers](../language/numbers.md)) |
+| `browser`, `hermes` | A `File` holds what the page has, and is sent when a call carries it: `File(source)` takes a `Blob` or bytes, and `read()` is awaited ([Files](files.md#in-a-page)) |
 | Every host but native and wasm | Owners, borrows and memory regions are checked, then erased: values are freed by the host's own collector, `region_of` gives `None`, and on a JavaScript host `__del__` never runs ([Memory](../language/memory.md), [Memory regions](../language/memory-regions.md)) |
 
 ## What is rejected
@@ -444,4 +445,4 @@ defect.
 | E1540 | In a cpython, node, browser or hermes space: a use of C, a C function, record or global ([C libraries](../interop/c-libraries.md)). In a node space: a standard-library module or function only the native runtime defines. In a hermes space: anything that needs a graph. In a browser, hermes or node space: an import of a stdjac name whose module needs the native runtime (`stdjac.remote`, `stdjac.graph`, `stdjac.plan`, `stdjac.server`) |
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
 | E1220, E1221 | Text or a lowercase tag React Native does not show |
-| E5090 | In a node space: `:protect`, a walker endpoint, JSX. In a cpython space: an import by path. In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |
+| E5090 | In a node space: `:protect`, a walker endpoint, JSX. In a cpython space: an import by path. In a cpython, node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |

@@ -377,6 +377,7 @@ Each value crosses as JSON, by its declared type:
 | An enum's member | Its name |
 | `i128`, `u128` | A string of its decimal digits |
 | `bytes`, `bytearray` | A string of hex digits |
+| `File` | An object of its `id`, `size` and `ctype`: never its bytes, which a page sends to the app before the call ([Files](files.md)) |
 | `complex` | `[real, imag]` |
 
 A node space tags each object it sends with its class's name, `{"__jac": "Reply", "text": "hello

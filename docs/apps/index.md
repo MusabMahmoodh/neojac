@@ -198,6 +198,7 @@ A second `neojac build web` with nothing changed runs nothing and says the app i
 | [Crossings](crossings.md) | Calls between spaces, reading a stream, access tags, what crosses, remote spaces | `neojac docs crossings` |
 | [Serving a space](server.md) | Endpoints over HTTP, streams, calls answered at once, signing in, `@restspec`, `@limit`, scheduled functions, jobs | `neojac docs apps/server` |
 | [An app's data](data.md) | Each caller's `root`, the kept graph and `commit()`, the data directory, `--fresh` | `neojac docs apps/data` |
+| [Files](files.md) | `File`, bytes kept outside the graph: a node's field, a page's file input, `@accepts`, when a file goes | `neojac docs File` |
 | [Pages](pages.md) | Routes from `pages/`, layouts, the entry, `@jac/runtime` | `neojac docs pages` |
 | [Components and JSX](components.md) | JSX, state with `has`, effects, hooks, what a component may not do | `neojac docs component` |
 | [UI plugins and bundlers](ui-bindings.md) | The `ui` plugins (React, Preact, Solid, React Native, `none`) and the `bundler` plugins (Vite, Expo); a project's own | `neojac docs apps/ui-bindings` |

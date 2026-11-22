@@ -137,6 +137,7 @@ with your own, with no change to the app's source and no rebuild of neojac.
 | `@job`, `flow`, `wait` | `jobs`: work run apart | `process_jobs` |
 | `@schedule` | `schedule`: work run on a clock | `loop_schedule` |
 | `@limit` | `limits`: how often a caller may ask | `memory_limits` |
+| `File`, `@accepts` | `files`: where a file's bytes are kept | `local_files` |
 | A component and its JSX | `ui`: what a page is rendered with | `react`, `react_native` |
 | Nothing: a page is bundled as it is built | `bundler`: what bundles a page | `vite`, `expo` |
 
