@@ -535,6 +535,9 @@ pyproject.toml: pytest tests --import-mode=append
   Python it starts. A package's directory beside the tests holds no extension module, so pytest
   is told not to put it first either: `--import-mode=append`, or `importlib`.
 - **A suite that fails fails the run**, with its own output as it printed it.
+- **The project's wheel is a package of the archwire**: a `cpython` space that holds the project
+  by its directory, and `package <name> { ship <space>; }`. `neojac build` packs the built
+  directory into `dist/` ([archwire](../apps/archwire.md#packages)).
 
 ## Running npm
 

@@ -59,7 +59,7 @@ comptime_element ::= ability | import_stmt | assert_stmt | comptime_global
 
 graph_import ::= "graph" "import" wire_module_path? "{" (STRING import_rule | import_rule | import_wire)* "}"
 
-graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl) | space_decl | app_decl)* "}"
+graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl | package_decl) | space_decl | app_decl | package_decl)* "}"
 
 graph_layers ::= "graph" "layers" "{" (STRING layer_decl | layer_decl)* "}"
 
@@ -115,9 +115,11 @@ import_rule ::= "edge" NAME ":" module_pattern ("|" module_pattern)* "-->" modul
 
 import_wire ::= "comptime"? ("include" | "type")? wire_module_path ("++>" | "-->") ("[" (wire_target ("," wire_target)* ","?)? "]" | wire_target ";"?)
 
-space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | module_pattern ("|" module_pattern)*) ";")* "}"
+space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | STRING | module_pattern ("|" module_pattern)*) ";")* "}"
 
 app_decl ::= "app" NAME "{" (NAME "has" NAME ("." NAME)* ("," NAME ("." NAME)*)* ";" | ("run" | "serve") name_list)* "}"
+
+package_decl ::= "package" NAME "{" ("ship" name_list)* "}"
 
 layer_decl ::= "layer" NAME "{" (STRING layer_decl | layer_decl | module_pattern ("|" module_pattern)* ";")* "}"
 

@@ -96,6 +96,7 @@ Compile a program, or a project's apps.
 ```sh
 neojac build [<program>...] -o <out> [<option>...]
 neojac build [<app>...] [--profile <profile>]
+neojac build [<package>...]
 neojac build <directory>/pyproject.toml
 ```
 
@@ -122,7 +123,7 @@ A program is built into one executable, which needs nothing installed where it r
 
 Several Jac programs are built into one executable that holds each of them and runs the one its first argument names: a program is named by its file, a main.jac by its directory.
 
-In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's: the apps named, or every app, are each built into dist/, and where each one is is printed.
+In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's or a package's: the ones named, or every one, are each built into dist/, and where each one is is printed. A package (`package <name> { ship <space>; }`) of a space that holds a Python project is that project's wheel.
 
 A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against.
 

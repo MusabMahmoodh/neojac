@@ -111,7 +111,26 @@ neojac test                        # builds the project from the tables, then ru
 - **Programs the tests start** (`sysctl`, `ifconfig`) must be on `PATH` as they are for the
   repository's own run.
 
-6. **Draw it.**
+6. **Declare what a Python project's wheel is**, where the repository publishes one, in
+   `archwire.jac`:
+
+```jac
+graph spaces {
+    space lib: cpython { "."; }
+
+    package tiktoken { ship lib; }
+}
+```
+
+```sh
+neojac build                       # dist/<name>-<version>-<tags>.whl
+```
+
+The quoted directory is the project's, as `[pypi."<directory>"]` names it. The wheel holds the
+files the repository's own wheel does (`.jac/absorb/*/dist/` has that one, to compare), but for
+files only its build backend writes into the metadata directory (setuptools' `top_level.txt`).
+
+7. **Draw it.**
 
 ```sh
 neojac arch --text

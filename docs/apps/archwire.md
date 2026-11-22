@@ -1,7 +1,7 @@
 ---
-description: The graph spaces block of archwire.jac, which declares a project's spaces, their hosts and modules, its apps and its profiles.
-keywords: graph spaces, spaces, space, app, profile, serve, module pattern
-grammar: graph_spaces, space_decl, app_decl, module_pattern, name_list
+description: The graph spaces block of archwire.jac, which declares a project's spaces, their hosts and modules, its apps, its packages and its profiles.
+keywords: graph spaces, spaces, space, app, package, ship, wheel, profile, serve, module pattern
+grammar: graph_spaces, space_decl, app_decl, package_decl, module_pattern, name_list
 ---
 # The archwire's spaces
 
@@ -18,16 +18,18 @@ which and what each wire carries: see [Wiring modules](../language/modules-wirin
 ## Syntax
 
 ```ebnf
-graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl) | space_decl | app_decl)* "}"
+graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl | package_decl) | space_decl | app_decl | package_decl)* "}"
 
-space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | module_pattern ("|" module_pattern)*) ";")* "}"
+space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | STRING | module_pattern ("|" module_pattern)*) ";")* "}"
+
+package_decl ::= "package" NAME "{" ("ship" name_list)* "}"
 
 app_decl ::= "app" NAME "{" (NAME "has" NAME ("." NAME)* ("," NAME ("." NAME)*)* ";" | ("run" | "serve") name_list)* "}"
 
 module_pattern ::= "*" | wire_module_path ("." "*")?
 ```
 
-`spaces`, `space`, `app`, `run` and `serve` are words only inside this block. They
+`spaces`, `space`, `app`, `package`, `run`, `serve` and `ship` are words only inside this block. They
 are not reserved: a program may still name a function `app` or a variable `space`.
 In a space, `entry` is the entry clause only when a module path follows it: `entry;`
 and `entry | ui;` list a module named `entry`, as any other name is listed.
@@ -237,6 +239,48 @@ member of a workspace: an artifact does not carry a member's packages yet. So is
 serves needs a program to serve it, so `app web { serve site; }` is refused as
 `an app 'web' that serves site and runs no space`.
 
+## Packages
+
+`package <name> { ship <space>; }` declares a library to build: what a space holds, packed as
+its host's own kind of package. `neojac build <name>`, or `neojac build` with the apps, writes
+it into `dist/`.
+
+A space holds a Python project of the repository by its directory, quoted, as `jac.toml` names
+it (`[pypi."<directory>"]`):
+
+<!-- example: not checked: an archwire is one file of a project, and this one's project holds a pyproject.toml -->
+```jac
+graph spaces {
+    space lib: cpython { "."; }
+
+    package tiktoken { ship lib; }
+}
+```
+
+```text
+$ neojac build tiktoken
+dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
+```
+
+- **The space holds what the project's own packaging ships**: the files `jac.toml`'s
+  `[wheel."<directory>"]` lists and its extension modules
+  ([Building and testing a Python project](../toolchain/packages.md#building-and-testing-a-python-project)).
+- **The package is that project's wheel**, named as the project's own build names it: its name
+  and version from its metadata, its tags from the interpreter and the system it was built on.
+  Its files are written in one order with one date, so the same sources pack the same wheel.
+- **A package ships one space, of one Python project, today.** A space of Jac modules, a second
+  space, and an npm package from a `node` space are refused as not built yet (E5090).
+- **A package is in no profile**, and a space it ships is held: `neojac check` does not take it
+  for a space no app runs.
+
+| Code | Cause |
+|---|---|
+| E0168 | Something other than `ship` in a package |
+| E2235 | A package ships a space that is not declared |
+| E2236 | A space holds a tree `jac.toml` has no `[pypi."<directory>"]` for |
+| E2237 | A Python project in a space whose host is not `cpython` |
+| E2238 | A package that ships nothing |
+
 ## Profiles
 
 A second `graph spaces` block with a name is a **profile**: another way to group the same spaces
@@ -304,19 +348,19 @@ changes no module and no line here.
 
 | Code | Cause |
 |---|---|
-| E0115 | Something other than a space or an app in the block |
-| E0116 | Something other than `entry` or patterns in a space |
+| E0115 | Something other than a space, an app or a package in the block |
+| E0116 | Something other than `entry`, patterns or a tree's quoted directory in a space |
 | E0117 | Something other than `run`, `serve` or `<space> has` in an app |
 | E2093 | The archwire has a syntax error; reported with the error itself |
 | E1226 | A host that is not one of the six |
 | E1270 | A second `entry` in a space |
-| E1271 | A space in a profile |
+| E1271 | A space or a package in a profile |
 | E1272 | An app serving a space that is not `browser` or `wasm` |
 | E1273 | An app naming a space that is not declared |
 | E1274 | `--profile` naming a profile that is not declared |
 | E1275 | The same pattern in two spaces |
 | E2098 | A space's pattern or its `entry` naming no module of the project |
 | E1276 | A space in an app calls a space that no app of that grouping runs or serves |
-| E0077 | A space or an app declared twice |
+| E0077 | A space, an app or a package declared twice |
 
 `neojac docs E1276` prints any of them with its message.
