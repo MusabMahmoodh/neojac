@@ -671,6 +671,34 @@ open items
 nothing written
 ```
 
+### What neojac writes from now on, and what can go
+
+Once a repository is absorbed, some of its files are neojac's to write and some have nothing
+left to do. absorb says which, and changes nothing of git's:
+
+```text
+neojac writes these from jac.toml and jac.lock now, and git still tracks them
+  git rm --cached Cargo.toml pyproject.toml
+
+the record stands in for these, which can go once every system built for is recorded
+  setup.py, MANIFEST.in
+```
+
+- **A manifest `jac.toml` holds is written by neojac** where it stands, before any command reads
+  it, and absorb lists it in `.gitignore`. git goes on tracking a file it already tracks, so
+  absorb prints the command that stops it. Untracked, the file is still there for npm, pip and
+  cargo: a fresh clone has it as soon as a neojac command runs.
+- **A build script the record replaced** (`setup.py`, `MANIFEST.in`, `binding.gyp`) is read by
+  nothing once its build is recorded ([Recording a build](#recording-a-build)), on the systems
+  it was recorded on. It is still the only description of what another system compiles, so it
+  goes when every system the project is built for has its record.
+- **neojac deletes nothing and stages nothing.** `--json` has both lists, `tracked` and
+  `replaced`.
+- **What goes with them is what only they offered**: an install from the repository's source by
+  pip or npm, which reads `pyproject.toml`, `setup.py` or `binding.gyp`, and whatever reads a
+  manifest from the repository itself, a dependency scanner or an editor before any neojac
+  command has run.
+
 ### What absorb rewrites
 
 A manifest is taken as it stands, but for a form its own engine does not read and another

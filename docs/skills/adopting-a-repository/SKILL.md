@@ -139,6 +139,25 @@ its build backend writes into the metadata directory (setuptools' `top_level.txt
 neojac arch --text
 ```
 
+## When the repository is to stay on neojac
+
+Only once every step above holds, and only where the maintainers mean neojac to be the build
+from now on:
+
+```sh
+git rm --cached pyproject.toml Cargo.toml     # the command absorb printed: neojac writes these now
+git rm setup.py MANIFEST.in                   # what absorb listed as replaced by the record
+```
+
+- **Untrack a manifest; do not delete it.** npm, pip and cargo still read it, and neojac writes
+  it again in a fresh clone.
+- **Delete a build script only when every system the project is built for is recorded.** A
+  record is of one system, and the script is the only description of the others until then.
+- **Prove it from a fresh clone** of the commit: `neojac install --frozen`, `neojac build`,
+  `neojac test`, with the same tests passing.
+- **Say what the repository gives up**: an install from its source by pip or npm, and tools
+  that read its manifests without neojac.
+
 ## What a correct result looks like
 
 - `neojac absorb --check` and `neojac absorb` name the same trees.
