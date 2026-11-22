@@ -285,6 +285,12 @@ fields) finds what the source said:
 A Python name used as a type (`EmailStr`, `uuid.UUID`, `Literal["a", "b"]`) is `any` to the
 checker, on every host.
 
+`import from __future__ { annotations }` is Python's own future statement in a cpython space:
+Python postpones the module's annotations, keeping each as its text, so a raw `__annotations__`
+read gives strings and `typing.get_type_hints` gives the objects. It governs the whole module, its
+classes too, and `neojac fmt --fix` keeps it there. In a program of any other host it does
+nothing, and is W3009.
+
 ## Doc strings
 
 A doc string is the program's in a cpython space: a function's, a class's and a module's is its

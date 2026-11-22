@@ -45,7 +45,8 @@ exclude = ["tests/*/reject/*"]         # files left alone
 - **A module of a `cpython` space keeps its docstrings.** There a docstring is the program's, the
   `__doc__` Python reads ([Classes and decorators in a cpython space](../interop/python-classes.md#doc-strings)),
   so `strip-docstrings` does not judge it, in `neojac check` or in `neojac fmt --fix`, which reads
-  the project's spaces to know. Its comments and bodies are judged as any module's.
+  the project's spaces to know. Its comments and bodies are judged as any module's. Its
+  `import from __future__ { annotations }` is Python's too, and stays.
 
 ```text
 jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is no rule a project selects
@@ -234,7 +235,7 @@ These are errors in every program, with no configuration. `fmt --fix` rewrites e
 |---|---|---|
 | `def __init__`, `def __post_init__` | `def init`, `def postinit` | W3004 |
 | `def f()`, `lambda () ...`, `obj A()`, `enum E()` | No parentheses when there is nothing in them | W3005 |
-| `import from __future__ { annotations }` | Nothing | W3009 |
+| `import from __future__ { annotations }`, outside a cpython space | Nothing | W3009 |
 | An `impl` that restates its declaration's signature differently | The declaration's signature | W3010 |
 | A `;` standing for nothing (stray, after accessors, after a for step) | No `;` | W3013 |
 | `@staticmethod` | `static def` | W3001 |

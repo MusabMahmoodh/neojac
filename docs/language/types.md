@@ -76,7 +76,7 @@ An annotation is `: T` after a name, and `-> T` for what a function returns.
 - **Python's `Optional[T]` and `Union[A, B]` are not accepted** (E5090). Write `T | None` and
   `A | B`.
 - **Annotations are never evaluated when the program runs**, so a type may be used before the
-  declaration that defines it. `import from __future__ { annotations }` does nothing and is W3009.
+  declaration that defines it. `import from __future__ { annotations }` does nothing and is W3009, but in a cpython space, where it is Python's ([Annotations](../interop/python-classes.md#annotations)).
 - A name that declares no type is E2018 in an annotation.
 
 ```jac
