@@ -48,8 +48,13 @@ the `archwire.jac`'s directory: `core/clock.jac` is `core.clock`, and `main.jac`
 
 For the modules it governs:
 
-- **An import of another governed module is a wire, never written in the module.** Writing it in
-  the module is E1144 (E2094 for one inside a function). The message gives the wire to add.
+- **An import of another governed module is a wire, never written at the module's top.** Writing
+  it there is E1144, and the message gives the wire to add.
+- **An import in a code body is admitted by its wire.** With `units ++> shapes { label }`, a
+  function of `shapes` may write `import from units { label }`: the wire names what may be
+  taken, and the import binds it in that body, starting `units` where it runs
+  ([Modules](modules.md#an-import-in-a-code-body)). One the wires do not admit is E2094, whose
+  message gives the wire to add.
 - **Imports of anything else stay in the module:** the standard library, Python and npm packages,
   C libraries, and modules outside the governed tree.
 - **Every name a wire binds must be used** where it lands (E1146). A name listed in the consuming
@@ -414,7 +419,7 @@ neojac build main.jac -o main && ./main
 | E2089 | Anything but `graph` blocks in `archwire.jac`, a comment included |
 | E2093 | `archwire.jac` has syntax errors (reported once) |
 | E1144 | A governed module writes an import of another governed module |
-| E2094 | The same, inside a function |
+| E2094 | An import in a code body that no wire admits |
 | E1146 | A wired name is never used in the consumer, on any target |
 | E1147 | A `-->` wire whose import no file of the consumer writes |
 | E1575 | An import a file in another language writes of a file of the project, that no `-->` wire declares |
