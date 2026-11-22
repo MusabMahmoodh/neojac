@@ -7,8 +7,6 @@ impl useJacYac -> JacYacState {
         composerText: str = "",
         searchQuery: str = "",
         allProfiles: list[Profile] = [],
-        avatars: dict[str, str] = {},
-        avatarSeen: dict[str, str] = {},
         editingProfile: bool = False,
         profileSaving: bool = False,
         profileError: str = "",
@@ -47,53 +45,12 @@ impl useJacYac -> JacYacState {
             await refreshSocial();
             profilesResult = await (root spawn get_all_profiles());
             allProfiles = profilesResult.reports[0] if profilesResult.reports else [];
-            await refreshAvatars();
         } except RemoteError as e {
             onRemoteError(e);
         } except Exception {
             bridgeMessage = "Something went wrong. Please try again.";
         } finally {
             feedLoading = False;
-        }
-    }
-    async def refreshAvatars {
-        try {
-            known: list[Profile] = list(allProfiles);
-            if myProfile {
-                known.append(myProfile.profile);
-            }
-            if viewedProfile {
-                known.append(viewedProfile.profile);
-            }
-            next_map: dict[str, str] = {};
-            next_seen: dict[str, str] = {};
-            wanted: list[str] = [];
-            for p in known {
-                if p.avatar_v == "" {
-                    continue;
-                }
-                next_seen[p.username] = p.avatar_v;
-                if avatarSeen.get(p.username) == p.avatar_v and p.username in avatars {
-                    next_map[p.username] = avatars[p.username];
-                } elif p.username not in wanted {
-                    wanted.append(p.username);
-                }
-            }
-            if wanted {
-                result = await (root spawn get_avatars(usernames=wanted));
-                found: dict[str, str] = result.reports[0] if result.reports else {};
-                for u in wanted {
-                    if u in found {
-                        next_map[u] = found[u];
-                    }
-                }
-            }
-            avatars = next_map;
-            avatarSeen = next_seen;
-        } except RemoteError as e {
-            onRemoteError(e);
-        } except Exception {
-            bridgeMessage = "Something went wrong. Please try again.";
         }
     }
     async def postTweet {
@@ -211,31 +168,6 @@ impl useJacYac -> JacYacState {
             profileSaving = False;
         }
     }
-    async def handleClearAvatar {
-        try {
-            avatarBusy = True;
-            await (root spawn clear_avatar());
-            avatarBusy = False;
-            me = myProfile.profile.username if myProfile else "";
-            next_map: dict[str, str] = {};
-            for u in avatars {
-                if u != me {
-                    next_map[u] = avatars[u];
-                }
-            }
-            avatars = next_map;
-            profileResult = await (root spawn get_profile());
-            myProfile = profileResult.reports[0] if profileResult.reports else myProfile;
-            profilesResult = await (root spawn get_all_profiles());
-            allProfiles = profilesResult.reports[0] if profilesResult.reports else [];
-        } except RemoteError as e {
-            onRemoteError(e);
-        } except Exception {
-            bridgeMessage = "Something went wrong. Please try again.";
-        } finally {
-            avatarBusy = False;
-        }
-    }
     async def handleViewProfile(username: str) {
         try {
             if not username {
@@ -257,7 +189,6 @@ impl useJacYac -> JacYacState {
                 activeTab = "explore";
             }
             viewedLoading = False;
-            await refreshAvatars();
         } except RemoteError as e {
             onRemoteError(e);
         } except Exception {
@@ -307,7 +238,6 @@ impl useJacYac -> JacYacState {
             if tab == "explore" {
                 result = await (root spawn get_all_profiles());
                 allProfiles = result.reports[0] if result.reports else [];
-                await refreshAvatars();
             }
             if tab == "feed" and searchQuery {
                 searchQuery = "";
@@ -500,29 +430,17 @@ impl useJacYac -> JacYacState {
             bridgeMessage = "Something went wrong. Please try again.";
         }
     }
-    async def handleAvatarData(data_url: str) {
+    async def handleAvatar(image: File | None) {
         try {
             avatarBusy = True;
             profileError = "";
-            result = await (root spawn set_avatar(data_url=data_url));
-            outcome = result.reports[0] if result.reports else None;
-            avatarBusy = False;
-            me = myProfile.profile.username if myProfile else "";
-            if outcome and outcome.ok {
-                next_map: dict[str, str] = {**avatars};
-                next_seen: dict[str, str] = {**avatarSeen};
-                next_map[me] = outcome.avatar_url;
-                next_seen[me] = outcome.avatar_v;
-                avatars = next_map;
-                avatarSeen = next_seen;
-                profileResult = await (root spawn get_profile());
-                myProfile = profileResult.reports[0] if profileResult.reports else myProfile;
+            outcome = await set_avatar(image);
+            if outcome.ok and outcome.bundle {
+                myProfile = outcome.bundle;
                 profilesResult = await (root spawn get_all_profiles());
                 allProfiles = profilesResult.reports[0] if profilesResult.reports else [];
             } else {
-                profileError = outcome.error
-                    if outcome and outcome.error
-                    else "Could not upload that photo";
+                profileError = outcome.error or "Could not save that photo";
             }
         } except RemoteError as e {
             onRemoteError(e);
@@ -542,8 +460,6 @@ impl useJacYac -> JacYacState {
         composerText = "";
         searchQuery = "";
         allProfiles = [];
-        avatars = {};
-        avatarSeen = {};
         editingProfile = False;
         profileSaving = False;
         profileError = "";
@@ -562,6 +478,17 @@ impl useJacYac -> JacYacState {
         bridgeMessage = "";
     }
 
+    # Each profile here shows its picture from the file it holds: the caller's
+    # own last, which is the latest of it.
+    shown: list[Profile] = list(allProfiles);
+    if viewedProfile {
+        shown.append(viewedProfile.profile);
+    }
+    if myProfile {
+        shown.append(myProfile.profile);
+    }
+    avatars = avatars_of(shown);
+
     return JacYacState(
         session=session,
         activeTab=activeTab,
@@ -572,7 +499,6 @@ impl useJacYac -> JacYacState {
         searchQuery=searchQuery,
         allProfiles=allProfiles,
         avatars=avatars,
-        avatarSeen=avatarSeen,
         editingProfile=editingProfile,
         profileSaving=profileSaving,
         profileError=profileError,
@@ -590,7 +516,6 @@ impl useJacYac -> JacYacState {
         refreshing=refreshing,
         bridgeMessage=bridgeMessage,
         loadData=loadData,
-        refreshAvatars=refreshAvatars,
         postTweet=postTweet,
         handleLike=handleLike,
         handleComment=handleComment,
@@ -598,7 +523,6 @@ impl useJacYac -> JacYacState {
         handleFollow=handleFollow,
         handleUnfollow=handleUnfollow,
         handleSaveProfile=handleSaveProfile,
-        handleClearAvatar=handleClearAvatar,
         handleViewProfile=handleViewProfile,
         handleSearch=handleSearch,
         handleRepost=handleRepost,
@@ -615,7 +539,7 @@ impl useJacYac -> JacYacState {
         refreshSocial=refreshSocial,
         handleRefresh=handleRefresh,
         handleSaveBio=handleSaveBio,
-        handleAvatarData=handleAvatarData,
+        handleAvatar=handleAvatar,
         setActiveTab=lambda (value: str) { activeTab = value; },
         setComposerText=lambda (value: str) { composerText = value; },
         setSearchQuery=lambda (value: str) { searchQuery = value; },

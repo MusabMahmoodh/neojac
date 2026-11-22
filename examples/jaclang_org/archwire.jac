@@ -140,6 +140,7 @@ graph import {
     core.jacyac.identity ++> core.jacyac.native.components.Avatar { avatar_of }
     core.jacyac.identity ++> core.jacyac.native.screens.ExploreScreen { name_of }
     core.jacyac.identity ++> core.jacyac.native.screens.ProfileScreen { name_of }
+    core.jacyac.identity ++> core.jacyac.state { avatars_of }
     core.jacyac.identity ++> core.site.jacyac.JacYac { avatar_of, name_of }
     core.jacyac.identity ++> core.site.jacyac.components.ExploreTab { avatar_of, name_of }
     core.jacyac.identity ++> core.site.jacyac.components.ProfileHeader { avatar_of, name_of }
@@ -305,6 +306,7 @@ graph import {
     core.model.packages ++> core.site.packages.PackagesIndex { PackageCatalog, PackageSummary }
     core.model.packages ++> core.site.packages.PackagesShell { PackageCatalog, PackageDetail }
     core.model.social ++> cli { Tweet }
+    core.model.social ++> core.jacyac.identity { Profile }
     core.model.social ++> core.jacyac.limits { PostingDenied }
     core.model.social ++> core.jacyac.native.components.TweetCard { Tweet }
     core.model.social ++> core.jacyac.native.screens.ChannelsScreen { ChannelBundle, Tweet }
@@ -326,9 +328,6 @@ graph import {
     core.model.social ++> core.site.jacyac.components.RightSidebar { Profile, TrendingTag }
     core.model.social ++> core.site.jacyac.components.TweetCard { Tweet }
     core.model.social ++> core.social_graph {
-        Avatar,
-        AvatarCheck,
-        AvatarResult,
         Channel,
         ChannelBundle,
         Commented,
@@ -801,14 +800,12 @@ graph import {
     core.social_graph ++> cli { create_tweet, load_feed }
     core.social_graph ++> core.jacyac.state {
         add_comment,
-        clear_avatar,
         create_channel,
         create_channel_tweet,
         create_tweet,
         delete_tweet,
         follow_user,
         get_all_profiles,
-        get_avatars,
         get_channel_detail,
         get_channels,
         get_profile,
@@ -828,7 +825,6 @@ graph import {
     core.timefmt ++> core.docs.sync { now_iso }
     core.timefmt ++> core.install { now_iso, seconds_since }
     core.timefmt ++> core.progress { now_iso }
-    core.timefmt ++> core.social_graph { now_iso }
     core.utils ++> core.site.docs.DocsSidebar { cn }
     core.utils ++> core.site.docs.DocsTocRail { cn }
     core.utils ++> core.site.home.NoGlue { cn }

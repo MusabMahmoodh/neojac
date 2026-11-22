@@ -15,7 +15,7 @@ archwire = false
 # another: it is in this directory.
 [abstraction]
 interface = "transport.contract.Transport"
-interface_ver = 1
+interface_ver = 2
 per = "project"
 picked = "start"
 standard = "http"

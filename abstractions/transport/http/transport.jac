@@ -111,17 +111,36 @@ def reads_interim(buf: bytes) -> bool {
 
 # A socket is `any` here: on cpython it's CPython's, whose classes can't be
 # named as types yet.
-def write_response(conn: any, r: Response) {
+# A reply whose body is `pieces` is sent each as it is read, so a body is
+# never held whole; a reply to a HEAD sends its head, with the length its
+# body would have, and no body.
+def write_response(conn: any, r: Response, head_only: bool = False) {
+    pieces = r.pieces;
+    length = r.length if r.length >= 0 else len(r.body);
     lines = [
         "HTTP/1.1 " + str(r.status) + " " + http.client.responses.get(r.status, ""),
         "Content-Type: " + r.ctype,
-        "Content-Length: " + str(len(r.body)),
+        "Content-Length: " + str(length),
         "Connection: close",
     ];
     for (k, v) in r.headers.items() {
         lines.append(k + ": " + v);
     }
-    conn.sendall(("\r\n".join(lines) + "\r\n\r\n").encode("latin-1") + r.body);
+    head = ("\r\n".join(lines) + "\r\n\r\n").encode("latin-1");
+    if head_only {
+        conn.sendall(head);
+    } elif pieces is None {
+        conn.sendall(head + r.body);
+    } else {
+        conn.sendall(head);
+        try {
+            for piece in pieces {
+                conn.sendall(piece);
+            }
+        } finally {
+            pieces.close();
+        }
+    }
 }
 
 """What `handle` answers `req`: a failure of its own is the server's (500),
@@ -288,7 +307,7 @@ def answer_on(
             # may come before this thread runs again.)
             told = True;
             calls.answered();
-            write_response(conn, r);
+            write_response(conn, r, req.method == "HEAD");
         } else {
             lines = [
                 "HTTP/1.1 " + str(r.status) + " " + http.client.responses.get(r.status, ""),
@@ -421,9 +440,13 @@ obj HttpTransport(Transport) {
         if ctype.startswith("text/event-stream") {
             return Response(status=status, ctype=ctype, events=events_of(got));
         }
+        said: dict[str, str] = {};
+        for (k, v) in got.headers.items() {
+            said[str(k).lower()] = str(v);
+        }
         with got {
             body: bytes = got.read();
-            return Response(status=status, ctype=ctype, body=body);
+            return Response(status=status, ctype=ctype, body=body, headers=said);
         }
     }
 

@@ -1,6 +1,6 @@
 ---
 name: writing-a-plugin
-description: Use when writing or changing a neojac plugin - a package that carries out one of the language's abstractions (store, auth, transport, llm, jobs, schedule, limits, ui, bundler) - deciding between a plugin and a library, the package's jac.toml, a class whose fields are its settings, a ui or bundler plugin's table, declaring it by path in a project, picking it with JAC_<ABSTRACTION>, and what a build refuses.
+description: Use when writing or changing a neojac plugin - a package that carries out one of the language's abstractions (store, auth, transport, llm, jobs, schedule, limits, files, ui, bundler) - deciding between a plugin and a library, the package's jac.toml, a class whose fields are its settings, a ui or bundler plugin's table, declaring it by path in a project, picking it with JAC_<ABSTRACTION>, and what a build refuses.
 ---
 # Writing a plugin
 
@@ -40,6 +40,7 @@ contract the one module of neojac's the plugin imports it from.
 | `jobs` | `jobs.contract.Jobs` | As the program starts | `abstractions/jobs/process_jobs` |
 | `schedule` | `schedule.contract.Scheduler` | As the program starts | `abstractions/schedule/loop_schedule` |
 | `limits` | `limits.contract.Limits` | As the program starts | `abstractions/limits/memory_limits` |
+| `files` | `files.contract.Files` | As the program starts | `abstractions/files/local_files` |
 | `ui` | A `[ui]` table | As a space is built | `abstractions/ui/solid` |
 | `bundler` | A `[bundler]` table | As a space is built | `abstractions/bundler/vite` |
 

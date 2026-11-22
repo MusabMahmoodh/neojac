@@ -244,32 +244,6 @@ impl clean_text(raw: str, limit: int, label: str) -> FieldCheck {
     return FieldCheck(value=v);
 }
 
-impl decode_avatar(data_url: str) -> AvatarCheck {
-    m = re.match(r"^data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=\s]+)$", data_url.strip());
-    if m is None {
-        return AvatarCheck(error="Avatar must be a JPEG, PNG or WebP image");
-    }
-    kind = m.group(1) as str;
-    payload = re.sub(r"\s+", "", m.group(2) as str);
-    try {
-        raw = base64.b64decode(payload.encode("ascii"), validate=True);
-    } except Exception {
-        return AvatarCheck(error="Avatar image data is not valid base64");
-    }
-    if len(raw) > MAX_AVATAR_BYTES {
-        return AvatarCheck(error="Avatar must be under 384 KB after resizing");
-    }
-    looks_right = (
-        (kind == "jpeg" and raw[0:3] == b"\xff\xd8\xff")
-        or (kind == "png" and raw[0:4] == b"\x89PNG")
-        or (kind == "webp" and raw[0:4] == b"RIFF" and raw[8:12] == b"WEBP")
-    );
-    if not looks_right {
-        return AvatarCheck(error="Avatar bytes do not match the declared image type");
-    }
-    return AvatarCheck(ok=True, mime="image/" + kind, data=payload);
-}
-
 impl find_profile_by_username(username: str) -> Profile | None {
     wanted = username.strip().lower();
     if wanted == "" {
@@ -348,59 +322,13 @@ impl get_user_profile.run with Root entry {
     }
 }
 
-impl set_avatar.run with Root entry {
-    visit [--> [?:Profile]] else {
-        report AvatarResult(error="Set up your profile first");
+impl set_avatar(image: File | None) -> ProfileResult {
+    mine = [root --> [?:Profile]];
+    if not mine {
+        return ProfileResult(error="Set up your profile first");
     }
-}
-
-impl set_avatar.apply with Profile entry {
-    check = decode_avatar(self.data_url);
-    if not check.ok {
-        report AvatarResult(error=check.error);
-        disengage;
-    }
-    stamp = now_iso();
-    existing = [here ->:HasAvatar:-> [?:Avatar]];
-    if existing {
-        existing[0].mime = check.mime;
-        existing[0].data = check.data;
-        existing[0].updated_at = stamp;
-    } else {
-        fresh = here +>:HasAvatar():+> Avatar(mime=check.mime, data=check.data, updated_at=stamp);
-        grant(fresh, level=AccessLevel.READ);
-    }
-    here.avatar_v = stamp;
-    report AvatarResult(ok=True, avatar_v=stamp, avatar_url=avatar_url_of(here));
-}
-
-impl clear_avatar.run with Root entry {
-    visit [--> [?:Profile]] else {
-        report AvatarResult(error="Set up your profile first");
-    }
-}
-
-impl clear_avatar.apply with Profile entry {
-    for av in [here ->:HasAvatar:-> [?:Avatar]] {
-        del av;
-    }
-    here.avatar_v = "";
-    report AvatarResult(ok=True);
-}
-
-impl get_avatars.run with Root entry {
-    wanted: dict[str, bool] = {};
-    for u in self.usernames {
-        wanted[u.lower()] = True;
-    }
-    for r in everyones_roots() {
-        for p in [r --> [?:Profile]] {
-            if p.username.lower() in wanted and p.avatar_v != "" {
-                self.found[p.username] = avatar_url_of(p);
-            }
-        }
-    }
-    report self.found;
+    mine[0].avatar = image;
+    return ProfileResult(ok=True, bundle=profile_bundle(mine[0]));
 }
 
 impl get_all_profiles.run with Root entry {
@@ -663,14 +591,6 @@ impl create_channel_tweet.act with Channel entry {
         }
         disengage;
     }
-}
-
-impl avatar_url_of(self_: Profile) -> str {
-    av = [self_ ->:HasAvatar:-> [?:Avatar]];
-    if not av {
-        return "";
-    }
-    return "data:" + av[0].mime + ";base64," + av[0].data;
 }
 
 impl profile_bundle(self_: Profile) -> ProfileBundle {

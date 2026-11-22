@@ -3,9 +3,9 @@ the plugin that carries requests between apps and answers the ones that
 come, and what crosses it.
 
 A call travels as a `Request` (a path that names the endpoint, a JSON body)
-and its answer as a `Response`: a status and a JSON body, or a stream's
-events as they are made. A transport knows requests and replies, and nothing
-of what they ask."""
+and its answer as a `Response`: a status and a JSON body, a stream's events
+as they are made, or a body of known length sent a piece at a time. A
+transport knows requests and replies, and nothing of what they ask."""
 
 import json;
 import from common.contract { Host }
@@ -22,13 +22,18 @@ obj Request {
 }
 
 """A reply. One with `events` is a stream: its body is them, each sent as it
-is made, and `body` is not."""
+is made, and `body` is not. One with `pieces` has a body too large to hold
+whole (a file's bytes): its body is them, `length` bytes in all, each read
+as it is sent. `length` alone, with neither, is how long the body would be,
+for a reply that sends none (a HEAD's)."""
 obj Response {
     has status: int = 200,
         ctype: str = "application/json",
         body: bytes = b"",
         headers: dict[str, str] = {},
-        events: Iterator[bytes] | None = None;
+        events: Iterator[bytes] | None = None,
+        pieces: Iterator[bytes] | None = None,
+        length: int = -1;
 }
 
 """Work the thread that listens does every `every` seconds: its host's own
@@ -66,7 +71,8 @@ what they ask.
   takes no address yet: `claim` does.
 - `send` carries `r` to the app at `address`, which is the transport's own
   to read, and gives its reply: a reply with `events` for a stream, each a
-  whole event as the app sent it. It waits `seconds` at most for the app to
+  whole event as the app sent it, and its headers by their names in
+  lowercase. It waits `seconds` at most for the app to
   say something, and what listens says that a call is still being answered,
   and a stream still open, more often than a caller waits: so a call takes
   as long as it takes, and only an app that has gone silent is given up on.
@@ -79,7 +85,8 @@ what they ask.
   its data, so a copy that can't listen changes nothing.
 - `listen` answers the requests that come to the address `claim` took with
   `handle`, each as it comes and several at once, until the program ends:
-  it returns only then. It runs each of `ticks` when it is due and what
+  it returns only then. A reply's `pieces` are sent each as it is read, and
+  a reply to a HEAD sends its head alone. It runs each of `ticks` when it is due and what
   `on_loop` is given, on the thread that called it, and tells `listening`
   the port it took.
 - `on_loop` has that thread run `work`, as soon as it turns; `serving` is

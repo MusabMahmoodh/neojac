@@ -1,6 +1,6 @@
 ---
 description: Plugins, the mechanisms behind the language's abstractions - the abstractions that take one and where each declares itself, binding a plugin in jac.toml, the plugins neojac ships, listing several and picking one where the program runs, the two that are picked as a space is built, settings and secrets, a project's own plugin by its path, writing one against its abstraction's contract, what a plugin imports and what its host gives it, and what is refused.
-keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits
+keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin
 ---
 # Plugins
 
@@ -29,6 +29,7 @@ which neojac ships and a project uses until it names another.
 | `jobs` | `@job`, `flow f(x)`, `wait j` | `jobs.contract.Jobs` | Project | As the program starts | `process_jobs` |
 | `schedule` | `@schedule` | `schedule.contract.Scheduler` | Project | As the program starts | `loop_schedule` |
 | `limits` | `@limit`, `consume_limit` | `limits.contract.Limits` | Project | As the program starts | `memory_limits` |
+| `files` | `File`, `@accepts` | `files.contract.Files` | Project | As the program starts | `local_files` |
 | `ui` | A component: `has` in a function, `can with entry`, JSX | A `[ui]` table of the plugin's `jac.toml` | Space | As the space is built | Its host's: `react` in a browser, `react_native` on hermes, `none` on node |
 | `bundler` | Nothing: a JavaScript space is bundled as it is built | A `[bundler]` table of the plugin's `jac.toml` | Space | As the space is built | The one the space's `ui` plugin names: `vite`, `expo` |
 
@@ -44,7 +45,7 @@ abstractions/
     jac.toml        the abstraction: its interface, its version, its standard plugin
     contract.jac    the contract: `Store`, and the types that cross it
     sqlite/         the standard plugin
-  auth/  transport/  llm/  jobs/  schedule/  limits/     each the same
+  auth/  transport/  llm/  jobs/  schedule/  limits/  files/     each the same
   ui/               jac.toml, and react/ preact/ solid/ react_native/ none/
   bundler/          jac.toml, and vite/ expo/
   common/           contract.jac: what every plugin may use, whatever it fills
@@ -79,12 +80,13 @@ above the plugin imports it, and it imports nothing of either
 ([What a plugin imports](#what-a-plugin-imports)).
 
 **Each interface has a version,** a number that goes up when the interface changes so that a
-plugin written for it would not survive. Every interface is at 1 in this neojac. A plugin says
+plugin written for it would not survive. Every interface is at 1 in this neojac but
+`transport`'s, which is at 2. A plugin says
 the version it was written for (`interface_ver`, [below](#writing-a-plugin)), and one written for
 another is refused before anything is asked of it (E2230): the message is that the interface
 moved on, and not that some method of the plugin's class is missing.
 
-**Seven are picked as a program starts, and two as a space is built.** A plugin of the first seven
+**Eight are picked as a program starts, and two as a space is built.** A plugin of the first eight
 is a class that runs with the program, so a program may hold several and start with one. `ui` and
 `bundler` decide what the compiler and the build make of a JavaScript space, so a space is built
 with one of each, and they have a page of their own:
@@ -189,6 +191,7 @@ Giving one a value in `jac.toml` is E1053.
 | `process_jobs` | `jobs`: each job in a copy of the program | `dir`, where a job's input and what it says are kept while it runs: `jobs` in the app's data directory |
 | `loop_schedule` | `schedule`: each scheduled function run by the thread that listens, when it is due | `tick`, how often its clock looks for one that is due, in seconds: `0.25` |
 | `memory_limits` | `limits`: uses counted in the program's memory | `sweep_at`, how many actors' uses are kept before those whose window has passed are let go: `1024` |
+| `local_files` | `files`: each file's bytes in a file of the app's data directory, and what is known of each in a SQLite file beside them, which the programs of one machine may keep together | `path`, the directory: `files` in the app's data directory ([Files](files.md#where-files-are-kept)) |
 | `react` | `ui`: React, with React Router's file routes. A browser space's standard | None |
 | `preact` | `ui`: Preact | None |
 | `solid` | `ui`: Solid, whose state is fine-grained | None |
@@ -202,7 +205,7 @@ each `ui` plugin does with a component, and what each bundler does, is on
 [UI plugins and bundlers](ui-bindings.md).
 
 An abstraction that every app has one of (`auth`, `transport`, `llm`, `jobs`, `schedule`,
-`limits`) is bound for the project, in `[<abstraction>]`. `store`, `ui` and `bundler` may also be
+`limits`, `files`) is bound for the project, in `[<abstraction>]`. `store`, `ui` and `bundler` may also be
 bound for one space.
 
 ## Writing a plugin
@@ -307,7 +310,7 @@ program as a host, an interface the contract declares and the program implements
 
 | Host | Whose `open` is given it | What a plugin asks it |
 |---|---|---|
-| `common.contract`'s `Host` | `Store`, `Transport`, `Model`, `Scheduler`, `Limits` | `data_dir()`, where the program keeps files beside itself, its app's data directory ([An app's data](data.md#where-it-is-kept)); `secret(s)`, what the place the program runs gives a `Secret`, or `""`; `upgraded(what)`, to have the program say as it starts what the plugin did to data it keeps |
+| `common.contract`'s `Host` | `Store`, `Transport`, `Model`, `Scheduler`, `Limits`, `Files` | `data_dir()`, where the program keeps files beside itself, its app's data directory ([An app's data](data.md#where-it-is-kept)); `secret(s)`, what the place the program runs gives a `Secret`, or `""`; `upgraded(what)`, to have the program say as it starts what the plugin did to data it keeps |
 | `auth.contract`'s `AuthHost` | `Auth` | A `Host`'s, and `windowed()`, whether the app shows itself in a window of its own; `consume_limit(scope, actor, limit, seconds)`, a use counted by the project's `limits` |
 | `jobs.contract`'s `JobsHost` | `Jobs` | A `Host`'s, and `command()`, the command that runs the program again; `owner()`, the space whose jobs a copy's are; `run(name, input, note)` and `run_space(owner, name, input, note)`, which run a job where the plugin has it run |
 
@@ -402,6 +405,7 @@ example of its interface:
 | `queue_jobs` | `jobs` | One worker, which runs the jobs queued in their order |
 | `timer_schedule` | `schedule` | A thread for each scheduled function, which sleeps until it is due |
 | `file_limits` | `limits` | Uses counted in a SQLite file, so they outlast the program |
+| `flat_files` | `files` | Each file's bytes in one directory, and what is known of it in a JSON file beside it: no database |
 
 ## What is refused
 

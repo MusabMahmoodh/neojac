@@ -18,6 +18,7 @@ A module names an abstraction and leaves its mechanism unsaid:
 | `greet("jac")`, `greet` a function of another space | A call | Whether it leaves the process, or what carries it ([Crossings](../apps/crossings.md)) |
 | `def:protect` | Only a signed-in caller may call this | How a caller is known ([Access tags](access.md)) |
 | `def triage(m: str) -> Ticket by llm();` | A model gives a `Ticket` | Which model ([By and sem](by-and-sem.md)) |
+| `has image: File;` in a node | The node holds a file, kept as long as the node is | Where its bytes are kept, or under what name ([Files](../apps/files.md)) |
 | `has count: int = 0;` in a component | State the page shows | Which UI library holds it ([Components and JSX](../apps/components.md)) |
 
 So a mechanism changes and no module changes with it. This component is the same source under
@@ -83,6 +84,7 @@ A project chooses, in `jac.toml`, what carries each of these out ([Plugins](../a
 | `transport` | A call to another space | `http` |
 | `llm` | `by llm()` | `anthropic` |
 | `jobs`, `schedule`, `limits` | `@job`, `@schedule`, `@limit` | `process_jobs`, `loop_schedule`, `memory_limits` |
+| `files` | `File`, `@accepts` | `local_files` |
 | `ui` | A component's `has`, its effects, its JSX | `react`, `preact`, `solid`, `react_native`, `none` |
 | `bundler` | Nothing: a JavaScript space is bundled as it is built | `vite`, `expo` |
 

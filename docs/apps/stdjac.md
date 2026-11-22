@@ -23,7 +23,7 @@ Nothing of it is generated per project; each app is its spaces' modules, stdjac'
 plugins', and what differs between apps is the plan the build bakes in
 ([Building apps](building.md), `neojac docs apps/building`).
 
-A program says eight of stdjac's names with no import, and imports the rest from `stdjac`
+A program says ten of stdjac's names with no import, and imports the rest from `stdjac`
 itself, as it imports from any module, with no wire in the archwire:
 `import from stdjac { grant, AccessLevel }`. Any program may, in an app or not. A program never
 names the module of stdjac a name is in: where a name lives is stdjac's to change.
@@ -39,6 +39,7 @@ A program says these without importing them, as it says `root` and `print`:
 | `schedule` | `schedule` | [The server's words](stdjac-server.md) |
 | `limit` | `limits` | [The server's words](stdjac-server.md) |
 | `restspec`, `HTTPMethod` | `transport` | [The server's words](stdjac-server.md) |
+| `File`, `accepts` | `files` | [Files](files.md) |
 
 A name of the program's own with the same spelling (a parameter, a local, a global, a function,
 an import) is the one the program means.
@@ -51,6 +52,7 @@ Every other name a program uses of stdjac is imported from `stdjac` itself:
 |---|---|---|
 | The kept graph | `jobj`, `remove`, `allroots`, `grant`, `AccessLevel`, `commit`, `sweep`, `DataError`, and `StoreConflict`, what a write another's got ahead of raises | [Below](#the-kept-graph), and [An app's data](data.md) |
 | The server | `JobFailed`, `consume_limit`, `static_file` | [The server's words](stdjac-server.md) |
+| Files | `FileError`, what a `File` made with a type that is none, or with bytes that are not its type's, raises | [Files](files.md) |
 | Crossings | The exceptions a failed crossing raises (`RemoteError`, `RemoteUnavailable`, `RemoteTimeout`, `RemoteRejected`, `RemoteDecodeError`, `RemoteFailed`), and the `Request` a program that answers one itself is given | [Below](#crossings), and [Crossings](crossings.md) |
 | The codec | `encode`, `decode`, `CodecError`: values to JSON's values and back, by their types, as a crossing sends them | [Below](#the-codec) |
 | The plan and the deployment values | `plan`, `keep_arrangement`, `remote_url`, `env_name`, `data_dir` | [Below](#the-plan) |
@@ -71,6 +73,7 @@ The contracts, which a plugin imports and a program does not:
 | `jobs.contract` | `Jobs` | `JobState`, `JobsHost` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `schedule.contract` | `Scheduler` | `Scheduled` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `limits.contract` | `Limits` | | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
+| `files.contract` | `Files` | `Kept` | [Files](files.md#where-files-are-kept) |
 | `common.contract` | None: every plugin may use it | `Host`, `Secret`, `DataError` | [Plugins](plugins.md#what-a-plugin-imports) |
 
 A browser, hermes or node space compiles the stdjac module a name it imports is in with its own
@@ -79,6 +82,12 @@ such. The names of crossings' failures, the kept graph, the plan and the server 
 runtime, and an import of one there is E1540 (`the module 'stdjac.plan' needs the native
 runtime's own definitions, which a node space does not provide`). Such a space imports its
 runtime from `"@jac/runtime"` instead ([Pages](pages.md#jacruntime)).
+
+`File` is a module of its own on each side: where a program keeps files it is stdjac's `files`,
+and in a browser or hermes space its `page_files`, whose `File` holds what the page has and is
+sent when it crosses ([Files](files.md#in-a-page)). The two declare the same three fields, which
+is what crosses. A cpython space has the first, as a native one has. A node or wasm space has
+neither yet, and `File` there is E5090.
 
 ## The modules the build adds
 
@@ -142,9 +151,9 @@ which conforms to `transport.contract`'s `Transport`. It carries a `Request` and
 | Method | Is |
 |---|---|
 | `open(host: dyn Host)` | The first thing asked of it, given the program it runs in ([Plugins](plugins.md#what-a-plugin-imports)). It takes no address yet |
-| `send(address: str, r: Request, seconds: float) -> Response` | `r` carried to the app at `address`, and its reply: one with `events` for a stream. `TimeoutError` for an app that says nothing for `seconds`, `OSError` for one that can't be reached |
+| `send(address: str, r: Request, seconds: float) -> Response` | `r` carried to the app at `address`, and its reply, its headers by their names in lowercase: one with `events` for a stream. `TimeoutError` for an app that says nothing for `seconds`, `OSError` for one that can't be reached |
 | `claim(address: str) -> Claim` | `address` (`host:port`; port `0`, one the system picks) taken for the program, so that no other program can take it. `CannotListen`, with the reason, where it can't be |
-| `listen(claim: Claim, handle: Callable[[Request], Response], ticks: list[Tick], listening: Callable[[int], None] \| None)` | The requests that come to the address `claim` took answered with `handle`, several at once, until the program ends. The thread that called it runs each of `ticks` when it is due, and tells `listening` the port it took |
+| `listen(claim: Claim, handle: Callable[[Request], Response], ticks: list[Tick], listening: Callable[[int], None] \| None)` | The requests that come to the address `claim` took answered with `handle`, several at once, until the program ends. A reply's `pieces` are sent each as it is read, and a reply to a `HEAD` sends its head alone. The thread that called it runs each of `ticks` when it is due, and tells `listening` the port it took |
 | `on_loop(work: Callable[[], None])` | That thread runs `work`, as soon as it turns |
 | `serving() -> bool` | Whether it listens |
 | `serves_paths() -> bool` | Whether a request it carries may ask for any path: a function's own ([`@restspec`](server.md#a-path-of-its-own-restspec)), a page and its files |
@@ -171,7 +180,7 @@ which conforms to `transport.contract`'s `Transport`. It carries a `Request` and
 | Type | Fields |
 |---|---|
 | `Request` | `method`, `path`, `query`, `headers: dict[str, str]` (their names lowercased), `body: bytes`, `client` (the address it came from) |
-| `Response` | `status: int`, `ctype`, `body: bytes`, `headers`, `events: Iterator[bytes] \| None` (a stream's, each sent as it is made) |
+| `Response` | `status: int`, `ctype`, `body: bytes`, `headers`, `events: Iterator[bytes] \| None` (a stream's, each sent as it is made), `pieces: Iterator[bytes] \| None` (a body too large to hold whole, a file's: `length` bytes in all, each piece read as it is sent), `length: int` (`-1` for a reply whose body is `body`) |
 | `Tick` | `name`, `every: float` (seconds), `run` |
 | `Claim` | No fields of its own: a transport's subclass holds what it listens with |
 | `CannotListen` | An exception: `reason: str` |

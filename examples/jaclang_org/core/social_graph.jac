@@ -1,12 +1,9 @@
 import re;
-import base64;
 import datetime;
 import os;
 import from stdjac { AccessLevel, allroots, grant, jobj, remove }
 
 def _now -> str;
-
-def avatar_url_of(self_: Profile) -> str;
 
 def profile_bundle(self_: Profile) -> ProfileBundle;
 
@@ -15,8 +12,11 @@ def channel_bundle(self_: Channel, with_posts: bool) -> ChannelBundle;
 glob MAX_DISPLAY_NAME: int = 50,
      MAX_BIO: int = 280,
      MAX_LOCATION: int = 60,
-     MAX_WEBSITE: int = 200,
-     MAX_AVATAR_BYTES: int = 393216;
+     MAX_WEBSITE: int = 200;
+
+"""The most bytes a profile's picture may have: 384 KB, which a picture a
+page has cut to its square is far under."""
+comptime MAX_AVATAR_BYTES: int = 393216;
 
 edge Follow: Profile --> Profile {}
 
@@ -25,8 +25,6 @@ edge Post: Profile --> Tweet {}
 edge Member: Profile --> Channel {}
 
 edge ChannelPost: Channel --> Tweet {}
-
-edge HasAvatar: Profile --> Avatar {}
 
 node NinjaclawDesk {
     has started_at: str = "",
@@ -78,8 +76,6 @@ def clean_website(raw: str) -> FieldCheck;
 
 def clean_text(raw: str, limit: int, label: str) -> FieldCheck;
 
-def decode_avatar(data_url: str) -> AvatarCheck;
-
 def find_profile_by_username(username: str) -> Profile | None;
 
 walker:protect setup_profile {
@@ -117,28 +113,11 @@ walker:pub get_user_profile {
     can run with Root entry;
 }
 
-walker:protect set_avatar {
-    has data_url: str = "",
-        reports: list[AvatarResult] = [];
-
-    can run with Root entry;
-    can apply with Profile entry;
-}
-
-walker:protect clear_avatar {
-    has reports: list[AvatarResult] = [];
-
-    can run with Root entry;
-    can apply with Profile entry;
-}
-
-walker:pub get_avatars {
-    has usernames: list[str] = [],
-        found: dict[str, str] = {},
-        reports: list[dict[str, str]] = [];
-
-    can run with Root entry;
-}
+"""The caller's profile shows `image` as its picture from now on, or none
+for None. The picture is a file: the profile holds the File that names it,
+and the one it held before is no one's, and goes with the next sweep."""
+@accepts(most=MAX_AVATAR_BYTES, kinds=["image/jpeg", "image/png", "image/webp"])
+def:protect set_avatar(image: File | None) -> ProfileResult;
 
 walker:pub get_all_profiles {
     has results: list[Profile] = [],

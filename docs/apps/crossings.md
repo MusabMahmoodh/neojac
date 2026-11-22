@@ -377,6 +377,7 @@ Each value crosses as JSON, by its declared type:
 | An enum's member | Its name |
 | `i128`, `u128` | A string of its decimal digits |
 | `bytes`, `bytearray` | A string of hex digits |
+| `File` | An object of its `id`, `size` and `ctype`: never its bytes, which a page sends to the app before the call ([Files](files.md)) |
 | `complex` | `[real, imag]` |
 
 A node space tags each object it sends with its class's name, `{"__jac": "Reply", "text": "hello
@@ -386,6 +387,9 @@ or `prototype` sets no prototype and names no class in a node space.
 
 Decoding is strict. A missing field, an unknown argument or a value of the wrong JSON type is
 refused, never coerced: `"12"` is not an `int`. A field left out takes its default when it has one.
+`None` crosses as `null`, for every type it is a value of: a str, bytes, a list, a set, a dict and
+an object, and a union with `None` (`int | None`). It is never an `int`'s, a `float`'s, a `bool`'s,
+an enum's, a struct's or a tuple's.
 An object is restored, not constructed: its `init` and `postinit` do not run. An object whose class
 is a subclass of its field's declared type is refused when it is sent.
 
