@@ -298,7 +298,34 @@ with entry {
 `f.level = i32(9)` keeps 9's low three bits, 1.
 
 A C `union` is a Jac `union` ([Structs](../language/structs.md#unions)), declared in an import
-block as a record is.
+block as a record is, and held by value as one is. A union or a record a system header declares
+is declared the same way, with the fields of the header's layout:
+
+```jac
+import from c {
+    union sigval {
+        has sival_int: i32,
+            sival_ptr: ptr;
+    }
+
+    obj lldiv_t {
+        has quot: int,
+            rem: int;
+    }
+
+    def lldiv(a: int, b: int) -> lldiv_t;
+}
+
+with entry {
+    v = sigval(sival_int=i32(9));
+    q = lldiv(47, 5);
+    print(v.sival_int, q.quot, q.rem);
+}
+```
+
+```output
+9 9 2
+```
 
 ### One record across the program
 
