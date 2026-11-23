@@ -291,6 +291,30 @@ read gives strings and `typing.get_type_hints` gives the objects. It governs the
 classes too, and `neojac fmt --fix` keeps it there. In a program of any other host it does
 nothing, and is W3009.
 
+In such a module every annotation is the text written, and nothing more: `check` reads each as
+`any` and resolves no name in it, as Python does not, so an annotation may name what only an
+`if TYPE_CHECKING:` import would bind, or nothing at all. The module's program hands Python the
+text as written:
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import from __future__ { annotations }
+
+def f(x: int, ys: list[Undefined]) -> list[str] {
+    return [str(x)];
+}
+
+with entry {
+    print((f as any).__annotations__);
+    print(f("a", []));
+}
+```
+
+```text
+{'x': 'int', 'ys': 'list[Undefined]', 'return': 'list[str]'}
+['a']
+```
+
 ## Doc strings
 
 A doc string is the program's in a cpython space: a function's, a class's and a module's is its

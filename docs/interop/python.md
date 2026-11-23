@@ -61,7 +61,11 @@ package's `.pyi` files, or a `py.typed` package's annotations, in that order, an
 CPython's standard library. Where the stubs declare everything a module or class has, a name it
 lacks is a compile error, and so is a call its signature does not bind. The type of what an
 attribute or a call gives follows from the stubs, so a chain (`np.linalg.inv(a).sum()`) is checked
-through. A module with no stubs is dynamic and checks nothing.
+through. A module with no stubs is dynamic and checks nothing. A name the stubs declare only
+under another platform's `sys.platform` branch (`os.pidfd_open`, Linux's; `signal.CTRL_C_EVENT`,
+Windows's) is read where it runs, as a Python object: where the platform lacks it, it is Python's
+`AttributeError` there, so code that tests the platform first runs on every one. A name declared
+only for another Python version is still E1030.
 
 ```jac
 # expect: E1030, E1052, E1051, E1050, E1001
