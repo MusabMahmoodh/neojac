@@ -164,7 +164,10 @@ back, E4043 for the source held back).
 **The plan.** `neojac port --check` prints what would port and what is refused, and in a project
 the plan: each module after the modules of the project it imports, so that each step leaves a
 project that builds, and modules that import each other as one group that ports together.
-`--json` prints the same as data.
+`--json` prints the same as data. A check leaves the project as it found it: what it tries in
+place (a crate's manifest, `jac.toml`, `archwire.jac`) is put back with its text and its times of
+change, so a build or another check after it finds nothing changed, and a second check of a
+crate takes cargo's plan of it from the build cache.
 
 ```text
 $ neojac port --check shop
