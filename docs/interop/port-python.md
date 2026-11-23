@@ -11,7 +11,8 @@ reads (`neojac port --mapping python`).
 
 Every name is `any`, which is what a name in Python is: its operations are resolved as the
 program runs, and raise `TypeError` where Python does. An annotation is carried as the Python
-object the source names (`skip: builtins.int = 0`, a class by its name), which `check` reads as
+object the source names (`skip: builtins.int = 0`, a class by its name; on a cpython space a
+variable of the module by its name, and a string as the string), which `check` reads as
 `any` and a cpython space hands Python as written. In a module that postpones its annotations
 (`from __future__ import annotations`), each annotation is the source's text, as written
 (`int`, `Decimal | None`), which `check` reads as `any` and Python keeps as that text. The port is a program of a cpython space
@@ -19,7 +20,8 @@ object the source names (`skip: builtins.int = 0`, a class by its name), which `
 Scaffolding keeps Python's meaning where Jac's would differ: a name the module's code binds is a
 `glob` the code assigns, a local a nested function takes is declared at the top of its
 function, each unbound until it is bound, as Python's, and a default that is not a constant is
-held in a variable made where the `def` runs.
+held in a variable made where the `def` runs, which a cpython space hands Python as the
+default's value (`inspect.signature` shows it).
 
 | Python | Jac |
 |---|---|
@@ -63,7 +65,7 @@ held in a variable made where the `def` runs.
 ## What is refused
 
 Anything not in the table is refused with E4001, and nothing is written for the file. So is a
-construct in the table whose Jac would mean something else (E4005):
+construct in the table whose Jac would mean something else (E4005, or E4001 where marked):
 
 - **A default value that is not a constant, of a function made in a loop.** Python makes one
   for each function it makes; the variable port holds it in would be shared.
@@ -72,14 +74,14 @@ construct in the table whose Jac would mean something else (E4005):
 - **`global x` in a function inside one whose local `x` is.** Assigning `x` in Jac assigns the
   enclosing function's local.
 - **A member declared in two arms of a class body's `if` whose test only the running program
-  knows.** A Jac class declares each member once.
+  knows** (E4001). A Jac class declares each member once.
 - **A module-level function, class or import that the module's code binds again.** Its Jac
   name is bound once, as the program starts.
 - **`from m import *` whose names port cannot know:** of a module not of the project, or of
   one whose `__all__` is not one list of names written out, that imports `*` itself, reaches
   its names through `globals()`, binds one only in a function or deletes one in a block; and
   one that binds a name the importing module also binds.
-- **A variable or a parameter of two leading underscores in a class's code** (`__x`), which
+- **A variable or a parameter of two leading underscores in a class's code** (`__x`, E4001), which
   Python renames with the class's name; an attribute, a field or a method so named is written
   as Python renames it (`self.__x` in `class C` is `self._C__x`).
 - **A read of a name nothing in the module binds, nor Python's builtins** (`left_out()`): Python
