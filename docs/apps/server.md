@@ -154,7 +154,7 @@ any other.
 | 403 | `rejected` | An untagged endpoint, and no deployment key: `an internal endpoint` |
 | 404 | `failed` | No such endpoint |
 | 409 | `conflict` | What the call changed in the graph, other instances of the app changed first, each of the 4 times it ran ([An app's data](data.md#several-instances-on-one-store)) |
-| 500 | `failed` | The endpoint raised. The reply says only `<name> failed`; the exception is printed on the server's output. |
+| 500 | `failed` | The endpoint raised. The reply says only `<name> failed`; the exception is printed on the server's output, followed by the calls it passed through, outermost first, each a file, a line and a function (`  svc.jac:12, in greet`). |
 
 A request that is not a `POST` to an endpoint, a `restspec` route, a file's bytes or a served
 page's file is `404 not found`. The server never serves files from the directory it runs in.
@@ -351,6 +351,7 @@ Its settings, in `[auth.accounts]`:
 | `session_seconds` | `float` | `604800.0`, a week | How long a session lasts |
 | `local_users` | `bool` | `false` | An app in a window of its own takes the people at its machine as its users, by a name each gives and no password ([Hosts](hosts.md#local-users)) |
 | `email_required` | `bool` | `false` | An account is made only with an email address (`an account needs an email address`) |
+| `registration` | `bool` | `true` | One the app does not know may make themselves an account, by registering or by signing in through GitHub for the first time. With `false` the sign-in form offers no `register`, and either is refused (`this app makes no new accounts: ask whoever runs it for one`): the accounts are the ones there are |
 | `github_id`, `github_secret` | `Secret` | The variables `SSO_GITHUB_CLIENT_ID` and `SSO_GITHUB_CLIENT_SECRET` | A GitHub OAuth app's client ID and secret, below |
 | `github`, `github_api` | `str` | `https://github.com`, `https://api.github.com` | Where GitHub is, and its API: others for GitHub Enterprise |
 | `origin` | `str` | `""` | Where callers reach the app (`https://example.org`), for the place another service sends them back to |
