@@ -407,12 +407,25 @@ with entry {
 
 ### One record across the program
 
-A C record is one type across the program by its C name, as C makes a type two files declare one
-type. Two modules' `import from c` blocks that declare `stamp` name the same type: a `stamp` one
-module's function returns is the `stamp` the other's takes. Their declarations agree, the same
-fields of the same types in the same order, or one of them declares it with no fields, opaque
-(E1236 otherwise). A record a [C module](c-modules.md)'s headers declare is the same type as one
-of that name a block declares.
+A C record's identity is C's own (C11 6.2.7). Declarations of one tag whose members agree, the
+same fields with the same names, widths and types in the same order and the same decorators, are
+one type across the program: two modules' `import from c` blocks that declare `stamp` alike name
+the same type, and a `stamp` one module's function returns is the `stamp` the other's takes. A
+record a [C module](c-modules.md)'s headers declare is the same type as a block's that agrees with
+it.
+
+Declarations of one tag that disagree are each their own module's type, as two C files may each
+include a header that gives the tag other members (a kernel's header and the C library's, say).
+Each module uses its own with its own layout, and the program compiles while the two never meet.
+One given where the other is expected is E1001, which names each by its module:
+
+```text
+main.jac:25:19: error[E1001]: expected main.stamp, found clock.stamp
+```
+
+A declaration with no fields, opaque, agrees with every complete one of its tag behind a pointer,
+as an incomplete type does in C: a `ptr[stamp]` of a module that declares `obj stamp;` takes and
+gives either module's.
 
 ### A record named in Jac other than by its tag
 

@@ -73,6 +73,13 @@ Counter(n=6) Counter(n=12)
 - **`Self` as a type is the class the method belongs to**, and in a subclass
   that inherits the method, the subclass. Use it for methods that return
   `self` or a new instance of the same class.
+  `Self | None` is `Self` or `None`, and counts as `Self` where a subclass
+  inherits the method.
+- **A static method's `Self` is the class it is called through**:
+  `Square.latest()` of a `static def latest -> Self | None` that `Shape`
+  declares is a `Square | None`. Such a method returns an instance of the
+  class it is called through, as a C++ base's `static T *last()` gives a
+  deriving class's object ([C modules](../interop/c-modules.md#c-making-the-jac-object)).
 - **`x.m` without a call is a bound method**: a function value that
   remembers the object `x` gave when it was read. `x` is evaluated once, at
   the read, and assigning `x` again later does not change the bound method.
@@ -190,8 +197,8 @@ A static method whose parameters are all positional, with no default, is
 a function as a value: `Temp.from_f` is the function itself, as a module
 function's name is. It equals itself, and C may hold it as a callback
 ([Callbacks](../interop/c-libraries.md#callbacks)). Any other static
-method's value is a function that calls it with its defaults, made where it
-is read.
+method's value is a function that calls it with its defaults. There is one
+such value per method, made once, so it too equals itself on every host.
 
 ```jac
 obj Temp {
@@ -209,12 +216,12 @@ obj Temp {
 with entry {
     conv = Temp.from_f;
     sc = Temp.scaled;
-    print(conv(212.0), conv == Temp.from_f, sc(1.5));
+    print(conv(212.0), conv == Temp.from_f, sc(1.5), sc == Temp.scaled);
 }
 ```
 
 ```output
-Temp(c=100.0) True 3.0
+Temp(c=100.0) True 3.0 True
 ```
 
 Python's `@staticmethod` is an error that names

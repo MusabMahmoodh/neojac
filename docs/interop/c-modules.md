@@ -538,13 +538,24 @@ figure/4/9 4
 - **`super.init` is the first statement of `init`**, and stands nowhere else: after another
   statement, a second time, or in another method it is
   [E2335](../reference/diagnostics/e22-4.md#e2335). It runs the direct base's own constructor,
-  so no other class's can be reached through it.
+  so no other class's can be reached through it. Where `init` writes no `super.init`, or the
+  class has no `init`, the base's constructor that takes no arguments makes the part, before
+  `init`'s body runs (after the fields' defaults and before `postinit` where there is no
+  `init`); where the base has none, that too is E2335.
 - **The C++ part is a subclass of `C`** whose overrides of every virtual method of `C` and its
   bases call the Jac object's method of that name. A method the Jac class does not override, and
   `super.area()`, run C++'s own definition. A pure virtual method the Jac class does not
   override raises `NotImplementedError` when called.
 - **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
   whose destructor runs code makes the deriving class an owned value too, bound `own`.
+- **The Jac class's `destroy` is its C++ part's destructor's body.** It runs once, when the part
+  ends, before the base's destructor: where Jac drops the object, and where C++ deletes the part
+  (`delete f` of the `Figure *` it was given). A C++ class with a member named `destroy` cannot
+  be derived, and its interface says why (E5133).
+- **A call that reaches the C++ part after it has ended**, or before it was made (a base
+  member, or the object given to C++), raises `RuntimeError`: "the C++ Figure part of this object
+  was never made, or has ended". What is the Jac object's own, its fields and the methods it
+  defines, still answers.
 - **A virtual method takes** numbers, C strings, pointers and classes (given to Jac borrowed), and
   gives nothing, a number, a pointer or a copyable class by value. A class with any other
   virtual method cannot be derived, and its interface says why (E5133).
@@ -588,17 +599,71 @@ with entry {
 13 3
 ```
 
-**Not done.** A Jac class deriving a C++ class is made by Jac, and only through `super.init`.
-These parts of it are not built yet:
+#### C++ making the Jac object
 
-- an `init` that writes no `super.init` running the base's default constructor (and E2335 where
-  the base has none);
-- the Jac class's `destroy` run by its C++ part's destructor, and `RuntimeError` for a call that
-  reaches the base after the C++ part has ended;
-- a C++ library making the Jac object itself (a template that does `new T(args)`, as
-  `Napi::ObjectWrap<T>` does), a static member of the base that gives `T *` giving the Jac
-  object, a list where C++ takes `std::initializer_list` or `std::vector`, and a Jac method given
-  where C++ takes a pointer to a member function.
+A class template a header library declares may make the class it is made with, as a library that
+keeps its users' objects does: `Keeper<T>::make(seed)` runs `new T(seed)`. A Jac class deriving
+it, `obj Kid(Keeper[Kid])`, is then made by C++ too: `new T(seed)` makes the Jac object, running
+its `init` with those arguments, and its `super.init` takes the C++ part C++ is making. `init`'s
+parameters are C++'s constructor's, numbers, `ptr` and C++ classes (as `const C &`), and since
+C++ constructs the base before any of `init` runs, each argument of `super.init` is one of
+`init`'s parameters, passed as it is, once
+([E2336](../reference/diagnostics/e22-4.md#e2336)).
+
+- **`T *` and `T &` are the Jac object itself.** A member of the base that gives `T *`
+  (`static T *last()`) gives the object C++ holds, or `None` for a null pointer, and one that
+  takes `const T &` takes the object. A `T` by value is not bound.
+- **A static method declared `-> Self | None`** in the base's interface has, called through the
+  deriving class, that class's type: `Kid.last()` is a `Kid | None`, as `Self` is.
+- **An object C++ made is C++'s until C++ deletes it** (`delete` in `Keeper<T>::end()`): the
+  delete runs its `destroy`, ends its C++ part and lets the Jac object go. An object Jac made
+  ends where its owner drops it, as any other.
+
+<!-- example: not checked: needs the C module whose tally.h declares Keeper -->
+```jac
+glob gone: list[str] = [];
+
+obj Kid(Keeper[Kid]) {
+    has seed: int = 0,
+        seen: bool = False;
+
+    def init(seed: i32) {
+        super.init(seed);
+        self.seed = int(seed);
+        self.seen = Kid.last() is self;
+    }
+
+    override def step -> i32 {
+        return i32(self.seed * 10);
+    }
+
+    def destroy {
+        gone.append(f"kid {self.seed}");
+    }
+}
+
+with entry {
+    made = Kid.make(i32(3));
+    k = Kid.last();
+    print(made, k is not None and k.seen, Kid.run(i32(2)), Kid.end(), Kid.run(i32(2)), gone);
+}
+```
+
+```text
+33 True 60 True -1 ['kid 3']
+```
+
+`make`, `run` and `end` are C++: `make` gives what its object's `step()`, Jac's override, gives
+plus the seed, and `run` is `-1` once `end` has deleted the object.
+
+**Not done.** These parts of a Jac class deriving a C++ class are not built yet:
+
+- a list where C++ takes `std::initializer_list<E>` or a `const std::vector<E> &`, a static of the
+  object's class given by its address, and a Jac method given where C++ takes a pointer to a
+  member function;
+- C++ making the object for a class template a C++ source module's header declares, rather than a
+  header library: such an instance is made in `libcxx`'s unit, and has no constructor for `init`
+  yet.
 
 ### C++ values whose destructor runs code
 
@@ -955,7 +1020,7 @@ with entry {
 | E1144 | A Jac module imports its own package's C module instead of taking a wire, or declares the functions of a C module of the project's own |
 | E1576 | A wire from a C module of the project's own, where its files are its modules |
 | E5158 | A key of a C module's table in `jac.toml` of the wrong kind |
-| E1236 | Two declarations of one C record that disagree |
+| E1001 | A C record given where another module's record of its tag, with other fields, is expected |
 | E1237 | C data a Jac module gives C of a type C cannot read |
 | E1256 | A C++ value whose destructor runs code, bound without `own` |
 | E5090 | A C module in a build for `wasm32-wasi` |

@@ -1,6 +1,7 @@
 ---
-description: What a cpython space makes as Python does - a class with a Python base, a Python decorator or a run-time if in its body, and a class in a code body, made where its statement runs; decorators that run as a function is made; annotations Python reads; doc strings; imports in a code body; generators and raise of any object - and what each is refused as elsewhere.
-keywords: host-made class, Python base, NamedTuple, dataclass, total_ordering, class decorator, run-time decorator, staticmethod, classmethod, annotations, inspect.signature, __annotations__, Annotated, typing.Any, Python class in Jac
+description: What a cpython space makes as Python does - a class with a Python base, a Python decorator or a run-time if or a try in its body, and a class in a code body, made where its statement runs; decorators that run as a function is made; annotations Python reads; doc strings; imports in a code body; the names a module's imports bind; generators and raise of any object - and what each is refused as elsewhere.
+keywords: host-made class, class body try, Python base, NamedTuple, dataclass, total_ordering, class decorator, run-time decorator, staticmethod, classmethod, annotations, inspect.signature, __annotations__, Annotated, typing.Any, Python class in Jac, importlib.reload, __spec__
+grammar: members_try
 ---
 # Classes and decorators in a cpython space
 
@@ -38,7 +39,7 @@ A class is made by Python, as its `class` statement runs, when it has any of the
   (`@dataclass`, `@functools.total_ordering`), or a function of the program's own
   (`@retry_on_failure()`, [below](#a-class-decorated-by-a-function-of-the-program));
 - **an `if` among its members that is not `comptime`**, whose test is known only as the program
-  runs.
+  runs, or **a `try` among its members** ([below](#a-class-bodys-try)).
 - **a static field whose value reads a global its module's code makes** (`glob POSIX: any;`
   set in `with entry`, then `static has kinds: any = ["a"] if POSIX else [];`): made where its
   statement stands, after that code has run, as Python would. Natively, the class's statics are
@@ -177,7 +178,9 @@ compile-time function.
 ### A class body's run-time `if`
 
 An `if` among a class's members runs as the class is made, and the members of the arm it takes are
-the class's. A member declared in two arms is refused: a Jac class declares each member once.
+the class's. A member is declared once, but for a static declared again in another arm of the
+same `if`, with the same annotation: it is one attribute, which the arm that runs sets. Any other
+member declared twice is E0077.
 
 <!-- example: not checked: runs in a cpython space -->
 ```jac
@@ -210,6 +213,50 @@ with entry {
 
 An `if` that tests the platform is a `comptime if`, which every host decides as the program
 compiles ([comptime if](../language/compile-time.md#among-declarations-and-members)).
+
+A static's value in a class Python makes reads the class's statics declared above it by their bare
+names, as a Python class body reads them: `static has big: int = small + 1;` after
+`static has small: int = 1;` reads the class's `small` ahead of any global of that name.
+Natively a class's statics are not names in its body (W2001).
+
+### A class body's `try`
+
+```ebnf
+members_try ::= "try" members_block ("except" expression members_block)* ("else" members_block)? ("finally" members_block)?
+```
+
+A `try` among a class's members runs as the class is made, as a `try` in a Python class body does:
+its block declares members until a statement raises, a handler whose class matches declares its
+own, `else` declares its members where nothing raised, and `finally` always does. A static
+declared in two arms of the `try`, with the same annotation, is one attribute, whose value is that
+of the arm that ran last. A handler does not name the exception: `except E as e` would make `e` an
+attribute of the class.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import os;
+
+class Limits {
+    try {
+        static has source: str = "env";
+        static has limit: int = int(os.environ.get("LIMIT", "none"));
+    } except ValueError {
+        static has limit: int = 4;
+    } else {
+        static has parsed: bool = True;
+    } finally {
+        static has read: bool = True;
+    }
+}
+
+with entry {
+    print(Limits.limit, Limits.source, hasattr(Limits, "parsed"), Limits.read);
+}
+```
+
+```text
+4 env False True
+```
 
 ### A class in a code body
 
@@ -256,6 +303,7 @@ A native or JavaScript program's classes are known as it compiles, so these are 
 | E5174 | A class or a function decorated by a Python callable |
 | E1490 | A class or a function decorated by a function of the program that is not compile-time |
 | E5175 | An `if` among a class's members that is not `comptime` |
+| E5220 | A `try` among a class's members |
 | E5176 | Natively, a class in a code body: declare it at the module's top level. On a JavaScript host JavaScript makes it where its statement runs, a new class each time, as Python does ([Hosts](../apps/hosts.md)) |
 | E2101 | Keywords after a class's bases |
 
@@ -525,6 +573,62 @@ b.txt True
 `-> None` is the function's annotation there, which no lint rule removes in a cpython space
 ([Lint](../toolchain/lint.md)).
 
+A function or a class an import names is the importer's own binding, as Python's
+`from m import f` is: the import binds it where it runs, and a bare `f` reads the importer's
+global. A patch of the home module (`mock.patch.object(used_mod, "twice", zero)`, a `setattr`)
+changes what `used_mod.twice` is and leaves the importer's `twice` the function it took, as in
+Python. The binding is made as soon as the home module has made the name, so a class body, a base,
+a decorator or a default of the importer reads it while the importer is made. A global an import
+names stays one place, its module's: Jac lets a program write a global through the name an import
+gives it, and every name of it sees the write.
+
+Every module of the space has its `__spec__` and `__loader__`, the module the program starts with
+too, so `importlib.reload(m)` runs a module's code again, and an importer's reload takes the
+current value of each name it imports.
+
+<!-- example: not checked: runs in a cpython space whose module kit/used.jac is wired as `kit.used ++> main { count, counted, twice }` and `kit.used as used_mod ++> main;` -->
+```jac
+import importlib;
+
+def zero(n: int) -> int {
+    return 0;
+}
+
+def bump {
+    count = 7;
+}
+
+with entry {
+    m: any = used_mod;
+    setattr(m, "twice", zero);
+    print(twice(3), used_mod.twice(3));
+    bump();
+    print(count, used_mod.count, counted());
+    print(used_mod.__spec__.name, importlib.reload(used_mod) is used_mod, used_mod.twice(3));
+}
+```
+
+with `kit/used.jac` holding
+
+<!-- example: not checked: the module kit/used.jac of the space above -->
+```jac
+glob count: int = 0;
+
+def twice(n: int) -> int {
+    return n * 2;
+}
+
+def counted -> int {
+    return count;
+}
+```
+
+```text
+6 0
+7 7 7
+kit.used True 6
+```
+
 ## A module's `__file__`
 
 In a cpython space a module's `__file__` is its Jac source's whole path, as natively
@@ -547,6 +651,7 @@ and a module that finds its files beside itself (`os.path.dirname(__file__)`) fi
 | E5173 | An import in a code body of what Python cannot load as it runs |
 | E5174 | Outside a cpython space: a class or function decorated by a Python callable |
 | E5175 | Outside a cpython space: an `if` among a class's members that is not `comptime` |
+| E5220 | Outside a cpython space: a `try` among a class's members |
 | E5176 | Outside a cpython space: a class in a code body |
 | E5177 | A class in a code body that reads a name of that body |
-| E0077 | A member declared in two arms of a class body's `if` |
+| E0077 | A member declared in two arms of a class body's `if` or `try`, but a static of one annotation |
