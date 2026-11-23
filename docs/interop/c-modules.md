@@ -911,11 +911,27 @@ module's function gives is the string another's takes.
   `a = std::move(b)` is `a.op_assign_move(b)`, which leaves `b` as C++ leaves a moved-from value
   (a string empty).
 - **A free function, a constant or an enumerator of `std` is named `std_` and its C++ name too**,
-  looked up in `std` as C++ looks it up: `std_to_string` is `std::to_string`, an overload set a
+  looked up in `std` as C++ looks it up, a function libc++ gives through a `using` of a namespace
+  of its own (`std::signbit`) among them: `std_to_string` is `std::to_string`, an overload set a
   program imports by that name and calls by its member's, named by its parameters as every C++
-  overload set is (`std_to_string_i32(i32(420))`); `std_memory_order_relaxed` is the enumerator
-  `std::memory_order_relaxed`, an `int` (`u32(std_memory_order_relaxed)` where a member takes the
-  enum).
+  overload set is (`std_to_string_i32(i32(420))`). A C function `std` gives again
+  (`std::printf`) is C's, imported from `c`.
+- **A function template of `std` is called by its instance**, as a header library's is
+  ([Function templates](#function-templates)). Where the set has more than one template, each is
+  named by all its parameters, one whose type is a type parameter of the template by its place,
+  `T0`, `T1`: `std::min(a, b)` is `std_min_T0_T0[i32](a, b)`, beside `std_min_T0_T0_T1` (with a
+  comparator) and `std_min_std_initializer_list`, and `std::max` likewise. Two templates libc++
+  declares alike but for their constraints (`std::copy_n`'s) are one Jac template,
+  `std_copy_n_T0_T1_T2`.
+- **A `std` overload set of `float`, `double` and `long double`** is named by the Jac types,
+  `std_signbit_f32` and `std_signbit_f64`, where `long double` is another type; where it is
+  `double`, as on macOS on arm64, the two `double`s are named apart by their C++ spelling,
+  `std_signbit_double` and `std_signbit_long_double`. A port writes the call for each target
+  under `comptime if`.
+- **A `std` enumerator, and a `std` constant of an enum's type, have the enum's integer type**:
+  `std_memory_order_relaxed` is `std::memory_order_relaxed`, a `u32` (the type
+  `std::memory_order` is made of), which a member that takes the enum takes as it is
+  (`n.fetch_add(i64(3), std_memory_order_relaxed)`).
 - **A parameter whose C++ default is a constant may be left out**, as in C++: `s.find_i8_uword(c)`
   is `s.find(c)`, from position 0, and `s.substr(u64(1))` is the rest of the string from 1, its
   `n = npos` C++'s.
@@ -984,7 +1000,9 @@ import from libcxx {
     op_eq,
     std_allocator,
     std_char_traits,
+    std_max,
     std_memory_order_relaxed,
+    std_min,
     std_pair,
     std_string,
     std_to_string,
@@ -1015,6 +1033,7 @@ with entry {
         ),
         op_eq_std_basic_string_ptr_T0[i8, std_char_traits[i8], std_allocator[i8]](other, "421"),
     );
+    print(std_min_T0_T0[i32](i32(3), i32(7)), std_max_T0_T0[f64](2.5, 0.5));
 }
 ```
 
@@ -1023,6 +1042,7 @@ with entry {
 1 True 0
 420 21 True
 False True
+3 2.5
 ```
 
 `duo` is the pair the vector holds, so what the program writes to its fields the vector keeps. It
@@ -1066,13 +1086,14 @@ the container's name, `_`, and the member type, with the container's arguments.
 - **An overload set is named as any member's**: `std::unordered_map`'s `begin()` and `end()` have
   a bucket's overload beside them, so the container's are `begin_()` and `end_()`.
 - **`std::atomic<T>` is `std_atomic[T]`**, its members C++'s: `store`, `load`, `fetch_add` and the
-  rest. The memory order may be left out, as in C++ (`memory_order_seq_cst`), or given as the
-  `u32` of its enumerator: `u32(std_memory_order_relaxed)`, or the number `std::memory_order`
-  gives it (`u32(5)` is `memory_order_seq_cst`).
+  rest. The memory order may be left out, as in C++ (`memory_order_seq_cst`), or given as its
+  enumerator, `std_memory_order_relaxed`, a `u32`, or as the number `std::memory_order` gives it
+  (`u32(5)` is `memory_order_seq_cst`).
 
 ```jac
 import from libcxx {
     std_atomic,
+    std_memory_order_relaxed,
     std_unordered_map,
     std_unordered_map_iterator,
     std_vector,
@@ -1109,7 +1130,7 @@ def main {
     hits: own std_atomic[i64] = std_atomic[i64]();
     seq_cst = u32(5);
     hits.store(i64(1), seq_cst);
-    print(hits.fetch_add(i64(2), seq_cst), hits.load(seq_cst));
+    print(hits.fetch_add(i64(2), std_memory_order_relaxed), hits.load(seq_cst));
 }
 
 with entry {
