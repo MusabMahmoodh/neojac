@@ -180,7 +180,8 @@ A command that prints an answer shows the steps of the work the answer takes, an
 | Command | Steps |
 |---|---|
 | `neojac arch`, `neojac query arch` | `reading archwire.jac`, `reading the modules it names` |
-| `neojac query` of a program, `neojac port` checking what it made | The steps of a check |
+| `neojac query` of a program | The steps of a check up to `checking types`; all of them for `query diagnostics` and `query index` |
+| `neojac port` checking what it made | The steps of a check |
 | `neojac fmt` | `formatting · <done>/<all>: <file>` |
 | `neojac fmt --fix`, `neojac precommit` | `fixing and formatting`, then the steps of each check |
 
