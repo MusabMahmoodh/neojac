@@ -249,6 +249,11 @@ declarations differ throughout go to the module's target variant files (`geom.wi
 which [Modules](../language/modules.md) describes. Python's tests of `sys.platform` and
 `os.name` port to `comptime if` the same way.
 
+A Python module that another imports only under a test of the platform (`if sys.platform ==
+"win32": from . import _windows`) is in the plan's group of its importer, and ports with it: the
+group is checked for each target, and the module only for the targets whose test picks it, as
+Python imports it only there.
+
 ## What is refused
 
 A file ports whole or not at all. Port reports every construct it refuses, each at its place in
