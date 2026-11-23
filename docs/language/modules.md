@@ -211,6 +211,12 @@ all identifiers, the stem and each directory, is imported by its dotted name, an
 one is E2310, in an import as in a wire or a layer: `import from "./util" { two }` is
 `import from .util { two }`, and `"util" ++> main { two }` is `util ++> main { two }`.
 
+In a cpython space a module is a Python module, named by its path's parts joined by `.`
+(`pkg/mod.jac` is `pkg.mod`). Python cannot name a module with a dot inside a part, so a dot in a
+part of the path is `_` in its Python name, as pytest names such a module: `types.gen.jac` is the
+Python module `types_gen`. Two modules of one cpython program with one Python name (`types.gen.jac`
+beside `types_gen.jac`) are E2300.
+
 `sqlite-error.jac` and `main.jac`:
 
 ```jac

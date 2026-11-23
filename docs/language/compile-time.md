@@ -276,10 +276,11 @@ The output is a Linux or macOS build's.
   `target()`'s fields (`os`, `arch`, `device`, `cpu`, `vector_bits`, from
   [Compile-time values](compile-time-values.md#target)), literals (a bool, a
   str, an int, a list or tuple of them), `==`, `!=`, `<`, `<=`, `>`, `>=`,
-  `in`, `not in`, `and`, `or` and `not`. `target` is imported from
-  `jaclang.comptime` at the module's top, under any name. A condition naming
-  anything else (a `glob`, a compile-time global, a call) is E2290, and one
-  that is not a bool is E0108.
+  `in`, `not in`, `and`, `or` and `not`, and `hasattr(M, "name")` of a
+  module `M` this module imports ([below](#hasattr-of-a-module)). `target` is
+  imported from `jaclang.comptime` at the module's top, under any name. A
+  condition naming anything else (a `glob`, a compile-time global, another
+  call) is E2290, and one that is not a bool is E0108.
 - **Only the branch taken is declared.** The others are parsed and nothing
   more: not bound, not checked, their imports not loaded, and no wire is
   needed for them, so a branch may name a module or a function no other
@@ -299,6 +300,55 @@ running program knows. That is a class Python makes as its statement runs,
 which a `cpython` space has
 ([Classes and decorators in a cpython space](../interop/python-classes.md#classes-python-makes)); in any
 other space it is E5175.
+
+### hasattr of a module
+
+`hasattr(M, "name")`, where `M` is a module of the program, is a compile-time `bool`: whether
+`M`, compiled for this target, binds `name`: its declarations (those of the `comptime if`
+branches its target takes), its imports and the names its wires give it, and `__name__`,
+`__file__` and `__doc__`, which every module has. A function made in `M`'s
+`with entry` code is no attribute of it, and is not counted. The value is folded wherever it
+stands, so a `comptime if` tests it in a body and among declarations, and the branch not taken may
+use what `M` lacks on this target: this is how a module asks what a module that differs by target
+gives, rather than repeating the other module's test of the target.
+
+```jac
+import os;
+
+comptime if hasattr(os, "getcwd") {
+    def where -> str {
+        return "getcwd";
+    }
+} else {
+    def where -> str {
+        return os.cwd_by_another_name();
+    }
+}
+
+def described -> str {
+    comptime if hasattr(os, "nothing_here") {
+        return os.nothing_here();
+    } else {
+        return "no nothing_here";
+    }
+}
+
+with entry {
+    print(where(), described(), hasattr(os, "getcwd"));
+}
+```
+
+```output
+getcwd no nothing_here True
+```
+
+- **Among declarations it is decided when the module is linked**, after `M` is loaded, where
+  a test of the target alone is decided as the module is read. Two modules whose `comptime if`s
+  among declarations each ask `hasattr` of the other wait on each other, and that is E2301.
+- **In a cpython space, where `M` is a Python module that stays**, `hasattr` is Python's own,
+  asked when the program runs.
+- `hasattr` of a value that is not a module is Python's as everywhere: asked when the program
+  runs.
 
 ## comptime for
 
