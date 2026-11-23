@@ -195,8 +195,10 @@ with entry {
 
 `*args: any` as the last parameter makes the declaration variadic. Each extra argument is passed
 as C's default promotions pass it: an integer as a 64-bit word, a float as a `double`, a `str`,
-`bytes`, `bytearray` or pointer as an address. Any other argument is refused (E1157). A C
-function takes no `**kwargs` (E1158).
+`bytes`, `bytearray` or pointer as an address. A function is passed through `...` as C passes a
+function pointer there, as the pointer it is: `ptr(f)` (see [Callbacks](#callbacks)). Any other
+argument is refused (E1157), a function value as it is among them. A C function takes no
+`**kwargs` (E1158).
 
 A Jac function that takes arguments as C's `...` does, and passes them on to a variadic C
 function, takes them as a [type parameter pack](../language/generics.md#type-parameter-packs):
@@ -443,9 +445,9 @@ with entry {
 30 20 10 5
 ```
 
-Only a named function can be a callback; a lambda or a bound method cannot (E1195), and a
-`Callable` record field is assigned a named function, `None` or a conversion of one (below). `None`
-passes `NULL`, which removes a callback where C says so. A `str`
+Only a named function can be a callback as it is; a lambda or a bound method cannot (E1195), and
+a `Callable` record field is assigned a named function, `None` or a conversion of a function value
+(below). `None` passes `NULL`, which removes a callback where C says so. A `str`
 parameter of a callback receives C's `const char *` as a `str`. A callback's signature cannot
 take `bytes` or a `bytearray` (C passes no length), a C record by value, or another callback
 (E5090). An exception a callback raises does not unwind through C's frames: the callback returns
@@ -477,10 +479,11 @@ with entry {
 ```
 
 A function converts to another function pointer type, or to a pointer, by calling the type, as a
-data pointer converts by `ptr[T](p)`: `Callable[[int], int](f)` of a named function `f` is its
-C address as a function pointer of that type, and `ptr(f)` (or `ptr[T](f)`) the same address as
-a pointer. `Callable[[P], R](p)` of a `ptr` calls the address by the new type, as C's cast does:
-a signature that disagrees with the function's is undefined, as in C.
+data pointer converts by `ptr[T](p)`: `Callable[[int], int](f)` of a function `f` is its C
+address as a function pointer of that type, and `ptr(f)` (or `ptr[T](f)`) the same address as a
+pointer. `Callable[[P], R](p)` of a `ptr` calls the address by the new type, as C's cast does: a
+signature that disagrees with the function's is undefined, as in C. Two function pointers are
+the same function where their addresses are: `ptr(f) == ptr(g)`.
 
 ```jac
 import from c {
@@ -503,6 +506,81 @@ with entry {
 
 ```output
 -4 -5 False
+```
+
+`f` may be a named function or a value of a `Callable` type: a variable, a parameter or a record's
+field. A value made from a C address (what C passed, what a C record's field holds,
+`Callable[[P], R](p)`) gives that address; a named function's value gives the address `ptr(f)` of
+its name gives. That is how a function value reaches C, which takes no value as it is (E1195):
+its conversion is passed.
+
+```jac
+import from c {
+    obj Op {
+        has run: Callable[[int], int];
+    }
+
+    def qsort(base: ptr[i32], n: int, size: int, cmp: Callable[[ptr[i32], ptr[i32]], i32]) -> None;
+    def calloc(n: int, size: int) -> ptr[i32];
+    def free(p: ptr[i32]) -> None;
+}
+
+def negated(n: int) -> int {
+    return -n;
+}
+
+def descending(a: ptr[i32], b: ptr[i32]) -> i32 {
+    return b[0] - a[0];
+}
+
+def sort_by(xs: ptr[i32], n: int, cmp: Callable[[ptr[i32], ptr[i32]], i32]) {
+    qsort(xs, n, 4, Callable[[ptr[i32], ptr[i32]], i32](cmp));
+}
+
+with entry {
+    m = Op(run=negated);
+    copied = Op(run=Callable[[int], int](m.run));
+    nums = calloc(3, 4);
+    nums[0] = 5;
+    nums[1] = 30;
+    nums[2] = 10;
+    sort_by(nums, 3, descending);
+    print(copied.run(2), nums[0], nums[1], nums[2], ptr(copied.run) == ptr(negated));
+    free(nums);
+}
+```
+
+```output
+-2 30 10 5 True
+```
+
+A function value with no C address is refused where the compiler sees it, and raises where it
+does not: `ptr()` of a lambda written in place is E1195, and a value that reaches the conversion
+as it runs raises `TypeError` saying why: a closure that captures variables, a lambda or a bound
+method (`ptr(w.m)`), a callable converted from another type, or a function whose parameters or
+result C cannot take (a generator, a coroutine, a generic function, a `list` parameter).
+
+```jac
+def address(f: Callable[[int], int]) -> ptr {
+    return ptr(f);
+}
+
+with entry {
+    k = 2;
+    def scaled(n: int) -> int {
+        return n * k;
+    }
+    try {
+        p = address(scaled);
+        print("C may call it:", not p.is_null());
+    } except TypeError as e {
+        print(e);
+    }
+}
+```
+
+```output
+a closure that captures variables, or a callable converted from another type, has no C address
 ```
 
 ## Globals
