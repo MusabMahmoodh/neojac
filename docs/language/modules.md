@@ -83,7 +83,7 @@ modules on this page are such modules.
 
 | Form | Binds in the importing module |
 |---|---|
-| `import util;` | `util`, the module. Its members are `util.name`. |
+| `import util;` | `util`, the module. Its members are `util.name`; a global of it that holds a function is called through it as its own module calls it, `util.handler(4)` of `glob handler: Callable[[int], int]`. |
 | `import util as u;` | `u`, the module |
 | `import os, sys;` | Each module listed |
 | `import pkg.part;` | `pkg`, with the member `pkg.part` |
