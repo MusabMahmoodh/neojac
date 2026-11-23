@@ -25,6 +25,7 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `::operator new[](n * sizeof(T))`, `::operator delete[](p)`, `::operator new(n)`, `::operator delete(p)` | `op_new_array(n * u64(8))`, `op_delete_array(p)`, `op_new(n)`, `op_delete(p)`: C++'s replaceable allocation functions, from `libcxx`, so that memory a file that stays C++ allocates is freed by the port as C++ frees it, and the reverse; where C++ would throw `std::bad_alloc` they raise `MemoryError` |
 | `template <class T> T *filled(size_t n, T v) { ... sizeof(T) ... }`, `filled<int>(3, 4)`, `filled(2, 0.5)` | `def filled[T](n: u64, v: T) -> ptr[T] { ... u64(sizeof(T)) ... }`, `filled[i32](3, 4)`, `filled[float](2, 0.5)`: a function template of the file is a Jac generic, written once from its pattern and checked for each instance the program calls, with the type arguments C++ deduced written at the call |
 | `a == b`, `v[i]`, `s += t` on a class a library gives | `a.op_eq(b)`, `v.op_index(i)`, `s.op_iadd(t)`: the member its interface binds for the operator, `op_` and the operator's name, a conversion `op_to_` and its type |
+| `NULL` where C++ takes it as the integer it is (an argument of `...`) | `0`, of the type C++ gives it; where it becomes a pointer, `None` or the null address as C's `NULL` is |
 | `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference or of a pointer to an object of a class with virtual functions is refused |
 
 ## Overloads
@@ -42,7 +43,10 @@ its `impl` when it is defined outside the class, and a call names it by its clas
 is `C.boxes(13)`, and inside the class an unqualified `per_box()` is `C.per_box()` too. A static
 data member is a `static has` of its struct, with the value its class gives it or, when the file
 defines it outside the class (`int C::shelf = 40;`), the value that definition gives it; a use
-names it by its class (`C.shelf`).
+names it by its class (`C.shelf`). One of a C record's type is that record, and its address
+is the record's (`&C::OPS` is `addressof(C.OPS)`); the address of one of any other type is
+refused. A static member function is a named function as a value, so a field of a C record
+takes it as a callback (`Ops(version=1, twice=C.Twice)`).
 
 ## Library classes
 
@@ -164,8 +168,9 @@ A reference to a record port writes as a struct is a borrow of its place: `Count
 c->tally();` is `k: &mut Counts = &mut c.tally();`, `const Counts &seen = c->counts;` is
 `seen: &Counts = &c.counts;`, and `Counts &tally() { return counts; }` is
 `def tally -> &mut Counts { return &mut self.counts; }`. A field or a method of the borrow
-changes the place, as C++ changes it through the reference. A reference to a local is refused
-(E1323: a borrow starts at a parameter, `self`, an `own` value or another borrow).
+changes the place, as C++ changes it through the reference. A reference to a local record is
+a borrow of the local: `Counts &mr = mine;` is `mr: &mut Counts = &mut mine;`, and one that
+would outlive the local (returned, or kept past its block) is refused (E1306, E1304).
 
 ## What is refused
 

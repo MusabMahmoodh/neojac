@@ -88,7 +88,8 @@ construct in the table whose Jac would mean something else (E4005):
 - **An assignment, `++` or `--` used for its value where C evaluates it only sometimes** (on
   the right of `&&` or `||`, in an arm of `?:`, in a `for`'s condition or step, in an `else if`'s
   condition), **or whose target has side effects.** Elsewhere port writes it as a statement before
-  the one that uses its value.
+  the one that uses its value. An assignment of a local that holds a number or a pointer is
+  `(c := *tail)` wherever it stands.
 - **A `case` label that is not directly in its `switch`'s braces.**
 
 In a project, a C file that stays calls the Jac module's functions through its wire and the
