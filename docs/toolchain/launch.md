@@ -184,7 +184,9 @@ no one to prove it to.
 
 `neojac launch delete` takes the app away for good: its instances, its database with its accounts
 and its graph, its files, its logs, its domains, its images and its name, which anyone may then
-launch under. It asks for the app's name to be typed; `--yes` says it for a script.
+launch under. It asks for the app's name to be typed; `--yes` says it for a script. The platform
+takes it away in the minute that follows: until all it kept is gone, launching under its name is
+refused (`'shop' is being deleted`).
 
 ```sh
 neojac launch delete --as shop
