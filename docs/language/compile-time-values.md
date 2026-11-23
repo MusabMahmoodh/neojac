@@ -1,6 +1,6 @@
 ---
-description: What a compile-time value may be and compute (ints of any size, floats, strs, collections, structs of plain data), what the evaluator runs, how a value is read where code runs, and target(), bits() and signed() from jaclang.comptime.
-keywords: compile-time value, target, vector_bits, bits, signed
+description: What a compile-time value may be and compute (ints of any size, floats, strs, collections, structs of plain data), what the evaluator runs, how a value is read where code runs, and target(), bits(), signed() and sizeof() from jaclang.comptime.
+keywords: compile-time value, target, vector_bits, bits, signed, sizeof
 ---
 # Compile-time values
 
@@ -229,7 +229,7 @@ darwin aarch64 128 16384
 That is its output on an Apple-silicon Mac; built with
 `--target linux-x86_64 --cpu x86-64-v3` it prints `linux x86_64 256 4096`.
 
-## bits() and signed()
+## bits(), signed() and sizeof()
 
 `bits(T)` and `signed(T)`, from `jaclang.comptime`, describe a number type:
 
@@ -264,14 +264,45 @@ a byte 32 bits, signed True 32 bits, signed True 128 bits, signed False
 64 16 False True
 ```
 
+`sizeof(T)` is the bytes a value of `T` takes as C lays it out, for the target being built, as
+C's `sizeof` is: a number type, a `bool`, a `ptr` (4 bytes on wasm32, 8 elsewhere), a C record,
+a struct of those, with the padding C gives it, or an `array` of them. It is a compile-time
+value too, so a generic body gets its type parameter's (`sizeof(T)`), and it says how many bytes
+to ask C for (see
+[Pointers and native memory](../interop/pointers-and-native-memory.md#records-in-place)). A
+type C does not lay out, an `obj`, a `str` or a `list`, is an error (E1636).
+
+```jac
+import from jaclang.comptime { sizeof }
+
+struct Pair {
+    has a: i32 = 0,
+        b: u8 = 0;
+}
+
+def twice[T: Number](x: T) -> int {
+    return sizeof(T) * 2;
+}
+
+with entry {
+    print(sizeof(u8), sizeof(int), sizeof(bool), sizeof(ptr[u8]));
+    print(sizeof(Pair), sizeof(array[Pair, 4]), twice(i16(1)), twice(1.0));
+}
+```
+
+```output
+1 8 1 8
+8 32 4 16
+```
+
 The other compile-time helpers of `jaclang.comptime`, which read a type's
 fields and members, are on [Reflection](reflection.md).
 
 ## What is rejected
 
 ```jac
-# expect: E0108 x7, E1126, E1245, E1570
-import from jaclang.comptime { target, bits }
+# expect: E0108 x7, E1126, E1245, E1570, E1636
+import from jaclang.comptime { target, bits, sizeof }
 
 obj Thing {
     has n: int = 0;
@@ -292,7 +323,7 @@ comptime M = 2 ** 100;
 
 def f -> int {
     t = target();
-    return bits(str);
+    return bits(str) + sizeof(Thing);
 }
 ```
 
@@ -302,6 +333,7 @@ def f -> int {
 | E1126 | A compile-time int does not fit the type it is read as. |
 | E1245 | `target()`'s record (or a type) is used as a value of the program. |
 | E1570 | `bits()` or `signed()` of a type that is not a number type. |
+| E1636 | `sizeof()` of a type C does not lay out: an `obj`, a `str`, a `list`, a struct holding one. |
 
 ## Differences from Python and the reference design
 

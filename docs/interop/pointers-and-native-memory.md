@@ -67,8 +67,13 @@ Reading through a null, freed or out-of-range pointer is undefined, as in C. Not
 
 Where `T` is a C record or a plain struct, `p[i]` is the record there, in place: `p[i].x = 1.0`
 writes C's memory. Reading `p[i]` into a variable copies the record; `p[i] = r` copies `r` in.
+`sizeof(T)`, from `jaclang.comptime`, is the bytes C lays one out in, for the target being built,
+as C's `sizeof` is: what to ask `calloc` or `malloc` for (see
+[Compile-time values](../language/compile-time-values.md#bits-signed-and-sizeof)).
 
 ```jac
+import from jaclang.comptime { sizeof }
+
 import from c {
     obj Pair {
         has a: i32,
@@ -80,7 +85,7 @@ import from c {
 }
 
 with entry {
-    pairs = calloc(2, 8);
+    pairs = calloc(2, sizeof(Pair));
     pairs[1].a = 9;
     pairs[1].b = 2.5;
     kept = pairs[1];
