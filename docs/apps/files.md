@@ -111,8 +111,9 @@ def Picture(photo: Photo | None) -> JsxElement {
 
 - **`url()` works before the file is sent**, so a picture shows the moment it is picked.
 - **A call sends the file first.** `add_photo(chosen, "new")` begins the file at the app that has
-  `add_photo`'s space, sends its bytes in pieces of at most 4 MiB, and then calls with the `File`
-  that names them. A `File` sent once is sent no more.
+  `add_photo`'s space, sends its bytes in pieces of the size that app says (its `files` plugin's:
+  4 MiB for the standard one), and then calls with the `File` that names them. A `File` sent once
+  is sent no more.
 - **What the endpoint would refuse is refused before a byte is sent**: a caller it does not admit
   (`:protect`, with no one signed in), a size or a type it does not accept. The call raises
   `RemoteRejected`, as a rejected call does.
@@ -185,9 +186,22 @@ A project has one `files` plugin, picked as its program starts (`JAC_FILES`), as
 are ([Plugins](plugins.md)). A program opens its files as it starts when a kept node or an
 endpoint of it holds a `File`, and data it cannot start with is said then, with the rest.
 
-A plugin of the project's own implements `files.contract`'s `Files`: `begin`, `append` at an
-offset, `finish`, `stat`, `read` of a range, `drop` and `every`. It keeps bytes, and knows nothing
-of who may read them or which are still held: that is the runtime's, once, for every plugin.
+A plugin of the project's own implements `files.contract`'s `Files`: `piece`, `begin`, `append`
+at an offset, `finish`, `stat`, `read` of a range, `drop` and `every`. It keeps bytes, and knows
+nothing of who may read them or which are still held: that is the runtime's, once, for every
+plugin.
+
+**A plugin says how many bytes a piece of a file is** (`piece`), and the runtime holds every
+sender to it, a page and a program that makes a `File` alike:
+
+- A piece goes at an offset that is a multiple of that size, and has from one byte to that many.
+- So every piece of a file but its last has exactly that many bytes, and a piece with fewer ends
+  the file: nothing is written after it.
+
+A directory takes pieces of any size, and `local_files` says 4 MiB. A store that takes a file as
+numbered parts with a least size (an object store's multipart upload) says its part's size, and
+is given each part whole. The size is at most what the app's transport takes in one request,
+16 MiB for the standard one.
 
 ## The app's /__jac/files
 
@@ -196,13 +210,15 @@ What a page's runtime asks of its app, which any client may:
 | Request | Does |
 |---|---|
 | `GET /__jac/files/<id>` | The file's bytes, or the range `Range` asks for (206). `HEAD` likewise. 404 for an id that names no whole file |
-| `POST /__jac/files?for=<space>/<module>/<name>`, a JSON object of `size` and `ctype` | Begins a file for that endpoint. Answers its `id`, and the most bytes a piece may have (`piece`) |
-| `POST /__jac/files/<id>?for=...&at=<offset>`, bytes | Writes a piece at `offset`, when that is how many bytes the file has. Answers how many it has (`size`): where the next piece goes. A piece sent twice is written once |
+| `POST /__jac/files?for=<space>/<module>/<name>`, a JSON object of `size` and `ctype` | Begins a file for that endpoint. Answers its `id`, and how many bytes a piece of it is (`piece`), as the app's `files` plugin says |
+| `POST /__jac/files/<id>?for=...&at=<offset>`, bytes | Writes a piece at `offset`, when that is how many bytes the file has. `offset` is a multiple of `piece`, and the piece has at most `piece` bytes: every piece but the last has exactly that many, and one with fewer ends the file. Answers how many bytes the file has (`size`): where the next piece goes. A piece sent twice is written once |
 | `POST /__jac/files/<id>/done?for=...` | The file is whole. Answers the `File` that names it (`id`, `size`, `ctype`) |
 
 Each `POST` answers as a call does: `{"ok": true, "data": ...}`, or `{"ok": false, "kind": ...,
-"detail": ...}` with 400 for a file the endpoint does not accept, 401 or 403 for a caller it does
-not admit, 404 for an endpoint or a file that is not there, and 429 for a caller past its limit.
+"detail": ...}` with 400 for a file the endpoint does not accept and for a piece at an offset
+that is no multiple of `piece`, 401 or 403 for a caller it does not admit, 404 for an endpoint or
+a file that is not there, 413 for a piece of more than `piece` bytes, and 429 for a caller past
+its limit.
 
 An app that serves a page for a space it does not run sends a file on to the app that runs the
 space, as it sends the call on, and answers a request for a file of that space with where it is
@@ -229,4 +245,5 @@ place.
 | A call is `rejected`: `a File that names no kept file` | The `File` was swept, or was made by another app that keeps its files elsewhere |
 | `FileError: its bytes are not image/png's` | The bytes begin as another type's |
 | A picture is gone an hour after it was sent | No kept node held it: the endpoint did not keep the `File` it was given |
+| A piece is `rejected`: `a piece goes at a multiple of 4194304 bytes: one with fewer is the file's last` | A client of its own sent a piece that is not the last with fewer bytes than the begin's `piece`, and then another |
 | `neojac does not support `File` in a node space yet` | A module of a node or wasm space says `File` |
