@@ -575,8 +575,9 @@ figure/4/9 4
   definition is one only the class itself calls, which no Jac override may take the place of. Nor
   can a class with no virtual method. An `obj` that names such a class as its base is E5133
   where it is declared, with the reason (`'Plan.init' of the C module 'tally' cannot be bound: a
-  Jac class cannot derive it: its virtual method step: it is private`); the class itself is
-  bound, and Jac makes and uses it as it is.
+  Jac class cannot derive it: its virtual method step: it is private, and its definition is one a
+  class deriving it cannot call`, or `it has no virtual method, and a Jac class derives only a C++
+  class C++ calls through one`); the class itself is bound, and Jac makes and uses it as it is.
 - **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
   whose destructor runs code makes the deriving class an owned value too, bound `own`.
 - **The Jac class's `destroy` is its C++ part's destructor's body.** It runs once, when the part
@@ -953,11 +954,6 @@ module's function gives is the string another's takes.
   comparator) and `std_min_std_initializer_list`, and `std::max` likewise. Two templates libc++
   declares alike but for their constraints (`std::copy_n`'s) are one Jac template,
   `std_copy_n_T0_T1_T2`.
-- **A `std` overload set of `float`, `double` and `long double`** is named by the Jac types,
-  `std_signbit_f32` and `std_signbit_f64`, where `long double` is another type; where it is
-  `double`, as on macOS on arm64, the two `double`s are named apart by their C++ spelling,
-  `std_signbit_double` and `std_signbit_long_double`. A port writes the call for each target
-  under `comptime if`.
 - **A `std` enumerator, and a `std` constant of an enum's type, have the enum's integer type**:
   `std_memory_order_relaxed` is `std::memory_order_relaxed`, a `u32` (the type
   `std::memory_order` is made of), which a member that takes the enum takes as it is
