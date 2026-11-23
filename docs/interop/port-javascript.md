@@ -10,10 +10,13 @@ the mapping: each construct port translates and the Jac it becomes. It is printe
 the translation itself reads (`neojac port --mapping javascript`).
 
 The pinned TypeScript reads the file, a JavaScript file too, and gives every expression its
-type. Port keeps those types, and writes Jac's own operator only where they say it does what
-JavaScript's does: `+` of two numbers is an addition and of two strings a concatenation. Of
-anything else it is JavaScript's own operator, a function of `js` (`js_add`), which converts
-an operand as JavaScript does.
+type. TypeScript's types are erased, so a port checks no type at run time that the source did
+not test: a place keeps its type only where every value that reaches it has that type with no
+conversion from `any`, and is `any` where a value TypeScript took on trust (an `any`, a cast
+that is no upcast, `v!`) reaches it. Port writes Jac's own operator only where the types say it
+does what JavaScript's does: `+` of two numbers is an addition and of two strings a
+concatenation. Of anything else it is JavaScript's own operator, a function of `js` (`js_add`),
+which converts an operand as JavaScript does.
 
 | JavaScript and TypeScript | Jac |
 |---|---|
