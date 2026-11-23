@@ -712,8 +712,9 @@ with entry {
 ```
 
 Natively a static is one value, the declaring class's, shared by every subclass
-([Fields](../language/fields.md)): `Retallied.total = 20` writes `Tallied.total`, and a write
-or a class-method call through `cls` is E1030.
+([Static fields](../language/fields.md#static-fields)): `Retallied.total = 20` is E1640, a write
+the program says through `Tallied.total`, and a write or a class-method call through `cls` is
+E1030.
 
 ## A module's `__file__`
 

@@ -102,8 +102,8 @@ with entry {
     b = Special(n=5);
     Counter.names.append("a");
     print(Counter.made, Special.made, a.made, b.names);
-    Special.made = 10;
-    print(Counter.made, a);
+    Counter.made = 10;
+    print(Special.made, a);
 }
 ```
 
@@ -113,11 +113,16 @@ with entry {
 ```
 
 - A static field needs a value (E2103).
-- It is read as `Class.name`, or through an instance (`a.made`). It is
-  assigned as `Class.name = v`; assigning through an instance is E1030.
+- It is read as `Class.name`, through a subclass (`Special.made`), or through
+  an instance (`a.made`). It is assigned through the class that declares it,
+  `Counter.made = v`: assigning through an instance is E1030, and through a
+  subclass E1640, since the subclass has no value of its own. A subclass that
+  needs one declares its own static of that name.
 - It is not a constructor argument and is not shown by `repr`.
-- In a cpython space a class is Python's class object, and a static written through a subclass's
-  name, or through `cls`, is that subclass's own attribute, as in Python
+- **The one difference between hosts:** in a cpython space a class is Python's
+  class object, and a static written through a subclass's name, or through
+  `cls`, is that subclass's own attribute, as in Python, and the base keeps its
+  value
   ([A class's statics through a subclass](../interop/python-classes.md#a-classs-statics-through-a-subclass)).
 - Static fields are initialized when the program starts, with the module's
   `glob`s, in the order they are written, and before its `with entry` code. A
