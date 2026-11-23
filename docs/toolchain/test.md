@@ -338,7 +338,11 @@ backend/pyproject.toml: pytest tests
   emitted into `.jac/test/spaces/<space>`, with a forwarder where each ported module's
   JavaScript stood (`lib/twice.js` requiring `lib/twice.mjs`), the tree's other files are laid
   over it (`node_modules` linked, not copied), and the script runs there. The tree's own files
-  are not touched.
+  are not touched. Where the package's dev space (`<space>_dev: node`, its tests and
+  benchmarks) holds Jac too, the script runs in the dev space's emission, with the package's
+  and the tree's laid over it: one copy of each module in the process, the one the tests import.
+  A ported file that Node runs by its path (a test file) starts when it is required, not with the
+  package.
 - **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
 - **A suite that exits with another status than 0 fails the run**:
   `FAILED backend/pyproject.toml (its suite exited with status 1)`.

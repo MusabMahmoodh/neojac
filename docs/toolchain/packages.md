@@ -581,6 +581,12 @@ pyproject.toml: pytest tests --import-mode=append
   bytecode is the interpreter's, so such a wheel's tag is that interpreter's
   (`cp315-cp315-<platform>`). A Python file of another cpython space, the `_dev` space's tests,
   imports it as the package's, in its own process, as it imports the package's Python modules.
+- **A module only another platform's program loads is that platform's wheel's.** Where
+  `fastlib/api.jac` imports `fastlib/_plan9.jac` under `comptime if target().os == "plan9"`, the
+  space's program for this platform never loads `_plan9`, so this platform's wheel holds no code
+  of it and is tagged for its platform (`Root-Is-Purelib: false`); the wheel built for the
+  platform whose program loads it holds it. A `.pyc` belongs to the program its space emitted it
+  for, so one platform's cannot stand in another's.
 - **`tag` is recorded where the build names one the interpreter would not**: `cp38-abi3`, for
   extension modules built against CPython's stable ABI.
 - **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`
@@ -670,6 +676,12 @@ Each ecosystem answers for its own:
 - **Nothing moves.** A manifest names its files by path, so it stays beside them. From then on
   neojac writes it there from its table, and lists it in `.gitignore`.
 - **A directory with a `jac.toml` of its own is another project**, and is passed by.
+- **What a build left is no source of the project.** Each directory git's own ignore list names
+  (`.gitignore`, `.git/info/exclude` and the global excludes, as git reads them) that holds a
+  source file of a language neojac reads, a `build/` that a Python build copied the package
+  into, is added to `[project] exclude`, and `absorb` says so ("what a build left: ...").
+  `node_modules`, `eco` and `replaced-by-neojac` are left to their own rules, and a repository
+  that is no git's gets none.
 
 ### The archwire it writes
 
@@ -686,7 +698,10 @@ It declares a space for each npm tree that is a program's
 `[spaces.<space>.ui] plugin` the `ui` plugin its dependencies name, for a tree a bundler builds.
 Once a Python project has its space ([Recording a build](#recording-a-build)), its tests and
 scripts are a second `cpython` space, `<space>_dev`, which each later absorb grows with what came
-since. A tree a space already holds, and a name already taken, are left alone.
+since. An npm package's files that run in Node and that the package does not ship (its tests,
+its benchmarks: what its `files` leaves out) are a second `node` space the same way,
+`<space>_dev: node { test.* | benchmark.*; }`, and so are a browser tree's Node files that import
+its modules. A tree a space already holds, and a name already taken, are left alone.
 
 What still stands between the archwire and a check that passes is printed as the diagnostics
 every command would give, and `absorb` then exits with status 1. The files it wrote stay.

@@ -126,7 +126,10 @@ A wire is `provider ++> consumer`, read "the provider feeds the consumer".
   `import type`.
 - The provider may be a `.py` file of a [cpython space](../apps/hosts.md): the wire binds what the
   Python import it stands for binds, a name of the module (`helper ++> api { shout }`) or the
-  module (`helper ++> api;`).
+  module (`helper ++> api;`). A whole dotted wire whose head is a Python package,
+  `fastlib.api ++> checks.run;` where `fastlib/__init__.py` is Python and `fastlib/api.jac` Jac,
+  is Python's `import fastlib.api`: it binds `fastlib`, the package as Python imports it
+  (`fastlib.__file__`), with the Jac module `fastlib.api` as its member.
 - The provider may be a JavaScript or TypeScript file of the project, for a module that can import
   JavaScript: one of a browser or node space, or of a native program
   ([A project's own JavaScript](../interop/npm.md#a-projects-own-javascript)). The wire binds what

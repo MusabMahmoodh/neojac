@@ -87,7 +87,7 @@ With no `select`, or no `[check.lint]`, the rules are `"clean"`: `neojac check` 
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `check.exclude` | list of strings | `[]` | fnmatch patterns of file paths, relative to the root with `/` between parts, that [`neojac precommit`](../toolchain/lint.md#neojac-precommit) fixes and does not check as programs of their own |
+| `check.exclude` | list of strings | `[]` | fnmatch patterns of file paths, relative to the root with `/` between parts, that [`neojac precommit`](../toolchain/lint.md#neojac-precommit) fixes and does not check as programs of their own, nor a project's `neojac check` as [a module no space holds](../toolchain/check.md#checking-a-project) |
 | `check.imports` | string | `"open"` | `"ruled"` asks an [edge rule](../language/modules-wiring.md#a-rule-for-every-import-from-outside) in `archwire.jac` for every import from outside the project (E2211); `"open"` asks one only for a package some rule names |
 
 `neojac check <main.jac>` does not read `exclude`: a program is checked whole.
