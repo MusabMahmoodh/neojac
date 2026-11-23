@@ -133,7 +133,9 @@ graph import {
   TypeScript's own output is (`util.ts` is `util.js`, `.mts` is `.mjs`, `.cts` is `.cjs`), with
   the module's face, its `.d.ts`, beside it; a value or a class the module never assigns again is
   declared in the forwarder's own text (`export const LIMIT = $m.LIMIT`), so that a tool reading
-  the text finds it, and any other global is given live from the module. In a node space the
+  the text finds it, and any other global is given live from the module. The laid tree's top
+  links the project's entries beside the tree, so a path that leaves the tree (`../../.env`)
+  reaches the project's own file. In a node space the
   forwarder stands at that place;
   in a browser space the bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)),
   and the module starts as the bundle imports it.

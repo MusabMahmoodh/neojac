@@ -631,7 +631,10 @@ pyproject.toml: pytest tests --import-mode=append
 - **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`
   after the Jac tests, in the project's directory, with `.jac/venv` first on `PATH`. It names the
   `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
-  `pyproject.toml` that the command needs, which `neojac install` installs with the rest. Where
+  `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
+  `absorb` writes it for a project that configures pytest and has no test command of its own:
+  `command = ["pytest"]`, with `groups = ["test"]` where `test` is the one dependency group that
+  names pytest ([jac.toml](../reference/jac-toml.md#testpypidirectory)). Where
   the tree's tests are Jac, it runs over what its spaces emit
   ([Testing](test.md#a-projects-own-suites)).
 - **A module of the tree has the name Python gives it**: a module under the wheel's `root` is
@@ -765,7 +768,7 @@ item**. `absorb` lists each at its file, and does not guess:
 | `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` ([A lock another tool wrote](#a-lock-another-tool-wrote)) |
 | `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
-| `tests` | A Python project | `[test.pypi."<directory>"]`, the command that runs its tests ([Building and testing a Python project](#building-and-testing-a-python-project)) |
+| `tests` | A Python project with no test command of its own that does not configure pytest; one that configures pytest where several dependency groups name pytest, or none does | `[test.pypi."<directory>"]`, the command that runs its tests, or its `groups` ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
 ```text
 $ neojac absorb --check
@@ -893,7 +896,7 @@ neojac writes these from jac.toml and jac.lock now, and git still tracks them
 | File | Moved by | What stands where it was |
 |---|---|---|
 | A manifest `jac.toml` holds, and its ecosystem's own lock that `jac.lock` holds (`package-lock.json`, `Cargo.lock`) | The absorb that first takes it, as it stood | The one neojac writes, which `.gitignore` lists |
-| A build's own files: `setup.py`, `MANIFEST.in`, `binding.gyp` | An `absorb --record` whose record says all the build made | Nothing |
+| A build's own files: `setup.py`, `MANIFEST.in`, `binding.gyp` and every other gyp file gyp loaded (`deps/common.gypi`, `deps/sqlite3.gyp`) | An `absorb --record` whose record says all the build made | Nothing |
 | Another tool's lock: `uv.lock`, `pnpm-lock.yaml`, `bun.lock` | An absorb, once each of its pins is reproduced or accepted | Nothing |
 
 - **A manifest is kept as it stood, and neojac's stands in its place.** neojac writes the file
@@ -1015,6 +1018,9 @@ recorded
   runs `make`, which the system has to have. A tree some of whose files `neojac port` made Jac
   is built in its laid tree ([A project's own suites](test.md#a-projects-own-suites)), where its
   scripts find what they found, and what the build made there is recorded as one run in the tree.
+  The record stands in for every build file gyp read, as gyp's own Makefile lists them: each
+  `.gyp` and `.gypi` of the tree it loaded moves aside with `binding.gyp`, so no file left in the
+  tree names one that a port moved, and the next record puts them all back for its run.
 - **An addon is where the build put it.** On Linux node-gyp links `build/Release/obj.target/<name>.node`
   and copies it to `build/Release/<name>.node`: the module is the copy nearest the tree's root,
   found by its bytes, so it has one path on every system.

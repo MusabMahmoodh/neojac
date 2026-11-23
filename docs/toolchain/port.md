@@ -141,7 +141,9 @@ group of the plan: each is its own source, ported to its own module, read throug
 root, and they port together or not at all. A crate that ports whole leaves `jac.toml` and
 `jac.lock`: its `[cargo."<directory>"]` table goes, and each `[extensions]` row built from it
 names the Jac instead, `jac = "src/py.jac"`, the port of the file that holds its `#[pymodule]`,
-its features dropped ([Extension modules](packages.md#extension-modules)). A C file a unity build compiles only through another
+its features dropped ([Extension modules](packages.md#extension-modules)). The `Cargo.toml` and
+`Cargo.lock` neojac wrote from those tables go with them, and so do their lines in `.gitignore`;
+a run that is refused or stopped puts all of it back, as it puts back the rest. A C file a unity build compiles only through another
 source's `#include` is read in that source's translation unit, and ports with it: the source and
 the files it includes port together or not at all (E4010 for such a file ported alone or held
 back, E4043 for the source held back).
@@ -219,7 +221,9 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   place a forwarder that gives the module (a TypeScript source's is the JavaScript file of its
   stem, its face beside it), and what the space emits apart in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
   run there, with the tree's configuration as it is ([A project's own
-  suites](test.md#a-projects-own-suites)).
+  suites](test.md#a-projects-own-suites)). The laid top stands for the project's top: a path
+  that leaves the tree (`../../.env`) reaches the project's own file, as it did from the source
+  tree.
   A TypeScript file that stays and imports a source by its TypeScript extension
   (`import { bump } from "./counter.mts"`) would find no file at that name once the source is
   Jac: the source stays until that file ports in the same run, or imports the JavaScript that

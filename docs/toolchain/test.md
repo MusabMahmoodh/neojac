@@ -325,7 +325,8 @@ backend/pyproject.toml: pytest tests
   against that build, with `.jac/venv` first on `PATH`.
 - **A Python project some of whose modules are Jac runs its command over what its spaces emit.**
   Where a space holding the tree's modules holds a Jac module (one `neojac port` made), the
-  command runs in `.jac/test/trees/<tree>`: the Python that the tree's client space
+  command runs in the tree laid at its own place under its laid top (`.jac/test/trees/backend/backend/`
+  for `backend`, `.jac/test/trees/<the top's name>/` for a tree at the top): the Python that the tree's client space
   (`<space>_dev`, its tests and scripts) emits, with the tree's other files laid over it, and
   nothing of what the built package holds at its top. The package is the build's, first on
   Python's path, in the suite's process and in every Python the suite starts, and the client
@@ -357,6 +358,23 @@ backend/pyproject.toml: pytest tests
   `neojac npm run`, `run-script`, `test` and `start`, and `neojac npx`, run in the same laid
   tree ([Running npm](packages.md#running-npm)), so `neojac npm run build` builds the tree its
   own way on the port.
+- **The laid top stands for the project's top.** A tree is laid at its own place under a laid
+  top: `.jac/test/spaces/<space>/` for an npm tree, and for a Python tree below the project's top
+  `.jac/test/trees/<its directory, / written %2F>/`, a laid top of its own, so that no two trees
+  share one. At each level from the laid top down to the tree, every entry of the project beside
+  the tree's path is there as a link to the project's own entry: `.jac/test/spaces/frontend_dev/.env`
+  is a link to the project's `.env`, so `path.join(__dirname, "../../.env")` from
+  `frontend/tests/` reads the project's file, and writes it, as it did from the source tree. Two
+  entries are not linked: `.jac/`, which holds the laid top, and `.git`, so that git, walking up
+  from the laid tree, finds the project's own repository and work tree and a script that stages
+  or commits never writes laid files into its index. Inside the tree nothing is linked but
+  `node_modules`. On Windows a link is a symbolic link, of the directory kind for a directory,
+  which needs Developer Mode or the privilege to make symbolic links.
+- **Nothing walks the laid top following its links.** They lead out of the tree into the project
+  itself: a walk that followed them would read the whole project as the tree's files, and one
+  that wrote or removed through them would change the project. neojac lays the top again before
+  each run by unlinking each link, never entering it, and the tree's own tools run inside the
+  tree.
 - **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
 - **A suite that exits with another status than 0 fails the run**:
   `FAILED backend/pyproject.toml (its suite exited with status 1)`.
