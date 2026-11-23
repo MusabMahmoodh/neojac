@@ -189,7 +189,8 @@ each call goes through a shim it compiles.
 - **What crosses**: numbers and `bool` as they are; a `char` as a `str` of one code point (a
   surrogate given where Rust takes one is a panic, `RustPanic`), `Option<char>` as `str | None`;
   a tuple result may hold chars and `Option`s of numbers and chars (`(Option<char>, usize)` is
-  `tuple[str | None, u64]`); `&str` as a `str`, `&[u8]` as `bytes`; Rust's
+  `tuple[str | None, u64]`); `&str` as a `str`, whole, a NUL in it included (a `&str` a
+  function returns that holds `"a\0b"` is `'a\x00b'`, of length 3), `&[u8]` as `bytes`; Rust's
   own values (`String`, `Vec`, a crate's struct) as owned Jac objects, which Rust drops when Jac
   lets them go. A parameter Rust takes by value moves the object, and leaves the Jac object
   empty. `v[i]` reads and writes through `Index<usize>`; a field of an element is not a place

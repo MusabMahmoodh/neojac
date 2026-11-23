@@ -92,6 +92,66 @@ with entry {
 6
 ```
 
+A Python list that arrives where a list of sized numbers is wanted (`list[u8]` to `list[u64]`,
+`list[i8]` to `list[i64]`, `list[f16]`, `list[f32]`, `list[bool]`) stays Python's own list, shared
+both ways, as a `list[int]` is: what Jac stores, appends or inserts, Python sees, and what Python
+does to it, Jac sees. So a Jac function an extension module gives (`def decoded(tokens:
+list[u32])`) reads the list Python passed, item by item, and writes into it. Each item is held to
+the element's type as it arrives and again as Jac reads it, since Python may store any value in
+the list in between: an int out of the width is an `OverflowError`, a value of another type a
+`TypeError`.
+
+```jac
+import builtins;
+
+def bump(xs: list[u8]) -> int {
+    total = 0;
+    for x in xs {
+        total += int(x);
+    }
+    xs[0] = u8(9);
+    xs.append(u8(4));
+    return total;
+}
+
+def halve(xs: list[f32]) {
+    for i in range(len(xs)) {
+        xs[i] = xs[i] / f32(2);
+    }
+}
+
+with entry {
+    counts: any = builtins.list(builtins.range(3));
+    print(bump(counts), counts);
+    weights: any = builtins.list([1.0, 3.0]);
+    halve(weights);
+    print(weights);
+    for bad in [[256], [2.5]] {
+        try {
+            bump(builtins.list(bad));
+        } except (OverflowError, TypeError) as e {
+            print(builtins.type(e).__name__, e);
+        }
+    }
+    later: any = builtins.list([1, 2]);
+    small: list[u8] = later;
+    later.append(300);
+    try {
+        print(small[2]);
+    } except OverflowError as e {
+        print("OverflowError:", e);
+    }
+}
+```
+
+```output
+3 [9, 1, 2, 4]
+[0.5, 1.5]
+OverflowError integer overflow
+TypeError expected int, found float
+OverflowError: integer overflow
+```
+
 ## Jac's values in Python
 
 | Jac value | What Python gets |
