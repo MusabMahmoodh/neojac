@@ -1142,7 +1142,9 @@ yet, and no space holds one.
   (E5156), and TOML's dates, `inf` and `nan` have none in JSON (E5155).
 - **A build checks what is installed.** A tree whose `node_modules` was not installed from
   `jac.toml` and `jac.lock` as they are now is E5160, and `neojac install` is the fix. It runs npm
-  only for a tree that is not as pinned.
+  only for a tree that is not as pinned. A tree whose table names no package (no dependency
+  table with an entry, and no `workspaces`) is ready with nothing installed, and a member of a
+  workspace is ready as its workspace is.
 
 ## What goes wrong
 

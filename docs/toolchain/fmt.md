@@ -183,7 +183,7 @@ neojac fmt --check .
 - each lint rule the file's project selects in `jac.toml`'s `[check.lint]` that has a fix;
 - in an `archwire.jac`, the [declared wires](../language/modules-wiring.md#declared-wires---) of the project's files in other languages, mended to what each file's source writes as its own language reads it: a wire is written for an import no wire declares (E1575), and a wire or a name of one that no source writes is removed (E1147). It changes no `++>` wire and no source file.
 
-A module and its annexes are fixed together, because some fixes move code between them. Nothing is written unless every file the run would write parses. `--fix --check` lists the files `--fix` would change and writes none.
+A module and its annexes are fixed together, because some fixes move code between them, so `--fix` of a module reads its annexes too, given or not. Nothing is written unless every file the run would write parses: an annex that does not parse is reported once, as any file that does not parse is, the run writes nothing, and the exit status is 1. `--fix --check` lists the files `--fix` would change and writes none.
 
 [Lint rules](lint.md) (`neojac docs toolchain/lint`) lists every rule, which have fixes, and what each fix writes.
 
