@@ -280,7 +280,31 @@ fields) finds what the source said:
 - `Annotated[T, ...]` is carried with its metadata, and to the checker it is `T`;
 - a `type` alias over Python names is its value: `type SessionDep = Annotated[Session,
   Depends(get_db)];`;
-- `any` is `typing.Any`, a sized number (`i64`, `f32`) is `int` or `float`.
+- `any` is `typing.Any`, a sized number (`i64`, `f32`) is `int` or `float`;
+- a parameter written with no annotation, `def f(a, b: int)`, has none: `check` reads it as `any`,
+  and `__annotations__` holds no entry for it, as Python's own `def f(a, b: int)` holds none. On
+  every other host it is E0052.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import inspect;
+
+def twice(x, y: int = 2) -> any {
+    return x * y;
+}
+
+with entry {
+    print(twice("ab"), twice(3, 3));
+    print((twice as any).__annotations__);
+    print(inspect.signature(twice));
+}
+```
+
+```text
+abab 9
+{'y': <class 'int'>, 'return': typing.Any}
+(x, y: int = 2) -> Any
+```
 
 A Python name used as a type (`EmailStr`, `uuid.UUID`, `Literal["a", "b"]`) is `any` to the
 checker, on every host.

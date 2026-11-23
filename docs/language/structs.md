@@ -99,8 +99,9 @@ Each field is at the first offset its alignment allows, as in a C struct
 with the same fields in the same order: a `bool` is a byte, an `f32` four
 bytes, an `i16` two, a `float` eight. A struct field of a struct type is
 held inside it. So `P` above is 16 bytes: `x` at 0, `y` at 8, and padding
-to its 8-byte alignment. `@align(n)` raises a struct's alignment (see
-[Decorators](decorators.md)).
+to its 8-byte alignment. `@align(n)` raises a struct's alignment, and `@packed` or
+`@packed(n)` lays its fields out with no padding, or each at most `n`-aligned, as C's packed
+records are (see [Decorators](decorators.md#packed)).
 
 A struct never holds itself (E1501): a field of its own type would have no
 size.

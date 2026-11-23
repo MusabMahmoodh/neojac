@@ -387,7 +387,7 @@ browser space hands it to JavaScript, or a JavaScript file imports it), `self` i
 | E0160 | A lambda whose one statement only computes a value, with a `;` after it: `lambda (x: int) { x * 3; }` |
 | W3005 | `def f()` or `lambda ()`: empty parentheses |
 | E0050 | `/` or a bare `*` twice in one parameter list, or two parameters of one name |
-| E0052 | A parameter of a `def` without a type |
+| E0052 | A parameter of a `def` without a type, but in a `cpython` space ([Annotations](../interop/python-classes.md#annotations)) |
 | E0120 | `/` with no parameter before it |
 | E0121 | A default on `*rest` or `**opts` |
 | E0122 | A bare `*` with no parameter after it |
@@ -438,12 +438,19 @@ with entry {
 ```
 
 ```jac
-# expect: E0050 x2, E0052
+# expect: E0050 x2
 def f(a: int, /, b: int, /) -> int {
     return a;
 }
 
-def g(a: int, a: int, scale) -> int {
+def g(a: int, a: int) -> int {
+    return a;
+}
+```
+
+```jac
+# expect: E0052
+def scaled(a: int, scale) -> int {
     return a;
 }
 ```
