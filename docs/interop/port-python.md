@@ -85,8 +85,8 @@ construct in the table whose Jac would mean something else (E4005):
 - **A read of a name nothing in the module binds, nor Python's builtins** (`left_out()`): Python
   raises NameError where it runs.
 - **A method named `init` or `postinit`, `x is 1`, an int literal past 64 bits.**
-- **A string holding a surrogate** (`"\ud83d"`) in a module of a JS host, whose strings are
-  UTF-16 text, in which a surrogate pair is the character it stands for. Elsewhere it is written
-  with its surrogates as escapes (`"\ud83d\udc4d"`), which a Jac string holds apart, as Python's does.
+- **A string holding a surrogate pair** (`"\ud83d\udc4d"`) in a module of a JS host, whose strings
+  are UTF-16 text, in which the pair is the character it stands for. Elsewhere, and a lone surrogate
+  everywhere, it is written with its surrogates as escapes, which a Jac string holds apart, as Python's does.
 - **A module the source imports that neojac cannot find** (E4016): port checks the Jac it
   writes against it, so the module is installed first, or ported in the same run.
