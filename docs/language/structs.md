@@ -155,8 +155,10 @@ list's element.
   a parameter is: `at: &mut P = &mut o.at` reaches `o.at` itself, so
   `at.x += 1.0` changes it, and `at = P(...)` writes it whole. Assigning it
   `&x`, `&mut x` or a call that gives a borrow binds it to that place
-  instead. A local with no borrow annotation is a copy, as any assignment
-  of a struct is. A closure or a generator cannot keep such a local
+  instead. It may lend a struct local, in a function or in module code:
+  after `r: &mut P = &mut a`, `r.x -= 3.0` changes `a`, judged as a borrow
+  of an `own` value is ([Borrows](ownership-borrows.md#borrows)). A local
+  with no borrow annotation is a copy, as any assignment of a struct is. A closure or a generator cannot keep such a local
   (E5090).
 - **A function declared `-> &mut P` or `-> &P` gives the place**, not a
   copy: `def lend_at -> &mut P { return &mut self.at; }`. Its call is a
@@ -189,31 +191,28 @@ obj Body {
     }
 }
 
-def moved_in(b: Body) -> P {
+with entry {
+    a = P(x=1.0);
+    bump(&mut a);
+    print(a);
+    reset(&mut a);
+    r: &mut P = &mut a;
+    r.x -= 3.0;
+    print(a);
+    b = Body();
     at: &mut P = b.lend_at();
     at.x += 1.0;
     at = P(x=at.x * 2.0);
     copy = b.lend_at();
     copy.x = 50.0;
     b.lend_at().x += 0.5;
-    return copy;
-}
-
-with entry {
-    a = P(x=1.0);
-    bump(&mut a);
-    print(a);
-    reset(&mut a);
-    print(a);
-    b = Body();
-    copy = moved_in(b);
     print(b.at, copy);
 }
 ```
 
 ```output
 P(x=2.0)
-P(x=-1.0)
+P(x=-4.0)
 P(x=2.5) P(x=50.0)
 ```
 

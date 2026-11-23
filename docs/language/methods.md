@@ -186,6 +186,37 @@ with entry {
 Counter(n=1) Score(n=2) Score(n=8)
 ```
 
+A static method whose parameters are all positional, with no default, is
+a function as a value: `Temp.from_f` is the function itself, as a module
+function's name is. It equals itself, and C may hold it as a callback
+([Callbacks](../interop/c-libraries.md#callbacks)). Any other static
+method's value is a function that calls it with its defaults, made where it
+is read.
+
+```jac
+obj Temp {
+    has c: float = 0.0;
+
+    static def from_f(f: float) -> Temp {
+        return Temp(c=(f - 32) * 5 / 9);
+    }
+
+    static def scaled(c: float, times: float = 2.0) -> float {
+        return c * times;
+    }
+}
+
+with entry {
+    conv = Temp.from_f;
+    sc = Temp.scaled;
+    print(conv(212.0), conv == Temp.from_f, sc(1.5));
+}
+```
+
+```output
+Temp(c=100.0) True 3.0
+```
+
 Python's `@staticmethod` is an error that names
 the Jac spelling (W3001), and `@classmethod` is refused as any decorator
 that is not a compile-time function is (E1490); in a `cpython` space,

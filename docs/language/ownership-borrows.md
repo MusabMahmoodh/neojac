@@ -31,10 +31,15 @@ moves.
   an `if` whose branches each bind `r`, `r` borrows both owners, and a
   binding late in a loop's body is what a use earlier in the next turn
   holds.
-- **A borrow of a local is not returned** (E1306). A function may return a
+- **A borrow of a local is not returned** (E1306), an `own` value's or a
+  struct's (`return &mut p;` of a struct local `p`). A function may return a
   borrow it was lent: `def lend_back(b: &Buffer) -> &Buffer`.
-- **A borrow starts at a parameter, `self`, an `own` value or another
-  borrow** (E1323): a managed local may be released while it is used.
+- **A borrow starts at a parameter, `self`, an `own` value, another
+  borrow or a struct local** (E1323): a managed local may be released while
+  it is used. A struct in a local is the frame's own, so a borrow of it is
+  judged as one of an `own` value is: changing the local while a mutable
+  borrow of it is live is E1302, keeping the borrow past the local's block
+  E1304, and returning it E1306.
 - **One mutable borrow at a time** (E1302), and no change through the owner
   while a shared borrow is live (E1303). A `&mut x` argument and a call of a
   method whose receiver is `self: &mut` lend `x` mutably for the call, so

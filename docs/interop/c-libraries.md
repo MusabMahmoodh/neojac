@@ -499,7 +499,9 @@ with entry {
 30 20 10 5
 ```
 
-Only a named function can be a callback as it is; a lambda or a bound method cannot (E1195), and
+Only a named function can be a callback as it is, or a static method whose parameters are all
+positional with no default, which is the function itself ([Methods](../language/methods.md));
+a lambda or a bound method cannot (E1195), and
 a `Callable` record field is assigned a named function, `None` or a conversion of a function value
 (below). `None` passes `NULL`, which removes a callback where C says so. A `str`
 parameter of a callback receives C's `const char *` as a `str`. A callback's signature cannot
