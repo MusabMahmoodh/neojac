@@ -182,9 +182,12 @@ with entry {
 - **An owned container's items drop with it**: `xs: own list[Buf]` drops
   each `Buf` it holds where `xs` is dropped, and an owned object's fields go
   with it the same way, unless something else still holds them.
-- **Storing an owner into a managed object's field seals it** into managed
-  storage: from there it is counted, as any managed value is, and dropped
-  when its last reference goes.
+- **A field with no ownership annotation is a managed place**, as a managed
+  container's item is: storing an owner there seals it into managed storage,
+  from where it is counted, as any managed value is, and dropped when its last
+  reference goes. So is a value whose drop runs code (a Rust `HashSet`, a C++
+  `std::vector`): such a field need not be `own`. `del o.f` ends the field's
+  value at once ([Ownership](ownership.md#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
 - A [packed list](packed-lists.md) of structs or narrow numbers owns its
   elements by holding them, so `list[own P]` is E1521.
 
