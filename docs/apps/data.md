@@ -224,7 +224,7 @@ fit the new program. The server then says so, all of it at once, and stops with 
 
 ```text
 api can't start with the data it kept in .jac/data/api:
-  accounts.db  is laid out as an older neojac wrote it, which this one can't upgrade (layout 0; this one reads layout 1)
+  accounts.db  is laid out as an older neojac wrote it, which this one can't upgrade (layout 0; this one reads layout 2)
   graph.db     holds 2 svc.Gone whose type this program no longer has; and holds 1 svc.Note that no longer fit the type (missing field 'text')
 To set that data aside and start empty, run `neojac run api --fresh` in the project, or start the program with JAC_FRESH=1.
 ```
