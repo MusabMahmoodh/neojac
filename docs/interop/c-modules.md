@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, std_vector_iterator, std_atomic, headers per target, std_to_string, std_pair, default argument, C++ function pointer, callback from C++
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, std_vector_iterator, std_atomic, headers per target, std_to_string, std_pair, C++ default argument, C++ function pointer, callback from C++
 ---
 # C modules
 
