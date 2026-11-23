@@ -134,6 +134,7 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | `int32_t`, `int` | `i32`; `int64_t`, `long long` are `int`, the other integer types their sized type |
 | `double`, `float` | `float`, `f32` |
 | `const char *` parameter | `str \| bytes \| bytearray \| ptr[i8] \| None`: the text, the bytes of a buffer, a pointer passed as it is, or `NULL` |
+| `const unsigned char *` parameter | `str \| bytes \| bytearray \| ptr[u8] \| None`, as a `const char *` is, with a pointer to bytes passed as it is: `shape_octet_sum(b"\x01\x02\x03", 3)` |
 | `const char *` result | `str \| None`, `None` for `NULL` |
 | `char *` | `ptr[i8]`, whatever the target's `char` signedness |
 | Any other pointer `T *` | `ptr[T]`; a parameter also takes `&x` or `&mut x` of a `T` variable, its address for the call |
@@ -204,7 +205,11 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   (`[c."psutil/arch"] name = "_psutil"`, `_psutil ++> main { ... }`); the table stays keyed by its
   directory. It is identifiers joined by `.`, and a key no Jac or Python module of the program
   has (E2270). `neojac absorb --record` writes it, as the last part of the extension module the
-  module is built into. Without it the module's key is its directory.
+  module is built into. Without it the module's key is its directory. A program that reaches the
+  module both by its `name` and through the wires of the files it holds (a ported file's
+  `_psutil ++> psutil.arch.osx { ... }` beside a C file's own `-->` wires) reaches one module,
+  built and linked once. A wire from the module, where its directory is also a Python package,
+  names it by its `name`: the directory's dotted name is the package's (E2270).
 - `headers`, where the table has the key, is the module's whole list of headers. An entry is a
   path from the module's directory, or `<name>`, a header found on the module's include path,
   the system's included (`headers = ["<Python.h>"]`). A module whose sources are all gone (every

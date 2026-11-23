@@ -238,6 +238,44 @@ with entry {
 }
 ```
 
+A member of a class value that holds `None`, read, assigned, deleted or called where nothing
+narrowed it, raises `AttributeError` with Python's text, as Python does, on every host:
+
+```jac
+obj Link {
+    has val: int = 0,
+        next: Link | None = None;
+}
+
+def second(l: Link) -> int {
+    return l.next.val;
+}
+
+with entry {
+    print(second(Link(val=1, next=Link(val=2))));
+    try {
+        print(second(Link(val=1)));
+    } except AttributeError as e {
+        print("AttributeError:", e);
+    }
+    lone = Link();
+    try {
+        lone.next.val = 3;
+    } except AttributeError as e {
+        print("AttributeError:", e);
+    }
+}
+```
+
+```output
+2
+AttributeError: 'NoneType' object has no attribute 'val'
+AttributeError: 'NoneType' object has no attribute 'val' and no __dict__ for setting new attributes
+```
+
+A local narrowed by `is not None`, or by a guard that returns where it `is None`, is not tested
+again where its members are used.
+
 Write `| None` where a value may be absent: it says so to the reader, and it is what narrowing
 and a function's missing `return` go by ([Functions](functions.md)).
 

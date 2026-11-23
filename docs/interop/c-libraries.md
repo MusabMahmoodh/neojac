@@ -479,7 +479,10 @@ Only a named function can be a callback as it is; a lambda or a bound method can
 a `Callable` record field is assigned a named function, `None` or a conversion of a function value
 (below). `None` passes `NULL`, which removes a callback where C says so. A `str`
 parameter of a callback receives C's `const char *` as a `str`. A callback's signature cannot
-take `bytes` or a `bytearray` (C passes no length) or a C record by value (E5090). It may take
+take `bytes` or a `bytearray` (C passes no length) (E5090). A function pointer's signature may
+take and give a C record by value, passed as C's calling convention passes it: a C function
+called through one ([dl](dl.md#calling-an-address)) gets and gives the record as a direct call
+does. It may take
 another callback: a `Callable` parameter inside a function pointer's signature is passed as its C
 address, and a Jac function C calls through such a pointer takes it as a function value made from
 that address ([below](#a-callback-that-takes-a-callback)). An exception a callback raises does not unwind through C's frames: the callback returns

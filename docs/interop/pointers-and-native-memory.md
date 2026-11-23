@@ -197,7 +197,7 @@ it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
 | Expression | Meaning |
 |---|---|
 | `hold(x)` | A `ptr`: the address of the object `x`, with one reference to it that C holds. The object stays, at that address, until the reference is released, though nothing in Jac holds it |
-| `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where `p` is null or holds an object of no class that is or derives from `T` |
+| `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where C holds no object at `p` (null, an address C released, any other address), asked before the object is read, and where it holds one of no class that is or derives from `T` |
 | `held_at(x)` | The address C holds the object `x` at, with no reference of its own: what `hold(x)` gave. `TypeError` where C holds none of `x` |
 | `release(p)` | C's reference goes. The object is freed when nothing else holds it. `TypeError` where C holds no object at `p` |
 
@@ -255,6 +255,9 @@ released
   it is: it may be called on the same address any number of times, and `release` after the last.
 - While C holds it, the object is a root of the cycle collector: a cycle one of whose objects C
   holds stays whole until `release`.
+- `hold`, `held`, `held_at` and `release` keep C's holds in one table the program shares, which
+  another thread may be changing, so a `Shared` class's method may call none of them (E1541):
+  take the object back with `held` before its threads start.
 - Only native code has addresses: in a cpython, node, browser or hermes space each of them is
   refused (E1540, "native memory").
 
