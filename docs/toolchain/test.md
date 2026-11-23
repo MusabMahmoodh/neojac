@@ -108,7 +108,7 @@ test "a cart counts each name" {
 
 1. Finds the modules, and with `-k` keeps those with a matching test.
 2. Builds each module's runner into `.jac/test/<platform>/` under the project's root, at the module's path: `src/cart.jac` becomes `.jac/test/macos-aarch64/src/cart`. A runner is rebuilt only when something its last build read has changed; the header line says how many are built this time.
-3. Runs every runner that built, from the project's root, with the environment variable `NEOJAC` set to the neojac that is running. A test that builds programs of its own runs that compiler.
+3. Runs every runner that built, from the project's root, with the environment variable `NEOJAC` set to the neojac that is running, whatever `NEOJAC` held before: `NEOJAC=<another> neojac test` still tests with the neojac that runs the tests, so to test another compiler, run its own `neojac test`. A test that builds programs of its own runs that compiler.
 4. Shows each module's result, in the order the modules were found, then the summary.
 
 Inside a runner, the module's own code (its globals and plain `with entry` blocks, its test annexes' included) runs first, then each test in source order. Everything a test prints is captured; it is shown only for a test that fails, under the failure. What the module's code prints is not shown.
