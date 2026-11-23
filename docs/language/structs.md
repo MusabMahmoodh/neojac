@@ -189,6 +189,16 @@ obj Body {
     }
 }
 
+def moved_in(b: Body) -> P {
+    at: &mut P = b.lend_at();
+    at.x += 1.0;
+    at = P(x=at.x * 2.0);
+    copy = b.lend_at();
+    copy.x = 50.0;
+    b.lend_at().x += 0.5;
+    return copy;
+}
+
 with entry {
     a = P(x=1.0);
     bump(&mut a);
@@ -196,12 +206,7 @@ with entry {
     reset(&mut a);
     print(a);
     b = Body();
-    at: &mut P = b.lend_at();
-    at.x += 1.0;
-    at = P(x=at.x * 2.0);
-    copy = b.lend_at();
-    copy.x = 50.0;
-    b.lend_at().x += 0.5;
+    copy = moved_in(b);
     print(b.at, copy);
 }
 ```
