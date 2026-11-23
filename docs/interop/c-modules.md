@@ -144,6 +144,8 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | A trailing array of no length (`int32_t data[];`) | Left out of the record, whose size stays C's: it is the memory past the record |
 | A `union`, a `typedef union` | A [union](../language/structs.md#unions), used by address and as a field |
 | A record with no name that is a field's type (`struct { union { ... } amount; }`) | A record named by its record and field (`shape_tagged_amount`), reached through the field |
+| An anonymous member, a record with no name and no field name (`struct value { int32_t kind; union { int64_t whole; double real; }; }`) | A field `anon0` (the next one `anon1`) of a record named by its record and that name (`value_anon0`): C's `v.whole` is `v.anon0.whole`. Where the record has a field of its own named `anon0`, the member stays unnamed, and `neojac port` refuses a use of it |
+| A record whose tag is also a function's name (`struct extent` beside `int64_t extent(struct extent *e)`) | A record named `struct_` and its tag, `obj extent as struct_extent` in the interface: `struct_extent(w=i32(6), h=i32(7))`. It is the one type `struct extent` is across the program, and a wire names it `struct_extent` (see [A record named in Jac other than by its tag](c-libraries.md#a-record-named-in-jac-other-than-by-its-tag)) |
 | An `extern` variable | A global the program reads and assigns in place; one of an opaque type is used through `addressof()` |
 | An enum constant, an integer `#define` | An `int` constant; a sign and a suffix (`(-17)`, `0xff00u`) are kept |
 | A `static inline` function of a header | A function of its C name, called through a C shim the module compiles |
@@ -580,6 +582,37 @@ with entry {
 IndexError
 ```
 
+`libcxx` also gives C++'s replaceable allocation functions, so that memory C++ allocates is freed
+as C++ frees it, and the reverse: `op_new(n)` and `op_delete(p)` are `::operator new` and
+`::operator delete`, `op_new_array(n)` and `op_delete_array(p)` `::operator new[]` and
+`::operator delete[]`. `n` is a `u64` count of bytes and the result a `ptr`; where C++ would throw
+`std::bad_alloc`, they raise `MemoryError`. This is what `neojac port` writes for C++'s `new[]`
+and `delete[]` of numbers and pointers ([Porting C++](port-cxx.md)).
+
+```jac
+import from jaclang.comptime { sizeof }
+import from libcxx { op_new, op_delete, op_new_array, op_delete_array }
+
+with entry {
+    xs = ptr[i32](op_new_array(u64(4) * u64(sizeof(i32))));
+    for i in range(4) {
+        xs[i] = i32(i * 10);
+    }
+    print(xs[3]);
+    op_delete_array(ptr(xs));
+    try {
+        op_new(u64(1) << u64(62));
+    } except MemoryError {
+        print("MemoryError");
+    }
+}
+```
+
+```output
+30
+MemoryError
+```
+
 ## Wiring C modules
 
 In a project with an `archwire.jac`, wires connect C modules as they connect Jac modules (see
@@ -662,7 +695,11 @@ double shapes_jac_scaled(double x, int32_t *calls) {
   makes them. A C file's use of one is held to its wires as any import of C is (E1575, E1147).
 - **A function C calls takes and gives** `int`, `i8` to `u64`, `float`, `f32` and `ptr[...]` (a
   pointer to anything but a number is `void *` in the header), and is neither generic nor
-  `async` (E1249).
+  `async` (E1249). It also takes a `Callable[[P, ...], R]` of those types, a function pointer:
+  `def:pub twice_with(f: Callable[[int], int], x: int) -> int` is
+  `int64_t twice_with(int64_t (*)(int64_t), int64_t);` in the header, and calls what C passed
+  as C's function, `f(f(x))`. `ptr(f)` is the address C passed (see
+  [Callbacks](c-libraries.md#callbacks)).
 - **A header beside a Jac module of its stem** (`cpu.h` beside `cpu.jac`) is that module's face to
   C: a C use of a name it declares is a use of the Jac module. This is how a C file that
   [`neojac port`](../toolchain/port.md#in-a-project) made Jac is still called by the C of its
