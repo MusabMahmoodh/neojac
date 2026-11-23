@@ -10,7 +10,7 @@ need and none while it has no callers, and keeps what the app keeps (its graph, 
 files) where every instance reaches it.
 
 ```sh
-neojac launch login https://launch.example   # sign in, once
+neojac launch login                          # sign in, once
 neojac launch deploy web                     # launch the project's app `web`
 neojac launch secrets set ANTHROPIC_API_KEY  # a variable of its environment
 neojac launch logs                           # what its instances said last
@@ -19,8 +19,8 @@ neojac launch domains add shop.example       # another name it answers at
 
 ## Signing in
 
-`neojac launch login <address>` asks for a username and a password and signs in to the platform at
-that address. `--new` makes the account first, and asks for an email address as well. The session
+`neojac launch login` asks for a username and a password and signs in to the platform, which is at
+`https://launch.neojac.dev`; an address given after it names another platform. `--new` makes the account first, and asks for an email address as well. The session
 is kept for the commands that follow, on this machine and for this user:
 
 | System | The session's file |
@@ -118,7 +118,7 @@ from anywhere.
 
 | It says | What happened |
 |---|---|
-| `you are not signed in` | No session is kept here, or the platform no longer takes it: `neojac launch login <address>` |
+| `you are not signed in` | No session is kept here, or the platform no longer takes it: `neojac launch login` |
 | `<address> could not be reached` | The platform did not answer |
 | `the name '...' is taken by another account's app` | Launch under another name, with `--as` |
 | `'...' is the project's app '...'` | That name is another app of a project: an app has a name of its own |
