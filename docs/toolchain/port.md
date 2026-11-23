@@ -164,7 +164,9 @@ port: 6 sources would port
 
 **A run follows the plan.** Each step of it is one change, made in the plan's order: a module
 that imports one the run refuses, or does not port, is held back with it (E4012), and every other
-step that checks is written.
+step that checks is written. Where a module of a group is refused for its own code, each other
+module of the group is E4012 too, naming that one: modules that import each other port
+together.
 
 **A step is one change.** Porting a file in a project:
 
@@ -218,6 +220,10 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   stem, its face beside it), and what the space emits apart in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
   run there, with the tree's configuration as it is ([A project's own
   suites](test.md#a-projects-own-suites)).
+  A TypeScript file that stays and imports a source by its TypeScript extension
+  (`import { bump } from "./counter.mts"`) would find no file at that name once the source is
+  Jac: the source stays until that file ports in the same run, or imports the JavaScript that
+  will stand there, `./counter.mjs` (E4014).
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
@@ -285,8 +291,8 @@ architecture, its variant file in place of the module's file: the Windows varian
 with Windows' system headers. So a C record a system header declares with other fields on
 another target (`struct stat`) is that target's record in that target's check, and meets no
 other declaration of it ([one record across the program](../interop/c-libraries.md#one-record-across-the-program)). A module only another platform's C table holds (a Linux source, from macOS) is checked under
-that platform, with its C module's interface read for it, and what fails there is reported as
-that platform's check found it.
+that platform, with its C module's interface read for it. Where that check fails, the file stays C,
+which its C module builds there as it is, with that check's errors shown (E4015).
 
 ## What is refused
 
@@ -318,6 +324,8 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4010 | A file a unity build compiles only inside a source not ported with it |
 | E4011 | In a project, a path into a C module its table says is another project's code (`vendored = true`) |
 | E4012 | A module that imports one the run does not port, held back with it |
+| E4014 | A TypeScript source a staying file imports by its TypeScript extension (`./counter.mts`): it stays until that file ports with it or imports the JavaScript that stands there |
+| E4015 | A C file only another platform compiles, whose Jac fails that platform's check: it stays C |
 | E4016 | A Python source importing a module neojac cannot find |
 | E4017 | A Python module only a system neojac builds for no target of loads: it stays Python |
 | E4018 | A Python module whose Jac fails the check of the one system that loads it: it stays Python |

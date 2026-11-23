@@ -136,8 +136,11 @@ exits, and serves nothing.
 
 A space may hold a tree of the repository that another tool packs, by its directory, quoted, as
 `jac.toml` names it: a Python project (`[pypi."<directory>"]`), held by a `cpython` space, or an
-npm tree (`[npm."<directory>"]`), held by a `node` or a `browser` space. A directory `jac.toml`
-names neither way is E2236, and a tree in a space of another host E2237.
+npm tree (`[npm."<directory>"]`), held by a `node` or a `browser` space. A quoted item that is no
+tree of `jac.toml` is the module at that path, spelled as a wire spells a module whose file stem
+holds a dot (`"frontend/vite.config"`); one that is neither is E2236, a quoted module whose parts
+are all identifiers E2310 (write it dotted), and a tree in a space of another host E2237. In a `|`
+chain a quoted item is always a module.
 [`neojac absorb`](../toolchain/packages.md) writes these spaces, each named for its tree's
 package: a node or browser space for an npm tree whenever it writes, and a Python project's
 space when `absorb --record` records the project's build:
@@ -352,7 +355,7 @@ dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
 |---|---|
 | E0168 | Something other than `ship` in a package |
 | E2235 | A package ships a space that is not declared |
-| E2236 | A space holds a tree `jac.toml` has no `[pypi."<directory>"]` nor `[npm."<directory>"]` for |
+| E2236 | A space's quoted item is neither a tree of `jac.toml` (`[pypi."<directory>"]`, `[npm."<directory>"]`) nor a module |
 | E2237 | A Python project in a space whose host is not `cpython`, or an npm tree in one that is neither `node` nor `browser` |
 | E2238 | A package that ships nothing |
 
@@ -424,7 +427,7 @@ changes no module and no line here.
 | Code | Cause |
 |---|---|
 | E0115 | Something other than a space, an app or a package in the block |
-| E0116 | Something other than `entry`, patterns or a tree's quoted directory in a space |
+| E0116 | Something other than `entry`, patterns or a quoted item in a space |
 | E0117 | Something other than `run`, `serve` or `<space> has` in an app |
 | E2093 | The archwire has a syntax error; reported with the error itself |
 | E1226 | A host that is not one of the six |

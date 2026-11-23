@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, init_base, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, headers per target
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, headers per target
 ---
 # C modules
 
@@ -502,17 +502,20 @@ An instance whose argument is no class or number type of C++ is refused by name.
 ### A Jac class deriving a C++ class
 
 A Jac class may list a C++ class as its base, where C++ allows a class to be derived: it is
-polymorphic, not `final`, and its destructor is public or protected. Its `postinit` makes the
-object's C++ part with `C.init_base(self, args)`, C++'s `: Figure(4)`: one `init_base` for each
-constructor a subclass may call, public or protected, named as `make`'s overloads are.
+polymorphic, not `final`, and its destructor is public or protected. Its `init` makes the
+object's C++ part with `super.init(args)`, C++'s `: Figure(4)`, as its first statement: the base's
+constructor runs before the rest of `init`, as C++ runs a base's constructor before the derived
+body. Where the base has several constructors a subclass may call, public or protected, each is
+named as `make`'s overloads are, with `init` for `make`: `super.init_f64_f64(2.0, 3.0)`.
 
 <!-- example: not checked: needs the C module whose figures.hpp declares Figure and described -->
 ```jac
 obj Square(Figure) {
-    has side: float = 1.0;
+    has side: float;
 
-    def postinit {
-        Figure.init_base(self, i32(4));
+    def init(side: float) {
+        super.init(i32(4));
+        self.side = side;
     }
 
     override def area -> float {
@@ -521,7 +524,7 @@ obj Square(Figure) {
 }
 
 with entry {
-    sq: own Square = Square(side=3.0);
+    sq: own Square = Square(3.0);
     print(described(sq).c_str(), sq.sides());
 }
 ```
@@ -532,12 +535,14 @@ figure/4/9 4
 
 `described` is C++, and calls `area`, which Jac overrides, and `name`, which `Figure` defines.
 
+- **`super.init` is the first statement of `init`**, and stands nowhere else: after another
+  statement, a second time, or in another method it is
+  [E2335](../reference/diagnostics/e22-4.md#e2335). It runs the direct base's own constructor,
+  so no other class's can be reached through it.
 - **The C++ part is a subclass of `C`** whose overrides of every virtual method of `C` and its
   bases call the Jac object's method of that name. A method the Jac class does not override, and
   `super.area()`, run C++'s own definition. A pure virtual method the Jac class does not
   override raises `NotImplementedError` when called.
-- **`init_base` raises** `TypeError` when the object's nearest C++ class is not `C`, and
-  `RuntimeError` the second time.
 - **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
   whose destructor runs code makes the deriving class an owned value too, bound `own`.
 - **A virtual method takes** numbers, C strings, pointers and classes (given to Jac borrowed), and
@@ -550,16 +555,18 @@ program's own C++ unit declares. Its members are Heavy's methods of number and `
 calling the Jac method, so what the template calls on `T` reaches Jac, and its overrides of
 `Counted`'s virtual methods call Heavy's. As a base, only an instance whose arguments name
 the deriving class itself, besides number types, is made; a Jac class deriving any other
-instance, or a class template a C++ source rather than a header defines, is refused by name. A program whose C++ instances do not compile (a Jac method's types disagree with the
-template's virtual of that name) is E5200.
+instance, or a class template a C++ source rather than a header defines, is refused by name. A
+program whose C++ instances do not compile (a Jac method's types disagree with the template's
+virtual of that name) is E5200.
 
 <!-- example: not checked: needs the C module whose figures.hpp declares Counted -->
 ```jac
 obj Heavy(Counted[Heavy]) {
     has w: int = 5;
 
-    def postinit {
-        Heavy.init_base(self);
+    def init(w: int) {
+        super.init();
+        self.w = w;
     }
 
     def weight -> int {
@@ -572,7 +579,7 @@ obj Heavy(Counted[Heavy]) {
 }
 
 with entry {
-    hv: own Heavy = Heavy(w=7);
+    hv: own Heavy = Heavy(7);
     print(hv.tally(i32(2)), hv.unit());
 }
 ```
@@ -580,6 +587,18 @@ with entry {
 ```text
 13 3
 ```
+
+**Not done.** A Jac class deriving a C++ class is made by Jac, and only through `super.init`.
+These parts of it are not built yet:
+
+- an `init` that writes no `super.init` running the base's default constructor (and E2335 where
+  the base has none);
+- the Jac class's `destroy` run by its C++ part's destructor, and `RuntimeError` for a call that
+  reaches the base after the C++ part has ended;
+- a C++ library making the Jac object itself (a template that does `new T(args)`, as
+  `Napi::ObjectWrap<T>` does), a static member of the base that gives `T *` giving the Jac
+  object, a list where C++ takes `std::initializer_list` or `std::vector`, and a Jac method given
+  where C++ takes a pointer to a member function.
 
 ### C++ values whose destructor runs code
 

@@ -980,7 +980,7 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
-              "title": "E2240 to E2325: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, quoted paths, JavaScript's faces and C tags",
+              "title": "E2240 to E2335: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, quoted paths, JavaScript's faces, C tags and C++ bases",
               "page": "reference/diagnostics/e22-4.md"
             },
             {
