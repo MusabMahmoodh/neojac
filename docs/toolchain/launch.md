@@ -19,10 +19,22 @@ neojac launch domains add shop.example       # another name it answers at
 
 ## Signing in
 
-`neojac launch login` asks for a username and a password and signs in to the platform, which is at
-`https://launch.neojac.dev`; an address given after it names another platform. `--new` makes the account first, and asks for an email address as well; a platform that takes
-no new accounts says so (`this app makes no new accounts: ask whoever runs it for one`). The session
-is kept for the commands that follow, on this machine and for this user:
+`neojac launch login` signs in to the platform, which is at `https://launch.neojac.dev`; an address
+given after it names another platform. Signing in is done in a browser, at a page of the platform:
+
+```text
+To sign in to https://launch.neojac.dev, open
+
+    https://launch.neojac.dev/__jac/auth/device?code=WRQB-NRZQ
+
+sign in there, and check that the page shows the code WRQB-NRZQ
+```
+
+It opens the page itself where this machine has a screen; on a machine that has none, open the
+link on any other. The page asks for a username and a password, or makes an account
+(`Create account`), shows the code, and asks whether the program is yours: `Sign it in`. `login`
+waits for that, ten minutes at most, and nothing typed at the page comes to this machine but the
+session. The session is kept for the commands that follow, on this machine and for this user:
 
 | System | The session's file |
 |---|---|
@@ -137,6 +149,8 @@ from anywhere.
 | It says | What happened |
 |---|---|
 | `you are not signed in` | No session is kept here, or the platform no longer takes it: `neojac launch login` |
+| `this sign-in was turned away` | Whoever was at the page chose `Turn it away` |
+| `not signed in: no one answered at the page in time` | No one said the program was theirs in the ten minutes the platform waits: `neojac launch login` again |
 | `<address> could not be reached` | The platform did not answer |
 | `the name '...' is taken by another account's app` | Launch under another name, with `--as` |
 | `'...' is the project's app '...'` | That name is another app of a project: an app has a name of its own |
