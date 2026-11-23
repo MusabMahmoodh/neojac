@@ -800,7 +800,7 @@ Its guide: [toolchain/inspect](../toolchain/inspect.md) (`neojac docs toolchain/
 Write a space's JavaScript, or its Python code.
 
 ```sh
-neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]] [--laid]
+neojac emit-js <space> -o <dir> [<option>...]
 neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 ```
 
