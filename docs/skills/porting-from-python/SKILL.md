@@ -34,7 +34,8 @@ In a project (a `jac.toml` above the file, as `neojac absorb` writes one), port 
 - A `def` in module code (under `try`, an `if`) is written where it stands, assigning the module's `glob` of its name, as Python binds it. So is an import in module code (`try: import json` falls back to `json = None`): `import json;` alone, which binds the module's `glob json` where it runs.
 - A parameter the source leaves unannotated stays so (`def f(a, b=1)`): in a `cpython` space it is `any` to `check` and has no entry in `__annotations__`, as in the source. Natively a parameter has a type (E0052): give it one, or `any`.
 - A class Python makes takes its constructor as `init`, which is Python's `__init__`; `super.init(...)` calls the base's.
-- A module that only another platform's `comptime if` branch imports (`_pswindows` on macOS) is not loaded for this platform, so what it uses of that platform alone is not checked here.
+- A module that only another platform's `comptime if` branch imports (`_pswindows` on macOS) is not loaded for this platform, so what it uses of that platform alone is not checked here. Port checks it for the platform that loads it; one only a system neojac builds for no target of loads (`_pssunos`) stays Python (E4017), and so does one whose Jac fails its own platform's check (E4018, with that check's errors): the rest of the run is written, and the importer imports it as Python does.
+- An `except (ValueError, OSError) as err` binds `err` to their common base; `isinstance(err, ValueError) or err.errno == 2` reads `errno` of the `OSError` the right side is narrowed to.
 
 Record what the Python does before you change it: run it on inputs that exercise each path and keep the output (`python3 stock.py > py.out`). That file is the port's acceptance test.
 

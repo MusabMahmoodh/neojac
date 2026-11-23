@@ -87,7 +87,8 @@ variable's address for one call; memory from `calloc` is a `ptr[T]`, indexed unc
 C's `free`, its size `sizeof(T)` (`import from jaclang.comptime { sizeof }`); `p.view(n)` is a bounds-checked view, indexed (never iterated) with
 `range(len(v))`. A Jac `list` is not a C array: copy into C memory. Where C keeps an address
 after the call, use `pin(x)` (`neojac docs pin`); to give C a Jac object as a callback's user
-data, `hold(obj)`, taken back in the callback by `held[T](p)` and given up by `release(p)`.
+data, `hold(obj)`, taken back in the callback by `held[T](p)` (a `TypeError` for an address C
+does not hold) and given up by `release(p)`.
 Only a named function is a callback as it is; a function value (a variable, a parameter, a
 record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cmp)`, and one with
 no C address (a closure that captures) raises `TypeError` there.
@@ -144,7 +145,8 @@ pub extern "C" fn add(a: i64, b: i64) -> i64 {
 API needs no `extern "C"`: `import from std.collections { HashSet }`, and a crate's ordinary
 `pub` items through its wire, are used natively, generics by their arguments
 (`HashSet[u32].new()`), a generic method by its instance at the call (`o.zip[u32](p)`), a
-slice of numbers as `Slice[u32]` (`import from rust { Slice }`, `v.as_slice().sub(a, b)`), an
+slice of numbers as `Slice[u32]` (`import from rust { Slice }`, `v.as_slice().sub(a, b)`,
+`bytes(s)` of a `Slice[u8]`), a slice's methods on a `Vec` (`v.sort()`, `v.contains(&x)`), an
 iterator stepped by `next()`, a panic as `RustPanic` (`import from rust { RustPanic }`). A value
 whose drop runs code is bound `own` in a local (E1256); a field with no ownership annotation holds
 one as a managed place. `neojac docs Rust module` has what crosses.

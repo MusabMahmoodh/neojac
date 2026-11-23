@@ -98,8 +98,9 @@ ENOENT
    - A Jac function JavaScript calls binds JavaScript's arguments by its parameters, on every
      host: one left out is its default (None where it has none), and arguments past what it
      names are dropped, as JavaScript drops them, or are its `*rest`.
-   - A Jac function JavaScript holds is the function itself (its face): on a JavaScript host a
-     property either side sets is the other's, and `new f()` constructs with `f.prototype`.
+   - A Jac function JavaScript holds is a JavaScript function, one per Jac function (its face,
+     no `Proxy`): on a JavaScript host a property either side sets is the other's, and `new f()`
+     constructs with `f.prototype`.
    - JavaScript's `TypeError` and `RangeError` arrive as `TypeError` and `ValueError`, anything
      else as `RuntimeError`; `js_error(e)` is what was thrown, with its `.code` and `.name`.
    - Where a value's type is not known and JavaScript's own meaning is wanted, `js` has each
@@ -124,7 +125,13 @@ ENOENT
      does not import, and give the file a function that calls it.
    - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
      JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
-     it uses `self` (`neojac docs E2252`).
+     it uses `self` (`neojac docs E2252`). A class may also derive from a global of type `any`
+     (`glob Plain: any = globalThis.Set; obj Tally(Plain) {}`), which JavaScript makes it over
+     where its statement runs; a global of another type is E2312.
+   - A project's file imports a Jac module's forwarder, which gives exactly the module's public
+     names. A `.d.ts` beside the module (`kinds.d.ts` beside `kinds.jac`) is its face to
+     TypeScript, held to the module by `neojac check`: E2313 for a name the module does not give,
+     E2314 for one it gives and the face lacks, E2315 for a value declared as a type.
 
 4. **Check, build, run.**
 
