@@ -347,6 +347,12 @@ getcwd no nothing_here True
   among declarations each ask `hasattr` of the other wait on each other, and that is E2301.
 - **In a cpython space, where `M` is a Python module that stays**, `hasattr` is Python's own,
   asked when the program runs.
+- **In a cpython space, a module the target chooses is read as Python reads it.** Where each
+  branch of a `comptime if` imports a module under one name (`import plat.osx as plat;` in one,
+  `import plat.linux as plat;` in another), `plat.x` of a name the chosen module lacks is
+  Python's read of the module object: `any`, an `AttributeError` where it runs, as Python's own
+  program would raise. A module bound by one name on every target keeps E1145 for a name it
+  lacks, and on every other host so does this one.
 - `hasattr` of a value that is not a module is Python's as everywhere: asked when the program
   runs.
 

@@ -1018,12 +1018,16 @@ recorded
 - **What a build compiled from a copy is recorded as the file of the project it is a copy of.**
   node-gyp compiles `sqlite3.c` from its build directory: the table names `deps/sqlite3`, and a
   header directory of such copies is the directory they were copied from. What is "of the
-  project" is what git does not ignore, where the project is git's; a compiled file that is no
-  copy of one is reported, and the module is not taken.
+  project" is what was there before the build ran: what git does not ignore, where the project is
+  git's, and otherwise every file of the tree as the build found it, so a copy with no `.git`
+  records as its repository does. A file the build wrote again, or made (an amalgamation it
+  extracts into `build/`), is the build's; a compiled file that is no copy of one of the
+  project's is reported, and the module is not taken.
 - **An option for the linker (`-Wl,...`) is the module's `ldflags`**
   ([C modules](../interop/c-modules.md#the-manifest)). What only says which system the build is
   for (`-arch`, `-mmacosx-version-min`), where it writes its dependency files (`-MMD`, `-MF`),
-  and where it put its own output (`-L./Release`) is not recorded.
+  and where it put its own output (`-L./Release`, a directory a recorded run made a file in) is
+  not recorded.
 
   ```toml
   [c.src]

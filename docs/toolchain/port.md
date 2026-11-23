@@ -136,7 +136,9 @@ own file's flags), for the platforms the module compiles it for (one compiled fo
 TypeScript in its `tsconfig.json`'s program (its libraries, its module resolution, its
 `paths`), with the `node_modules` above it; Rust with the features the project builds the crate
 with: those of the `[extensions]` row whose `cargo` is the crate, else its defaults (two rows
-naming it with different features refuse it). A C file a unity build compiles only through another
+naming it with different features refuse it). rustc reads a crate whole, so its files are one
+group of the plan: each is its own source, ported to its own module, read through the crate's
+root, and they port together or not at all. A C file a unity build compiles only through another
 source's `#include` is read in that source's translation unit, and ports with it: the source and
 the files it includes port together or not at all (E4010 for such a file ported alone or held
 back, E4043 for the source held back).

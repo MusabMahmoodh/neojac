@@ -69,6 +69,37 @@ try,except bad,finally
 escaped: KeyError('key')
 ```
 
+The name a tuple of classes binds is of their nearest common base. A test that it is not one of
+them narrows it to the other where the clause names two, so the other's members are there to
+read: in `except (ValueError, OSError) as err`, the right of `isinstance(err, ValueError) or`
+sees an `OSError`, with its `errno`. A clause that assigns the name is not narrowed.
+
+```jac
+def opened(path: str) -> str {
+    try {
+        if path == "" {
+            raise ValueError("no path");
+        }
+        with open(path) as f {
+            return f.read();
+        }
+    } except (ValueError, OSError) as err {
+        if isinstance(err, ValueError) or err.errno == 2 {
+            return "missing";
+        }
+        raise;
+    }
+}
+
+with entry {
+    print(opened(""), opened("/no/such/file"));
+}
+```
+
+```output
+missing missing
+```
+
 `finally` runs before a `return` from the `try` hands back its value:
 
 ```jac
