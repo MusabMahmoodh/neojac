@@ -31,7 +31,7 @@ else its defaults.
 | `use std::collections::HashSet;` | Nothing: rustc has resolved every path a `use` names |
 | `match n { 0 => a, 1 \| 2 => b, k if k > 9 => c, _ => d }` over integers, bools and enums of the crate, as a statement or as a `let`'s value | `match n { case 0: ... case 1 \| 2: ... case k if k > 9: ... case _: ... }` |
 | `#[cfg(test)] mod tests { #[test] fn adds() { assert!(add(1, 2) == 3); } }` | `test "adds" { if not (add(1, 2) == 3) { raise AssertionError("assertion failed: add(1, 2) == 3"); } }`: the crate is read once more as a test; a helper function of the module is a function of the file |
-| `let x = 1;`, `let mut x: i64 = 1;`, `let x = x + 1;` in the same block | `x: i32 = 1;`, `x: i64 = 1;`, `x: i32 = x + 1;` |
+| `let x = 1;`, `let mut x: i64 = 1;`, `let x = x + 1;` in the same block; `let (a, mut b) = t;` | `x: i32 = 1;`, `x: i64 = 1;`, `x: i32 = x + 1;`; `unpacked: tuple[u32, u64] = t; a: u32 = unpacked[0]; b: u64 = unpacked[1];` |
 | `if c { } else if d { } else { }`; `let x = if c { a } else { b };` | `if c { } elif d { } else { }`; `x: T = a if c else b;` |
 | `while c { }`, `loop { }`, `break`, `continue` | `while c { }`, `while True { }`, `break;`, `continue;` |
 | `for i in a..b { }`, `for _ in 0..n { }`; `for x in v`, `v.iter()`, `v[a..b].iter()` and their `enumerate()`, over a `Vec` | `for i = a while i < b with i += 1 { }`; a walk by index, `for at = u64(0) while at < u64(v.len()) with at += 1 { x = v[at]; }`, a range checked first by `rust.within` as Rust checks it |
@@ -44,7 +44,7 @@ else its defaults.
 | `x as i64`, `x as f64` (a type that holds every value); `x as u8` | `i64(x)`, `float(x)`; `u8.wrap(x)`: it keeps the low bits |
 | `f(a, b)` | `f(a, b)` |
 | `\|x\| x + 1`, given to another crate's method that calls it before it returns | `lambda (x: i32) -> i32 { return x + 1; }` |
-| `fn f(t: &[u32])`, `t[i]`, `t.len()`, `for &x in t`; `f(&v)`, `&v[a..b]`, `&v[a..]`, `&t[..b]` of a `Vec` or a slice of numbers | `def f(t: Slice[u32])`, `t[i]`, `t.len()`, a walk by index; `f(v.as_slice())`, `v.as_slice().sub(a, b)`, `.sub_from(a)`, `t.sub(u64(0), b)`: `rust.Slice[T]`, the native `&[T]`, which borrows what it is a slice of and panics where Rust panics |
+| `fn f(t: &[u32])`, `t[i]`, `t.len()`, `for &x in t`; `f(&v)`, `&v[a..b]`, `&v[a..]`, `&t[..b]` of a `Vec` or a slice of numbers; `&v[i]` of a `Vec` of another crate's values, `v[i].len()`; `v[i].1 = x` of a `Vec` of tuples | `def f(t: Slice[u32])`, `t[i]`, `t.len()`, a walk by index; `f(v.as_slice())`, `v.as_slice().sub(a, b)`, `.sub_from(a)`, `t.sub(u64(0), b)`: `rust.Slice[T]`, the native `&[T]`, which borrows what it is a slice of and panics where Rust panics; `v[i]`, the item the `Vec` lends, which borrows it; `v[i] = (v[i][0], x)`, `x` held first where it has an effect |
 | `5`, `5u8`, `1.5`, `true` | `5` where its type is given by what takes it, else `i32(5)`, `u8(5)`; `1.5`, `True` |
 | `b"ab"` given as a `&[u8]` | `b"ab"` |
 | `Vec<u32>`, `HashMap<Vec<u8>, u32, FxBuildHasher>`, `v.push(x)`, `Vec::with_capacity(4)`, `v[i]`, `v[i] = x`: another crate's types, the standard library's among them | `Vec[u32]`, `HashMap[Vec[u8], u32, FxBuildHasher]`, each imported by its Rust path (`import from std.vec { Vec }`), `v.push(x)`, `Vec[u32].with_capacity(4)`, `v[i]`, `v[i] = x`: Rust's own items, called natively ([Rust modules](rust-modules.md)) |
@@ -57,6 +57,7 @@ else its defaults.
 | `HashSet<&str>`, `Vec<&[u8]>` only built and read: `insert(s)`, `contains(k)`, `len()`, given by `&` to a function of the crate | `HashSet[String]`, `Vec[Vec[u8]]`, each element made a `String` or a `Vec[u8]` before the statement that inserts it: nothing done with the set can tell the two apart |
 | `vec![a, b]`, `let x;`, a `#[should_panic(expected = "m")]` test | `made: Vec[T] = Vec[T].with_capacity(2); made.push(a); made.push(b);` before the statement; `x: T;`; a test that passes when a `RustPanic` or `AssertionError` holding `m` is raised |
 | `for m in re.find_iter(text) { }` over another crate's iterator; `re.find_from_pos(text, at)`, generic over its input; `v.extend(&w)`, `v.extend(f())` of a `Vec` of numbers; `text.as_bytes()` | `steps: Matches[str] = re.find_iter[str](text); while True { got = steps.next(); if got.is_none() { break; } m = got.unwrap(); }`, the native `Iterator::next`; `re.find_from_pos[str](text, at)`, the instance named at the call; the loop that pushes each of `w`'s items; `text.encode()` |
+| An iterator chain: `v.iter().map(\|x\| *x * 2).collect::<Vec<u32>>()`, `v.windows(2).map(\|w\| w[1] - w[0])`, `(0..n).map(\|_\| 7)`, `m.keys().cloned()`, `v.iter().rev()`, `enumerate()`, `all`, `any`, `HashMap::from_iter([(1, 2)])`, `o.map_or(d, \|x\| x + 1)`, `o.map(f).unwrap_or(d)`, `o.ok_or(e)` | The loop it runs, before its statement: `made: Vec[u32] = Vec[u32].new(); for at = u64(0) while at < u64(v.len()) with at += 1 { x: u32 = v[at]; mapped: u32; mapped = x * 2; made.push(mapped); }`; a window read by its items' places (`v[at + 1] - v[at + 0]`); another crate's iterator stepped by `next()`, whose items borrow what the iterator borrows (a `HashMap`'s keys and values; a tuple of references to numbers copied); an `Option` tested once; a closure's body run in the loop, and refused where it assigns what it captured or returns |
 | `(a, b)`, `t.0`, `t.1 += 1`, `Vec<(usize, u32)>` | `(a, b)`, `t[0]`, `t = (t[0], t[1] + 1)`, `Vec[tuple[u64, u32]]` |
 | `impl Ord for Merge { fn cmp(&self, o: &Self) -> Ordering { } }`, `#[derive(PartialEq, Eq)]`, `BinaryHeap<Merge>` | `struct Merge(Ord, PartialOrd, Eq, PartialEq) { def cmp(other: &Merge) -> Ordering { } }`: the struct conforms to Rust's traits, which Rust's generic code calls |
 | `assert!(c)` outside a test | `if not c { raise RustPanic("assertion failed: c"); }`, `RustPanic` imported from `rust` |
@@ -68,8 +69,10 @@ else its defaults.
 
 Anything not in the table is refused with E4001, and nothing is written for the file: among
 them enums whose variants hold fields and their patterns, generics, another crate's methods
-generic over a closure or a trait object (`collect`, `map`, `from_iter`), iterator chains, a
-`for` over an iterator that borrows its source mutably (`drain()`), a slice of other than
+generic over a closure or a trait object but in the chains the table names (`filter`,
+`sum`, `for_each`, `fold`), a chain or a `for` over another crate's iterator whose items
+are tuples holding a reference to other than a number (a `HashMap<Vec<u8>, u32>`'s `iter()`),
+a `for` over an iterator that borrows its source mutably (`drain()`), a slice of other than
 numbers, a `?` that converts the error, a `Display` impl of more than one `write!`, a value
 that borrows kept past a local, `char`, raw pointers and `unsafe`, and a call of another
 crate whose types Jac does not hold or that the import of Rust leaves out (its result

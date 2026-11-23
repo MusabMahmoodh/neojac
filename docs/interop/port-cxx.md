@@ -23,6 +23,7 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `C c(1);`, `C c;`, `C d = c;`, `c.get()`, `this->n`, `true` | `c: C = C.make(1);`, `c: C = C();`, `d: C = c;`, `c.get()`, `self.n`, `True` |
 | `C(1, 2)` as a value | `C.make_i32_i32(1, 2)`: the constructor a library class's interface binds, or a ported class's `make` |
 | `::operator new[](n * sizeof(T))`, `::operator delete[](p)`, `::operator new(n)`, `::operator delete(p)` | `op_new_array(n * u64(8))`, `op_delete_array(p)`, `op_new(n)`, `op_delete(p)`: C++'s replaceable allocation functions, from `libcxx`, so that memory a file that stays C++ allocates is freed by the port as C++ frees it, and the reverse; where C++ would throw `std::bad_alloc` they raise `MemoryError` |
+| `template <class T> T *filled(size_t n, T v) { ... sizeof(T) ... }`, `filled<int>(3, 4)`, `filled(2, 0.5)` | `def filled[T](n: u64, v: T) -> ptr[T] { ... u64(sizeof(T)) ... }`, `filled[i32](3, 4)`, `filled[float](2, 0.5)`: a function template of the file is a Jac generic, written once from its pattern and checked for each instance the program calls, with the type arguments C++ deduced written at the call |
 | `a == b`, `v[i]`, `s += t` on a class a library gives | `a.op_eq(b)`, `v.op_index(i)`, `s.op_iadd(t)`: the member its interface binds for the operator, `op_` and the operator's name, a conversion `op_to_` and its type |
 | `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference or of a pointer to an object of a class with virtual functions is refused |
 
@@ -61,7 +62,12 @@ interface binds for that very declaration, by the name the interface gives it, o
 under another's name stands for it where their parameters are the same to Jac
 (`push_back(const int&)` and `push_back(int&&)`); a member the interface does not bind is
 refused, with the interface's reason. A parameter that is a reference to such a class
-(`const C&`, `C&`) is a borrow of it, `c: &C`.
+(`const C&`, `C&`) is a borrow of it, `c: &C`. A store through the reference a member gives
+(`v[i] = x`, `v.at(i) = x`) is the store the interface binds beside it, `v.op_index_set(i, x)`,
+`v.at_set(i, x)`. A construction by a constructor template is the instance the library's
+reading makes for it, named by its parameters as any constructor: `std::string s(p)` is
+`std_string.make_ptr_i8(p)`. A class made with `signed char` is refused: as a template's
+argument Jac's `i8` is plain `char`.
 
 A call of a library class's member template names the instance by its type arguments, as Jac
 types: `v.As<Napi::Object>()` is `v.As[Object]()`, `c.to<double>()` is `c.to[float]()`. Member
@@ -107,7 +113,16 @@ An object made by `new` and given where C takes a `void *` (a callback's user da
 C: `hold(Tally())`, a counted reference C holds. `static_cast<Tally *>(ctx)` of that address is
 `held[Tally](ctx)`, the object again, and `delete static_cast<Tally *>(ctx);` is
 `held[Tally](ctx).destroy(); release(ctx);`: the destructors run there, once, and C's
-reference goes.
+reference goes. Where the address of an object of such a class goes to C at any point of its
+life (decided per class across the run), C holds the object from its `new` to its `delete`:
+`hub: Hub = held[Hub](hold(Hub()));`, each conversion of it to `void *` is `held_at(hub)`, its
+address with no count of its own, and `delete hub;` is `hub.destroy(); release(held_at(hub));`.
+A local of such a class is refused.
+
+A member whose destructor runs code (`std::vector<int> xs;`) is a field with no ownership
+annotation, a managed place: `destroy` ends it after the destructor's body, `del self.xs;`,
+members in reverse declaration order and then `super.destroy();`, as C++ ends them at the
+`delete`. A class with such members and no destructor of its own is given that `destroy`.
 
 A local of such a class made by a constructor, `TempConverter conv(this);`, is
 `conv: TempConverter = TempConverter(self);` where no class of it declares a destructor, so
@@ -124,7 +139,9 @@ class being made), an overloaded virtual function, more than one base or constru
 ## What is refused
 
 Anything not in the table or in C's is refused with E4001: inheritance from a class port does
-not write as an `obj`, the file's own templates, a header library's function template, a
+not write as an `obj`, the file's own class templates, a function template with a value, a pack
+or a default among its parameters or whose body applies an operator to a value of its type
+parameter, a header library's function template, a
 standard library class the library keeps to itself (`std::__wrap_iter`), operators
 and conversions of the file's own classes, a non-member operator, the destructor of a class
 port does not write as an `obj`, references but a library class's as a parameter and an
