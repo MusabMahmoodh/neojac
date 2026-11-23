@@ -129,7 +129,7 @@ with entry {
 
 ### packed
 
-`@packed` before a struct lays its fields out as C's `__attribute__((packed))` does: each right
+`@packed` before a struct, or a C record of an `import from c` block, lays its fields out as C's `__attribute__((packed))` does: each right
 after the one before, with no padding, and the struct aligned to 1. `@packed(n)`, `n` a power of
 two (E1495), is C's `#pragma pack(n)`: each field aligned to the lesser of its own alignment and
 `n`. With `@align(n)` too, the packed struct is then aligned to `n`, as C's

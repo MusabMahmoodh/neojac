@@ -17,7 +17,7 @@ A C module is one of two things, by who holds its manifest:
 | | The project's own | A dependency |
 |---|---|---|
 | Its manifest | A table of `jac.toml`, `[c."<directory>"]` | A `cmodule.toml` in its directory that `jac.toml` does not hold: a vendored library, a loose module beside a program with no `jac.toml` |
-| Its interface | What its own files declare: the headers its `headers` key lists, per target, or every header in its directory where it lists none; and each function and variable its C sources define, whether a header declares it or not | The headers its `headers` key lists |
+| Its interface | What its own files declare: the headers its `headers` key lists, per target, or every header in its directory where it has no `headers` key; and each function and variable its C sources define, whether a header declares it or not | The headers its `headers` key lists |
 | Under an `archwire.jac` | Its files are modules, and a wire names the file that defines what it brings ([below](#wiring-c-modules)) | One module, whole |
 
 ## The shortest example
@@ -200,12 +200,26 @@ sources = ["counter_posix.c"]
 frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
 ```
 
+- `name` (in a project's table) gives the module a key of its own, by which a wire names it
+  (`[c."psutil/arch"] name = "_psutil"`, `_psutil ++> main { ... }`); the table stays keyed by its
+  directory. It is identifiers joined by `.`, and a key no Jac or Python module of the program
+  has (E2270). `neojac absorb --record` writes it, as the last part of the extension module the
+  module is built into. Without it the module's key is its directory.
+- `headers`, where the table has the key, is the module's whole list of headers. An entry is a
+  path from the module's directory, or `<name>`, a header found on the module's include path,
+  the system's included (`headers = ["<Python.h>"]`). A module whose sources are all gone (every
+  one ported to Jac) stays a module over such headers: its interface binds what the wires name,
+  their `static inline` functions included, through a shim neojac compiles. A header beside a
+  Jac module of its stem is that module's face to C ([below](#calling-jac-from-c)), never one of
+  a C module's headers.
 - Every key is optional. A dependency with no `headers` (one that is only `archives`, say: a
   library built elsewhere) has no interface: a program binds its functions by declaring them
   (below). A module of the project's own takes its interface from its files: the `headers` it
   lists, which may differ by target (`[target.linux] headers = [...]`), as
-  `neojac absorb --record` writes them from what each platform's build read; where it lists none,
-  every header of its directory. A directory that holds every platform's headers
+  `neojac absorb --record` writes them from what each platform's build read; where it has no
+  `headers` key, every header of its directory. A module an extension module's record names is
+  read for the platforms that record lists alone (`[extensions."<path>"] recorded`), as its build
+  and `neojac port` read it; one no record names is read for every platform. A directory that holds every platform's headers
   (`arch/linux/init.h` beside `arch/osx/init.h`) names each target's, so that no target reads
   another's. A header of the project outside the module's directory that its build reads
   (`../include/clamp.h`) is the module's when `headers` names it: its `static inline` functions

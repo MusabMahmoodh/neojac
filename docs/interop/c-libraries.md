@@ -221,6 +221,36 @@ A record's fields are of the types in the table above, other records included. A
 bases, methods, static fields or properties (E5090), and cannot contain itself (E1150): link
 records through `ptr[T]` fields.
 
+A record C declares packed or aligned is declared so: `@packed`, `@packed(n)` and `@align(n)`
+(from `jaclang.comptime`) lay it out as C's `__attribute__((packed))`, `#pragma pack(n)` and
+`__attribute__((aligned(n)))` do, as they do a struct's ([Decorators](../language/decorators.md#packed)):
+
+```jac
+import from jaclang.comptime { align, packed, sizeof }
+
+import from c {
+    @packed
+    obj Header {
+        has tag: u8,
+            size: u32;
+    }
+
+    @align(16)
+    obj Slot {
+        has n: i32;
+    }
+}
+
+with entry {
+    h = Header(tag=u8(7), size=u32(300));
+    print(sizeof(Header), sizeof(Slot), h.tag, h.size);
+}
+```
+
+```output
+5 16 7 300
+```
+
 An `obj` with no body is an **opaque type**: C knows its layout, the program does not. It has no
 size, so it cannot be constructed or held by value (E1151). The program handles it as
 `ptr[Name]`:
