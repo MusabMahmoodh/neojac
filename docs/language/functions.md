@@ -30,7 +30,8 @@ body in braces. The full rule, with its modifiers, is in [Abilities](abilities.m
 - **Every parameter has a type**: `def area(w: int, h: int)`.
 - **No `->`, no value.** A function without a return type returns `None`, and a value it returns
   is an error (E1003: declare `-> T`). `-> None` may be written; the lint rule
-  `unnecessary-none-return` (W3037) flags it where a project selects it.
+  `unnecessary-none-return` (W3037) flags it where a project selects it, but in a `cpython`
+  space, where it is the annotation Python reads.
 - **A function that declares a return type returns a value on every path** that reaches its end
   (E1004). A path that ends in `raise`, or a `forever` loop left only by `return`, needs none. A
   return type that includes `None` (`-> int | None`) lets the function end without a `return`, and

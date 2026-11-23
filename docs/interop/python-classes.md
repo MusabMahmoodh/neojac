@@ -459,6 +459,67 @@ with entry {
 [1, null]
 ```
 
+## Properties
+
+A field with a `getter` (and a `setter`) is Python's own property in a cpython space: `@property`
+with the field's annotation as its result's and the field's doc string as its `__doc__`, and
+`@x.setter` taking the setter's annotated value. Read off the class, `C.x` is the `property`
+object, as Python's is.
+
+## A module's imported names
+
+A module holds the names its imports and wires bind as its attributes, as Python's import binds
+them in the module's namespace: with `import from os.path { basename }` and `import math;` in
+`kit/shapes.jac`, `shapes.basename` and `shapes.math` are those objects, to Python reading the
+module and to a Jac module that takes it whole, and `dir()` of the module lists them.
+
+<!-- example: not checked: runs in a cpython space whose module kit/shapes.jac is wired as shapes, `kit.shapes as shapes ++> main;` -->
+```jac
+with entry {
+    b = shapes.Box(w=2.0);
+    b.area = 9.0;
+    prop = shapes.Box.area;
+    print(b.w, type(prop).__name__, prop.__doc__);
+    print(shapes.basename("/a/b.txt"), shapes.math.pi > 3);
+    print((shapes.log as any).__annotations__);
+}
+```
+
+with `kit/shapes.jac` holding
+
+<!-- example: not checked: the module kit/shapes.jac of the space above -->
+```jac
+import from os.path { basename }
+import math;
+
+obj Box {
+    has w: float = 1.0;
+
+    """The box's area."""
+    has area: float {
+        getter {
+            return self.w * self.w;
+        }
+        setter(value: float) {
+            self.w = math.sqrt(value);
+        }
+    }
+}
+
+def log(msg: str) -> None {
+    print(basename(msg));
+}
+```
+
+```text
+3.0 property The box's area.
+b.txt True
+{'msg': <class 'str'>, 'return': None}
+```
+
+`-> None` is the function's annotation there, which no lint rule removes in a cpython space
+([Lint](../toolchain/lint.md)).
+
 ## A module's `__file__`
 
 In a cpython space a module's `__file__` is its Jac source's whole path, as natively
