@@ -15,7 +15,7 @@ neojac ships the commit of this repository it was built with.
   and nothing else of neojac's. [Writing a plugin](docs/skills/writing-a-plugin/SKILL.md) says
   what one is made of.
 - **`libraries/`** holds the libraries those plugins declare, each a package of
-  `kind = "library"`: `sqlfile`.
+  `kind = "library"`: `sqlfile` and `accountbook`.
 - **`docs/`** is what `neojac docs` prints. A page's `jac` examples are whole programs that neojac
   compiles as the page says, and a page is listed in `docs/nav.json`.
 - **`examples/`** holds programs written in Jac.

@@ -1,6 +1,6 @@
 ---
 description: Plugins, the mechanisms behind the language's abstractions - the abstractions that take one and where each declares itself, binding a plugin in jac.toml, the plugins neojac ships, listing several and picking one where the program runs, the two that are picked as a space is built, settings and secrets, a project's own plugin by its path, writing one against its abstraction's contract, what a plugin imports and what its host gives it, and what is refused.
-keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin
+keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, accountbook, AccountsAuth, Book, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin
 ---
 # Plugins
 
@@ -81,7 +81,7 @@ above the plugin imports it, and it imports nothing of either
 
 **Each interface has a version,** a number that goes up when the interface changes so that a
 plugin written for it would not survive. Every interface is at 1 in this neojac but
-`transport`'s, which is at 2. A plugin says
+`transport`'s and `files`', which are at 2. A plugin says
 the version it was written for (`interface_ver`, [below](#writing-a-plugin)), and one written for
 another is refused before anything is asked of it (E2230): the message is that the interface
 moved on, and not that some method of the plugin's class is missing.
@@ -298,8 +298,10 @@ A plugin's modules import four things, and nothing else of neojac's (E2233):
 | The standard library | `os`, `json`, `sqlite3`, `urllib`, and a Python or C package of its own |
 
 It imports nothing of stdjac, and no other abstraction's contract. A library a plugin declares is
-held to the same rule, with `common.contract` the one contract it may import: a plugin reaches
-stdjac through nothing.
+held to the same rule: it imports `common.contract` and the contract of the abstraction that plugin
+fills, so what two plugins of one abstraction share is written once, in a library both declare. A
+library that plugins of two abstractions declare imports neither's contract. A plugin reaches stdjac
+through nothing.
 
 The built-in words of the abstractions (`@job`, `llm` and the rest) are stdjac's too, and a
 plugin says none of them. `neojac check` in the plugin's own directory holds it to all of this, with
@@ -336,6 +338,27 @@ tree, as a plugin declares any library:
 [packages]
 sqlfile = { path = "../../../libraries/sqlfile" }
 ```
+
+**`accountbook` is a library of `auth` plugins:** accounts of a username and a password, their
+sessions, and signing in through GitHub, over a book that keeps them. It imports `auth.contract`,
+so only a plugin of `auth` declares it.
+
+- **`AccountsAuth` is an `Auth` but for where its accounts are kept.** A plugin's class extends it
+  and gives `open_book(host)`, the `Book` it keeps them in. The library's settings are the
+  plugin's, beside its own: `accounts` adds `path`
+  ([Serving a space](server.md#the-accounts-plugin)).
+- **A `Book` is eight methods, each one step done whole:** a session by its token's hash, one
+  begun and one ended, an account found by its username or email, one made unless either is
+  taken, the user an identity of another service names, that service's identities, and
+  `away_key()`, the key that signs what a caller carries to another service and back.
+- **What is taken is an answer, not an error:** `add` says whether the account was made. So a
+  book over a database several programs reach is a statement or two for each method, and holds
+  no transaction open.
+- **neojac's `accounts` gives a book over a SQLite file,** whose key is the process's own. A
+  plugin that keeps accounts where every instance of an app reaches them gives a book over that,
+  with a key they all read, and is the same plugin otherwise.
+- **A class that sets `postinit` fields of its own** calls `super.postinit()` first: the
+  library's class sets its own there.
 
 ### What a store is asked
 
@@ -405,7 +428,7 @@ example of its interface:
 | `queue_jobs` | `jobs` | One worker, which runs the jobs queued in their order |
 | `timer_schedule` | `schedule` | A thread for each scheduled function, which sleeps until it is due |
 | `file_limits` | `limits` | Uses counted in a SQLite file, so they outlast the program |
-| `flat_files` | `files` | Each file's bytes in one directory, and what is known of it in a JSON file beside it: no database |
+| `flat_files` | `files` | Each file's bytes in one directory, and what is known of it in a JSON file beside it: no database. A piece of a file is five bytes |
 
 ## What is refused
 

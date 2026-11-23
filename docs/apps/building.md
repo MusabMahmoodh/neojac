@@ -192,6 +192,9 @@ process ends with is the app's own (143 in a shell for an app SIGTERM stopped). 
 has no such call, the app is a child process `neojac run` waits for.
 
 A serving app installs no handler for SIGINT or SIGTERM: either signal stops its program at once.
+The one exception is an app that is its container's first process, which Linux sends no signal it
+has not asked for: there it asks for both, and each ends it at once all the same, with status 143
+for SIGTERM.
 What it has kept stays kept, since each call's changes are written when the call returns
 ([An app's data](data.md#when-the-graph-is-written)).
 
