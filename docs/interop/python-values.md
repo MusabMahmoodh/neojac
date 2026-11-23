@@ -21,6 +21,13 @@ number that is neither an int nor a float (numpy's numbers, CPython's own `decim
 `float` by its `__float__` and to an `int` by its `__index__`. A `Decimal` has no `__index__`, so
 it does not fit where an `int` is wanted.
 
+`hasattr(x, "name")` of a Python value held as `any` asks the value, so a class whose
+`__getattr__` answers a name has it, as Python's `hasattr` says. `isinstance(x, list)` (or another
+of Jac's builtin collections) of one tests the Jac value it stands for: a Python list is a `list`,
+and a value that stays Python, an iterator or a generator, is no builtin collection. `next(it)` and
+`next(it, default)` of an iterator held as `any`, and a slice of a list held as `any` assigned
+(`m[1:] = [9]`), are Python's, on every host.
+
 `int()`, `float()`, `str()` and `bool()` of a Python value are Python's own, and give Jac's value:
 `int(d)` of a `Decimal` or a Python float truncates it, as `builtins.int(d)` does, and `int()` and
 `float()` read a number's text.

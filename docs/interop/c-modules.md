@@ -343,12 +343,15 @@ Nothing needs to be `extern "C"`.
 | A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
+| A method that hides a base's method of its Jac name, with other parameters | Named by its parameters, as an overload is, so that the base's stays reachable: `Rect`'s copy assignment, which hides `Figure`'s, is `r.op_assign_Rect(other)` beside the inherited `op_assign`; one of no parameters is named `_none` |
 | An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)` |
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A result by value | Owned by Jac; a result by reference is borrowed |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
+| A record C could declare (a C struct, or a record of an `extern "C"` block), by value, by const or rvalue reference, or by pointer | The C record, one type across the program by its tag and members, given and taken by value as C passes it, and `ptr[R]` by pointer. By non-const reference it is not bound: Jac would copy it, where C++ writes through. A C++ class by value is no C type, so a C function pointer whose signature names one is skipped, with why |
+| `std::initializer_list<E>`, by value or `const &` | A Jac list, `list[E]`, its items made into `E`s one by one as braces make them: `total(std::initializer_list<int>)` is `total([i32(1), i32(2)])`. Where `E` has exactly one constructor from one class or C record, the list holds those (`list[R]`); an `explicit` one raises `ValueError` when the call runs. The overload is named `list` among its set's (`define_ptr_i8_list_ptr`). A `const std::vector<E> &` stays `&std_vector[E]` |
 | A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
@@ -656,11 +659,13 @@ with entry {
 `make`, `run` and `end` are C++: `make` gives what its object's `step()`, Jac's override, gives
 plus the seed, and `run` is `-1` once `end` has deleted the object.
 
+A Jac class with no `init` of its own is made by C++ too, `new T()` running its base's default
+constructor.
+
 **Not done.** These parts of a Jac class deriving a C++ class are not built yet:
 
-- a list where C++ takes `std::initializer_list<E>` or a `const std::vector<E> &`, a static of the
-  object's class given by its address, and a Jac method given where C++ takes a pointer to a
-  member function;
+- a static of the object's class given by its address, and a Jac method given where C++ takes a
+  pointer to a member function;
 - C++ making the object for a class template a C++ source module's header declares, rather than a
   header library: such an instance is made in `libcxx`'s unit, and has no constructor for `init`
   yet.
@@ -693,7 +698,8 @@ module's function gives is the string another's takes.
 - **A class template is named by its template form**, as a program's own C++ template is:
   `std::vector<int>` is `std_vector[i32]`, `std::lock_guard<std::mutex>` is
   `std_lock_guard[std_mutex]`. libcxx makes each instance the program names, whether or not any
-  C++ of the program reaches it.
+  C++ of the program reaches it. A class a program imports and never names makes nothing:
+  `import from libcxx { std_unique_lock }` with no use is no error.
 - **Its members are bound as a C++ class's are**: overloads by their parameters' types, so a
   `std::vector`'s default constructor is `make_()`, which `std_vector[i32]()` calls; `at` past the
   end raises `IndexError`, and `v.at_set(i, x)` and `v.op_index_set(i, x)` store as `v.at(i) = x`

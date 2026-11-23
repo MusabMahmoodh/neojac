@@ -186,7 +186,10 @@ each call goes through a shim it compiles.
   `Option[Ordering].Some(o)`. An argument is a Rust type, a number type, a tuple of numbers
   (`Vec[tuple[u64, u32]]`, which crosses as a Jac tuple), or a struct of the program whose fields
   are all numbers, which Rust sees as a `#[repr(C)]` copy of it.
-- **What crosses**: numbers and `bool` as they are; `&str` as a `str`, `&[u8]` as `bytes`; Rust's
+- **What crosses**: numbers and `bool` as they are; a `char` as a `str` of one code point (a
+  surrogate given where Rust takes one is a panic, `RustPanic`), `Option<char>` as `str | None`;
+  a tuple result may hold chars and `Option`s of numbers and chars (`(Option<char>, usize)` is
+  `tuple[str | None, u64]`); `&str` as a `str`, `&[u8]` as `bytes`; Rust's
   own values (`String`, `Vec`, a crate's struct) as owned Jac objects, which Rust drops when Jac
   lets them go. A parameter Rust takes by value moves the object, and leaves the Jac object
   empty. `v[i]` reads and writes through `Index<usize>`; a field of an element is not a place
@@ -353,6 +356,16 @@ panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `h
   `o.zip[u32](p)`, `re.find_iter[str](text)`. A type argument is a number type or `str`, which
   names Rust's `str` (`Matches[str]`). Each instance a program names is made for it, as a C++
   member template's is.
+- **A function of another crate generic over its input is named by its instance at the call**,
+  as a generic method is: `decode_last_utf8[Slice[u8]](b)` calls `bstr`'s
+  `decode_last_utf8::<&[u8]>`, and `size_of[u32]()` std's `size_of::<u32>`. The instance is asked
+  of rustc as the module is read, and what it lends and keeps is judged on the function's generic
+  signature. One whose bounds do not hold for its type arguments (`size_of[str]()`: Rust's `str`
+  has no size) is E1625.
+- **`rust.char_is_whitespace(c)`** is Rust's `char::is_whitespace`: whether `c` has Unicode's
+  White_Space property, as Rust's table gives it. Python's `isspace` also counts U+001C to U+001F,
+  which are not White_Space: `char_is_whitespace("\x1c")` is `False` where `"\x1c".isspace()` is
+  `True`. `neojac port` writes it for a `char`'s `is_whitespace()`.
 
 ```jac
 import from rust { RustPanic, Slice }

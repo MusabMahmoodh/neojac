@@ -562,8 +562,9 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   panic's message, as PyO3 catches each call; Rust's own line on stderr is not written.
   The extension is built from that module once its `[extensions]` row names it by `jac`
   (`jac = "src/py.jac"`) in place of the crate's `cargo`. Port writes that row where the crate
-  ports whole, the port of the file that holds `#[pymodule]`, and drops the crate's
-  `[cargo."<directory>"]` table ([port](port.md)).
+  ports whole, the port of the file that holds `#[pymodule]`, and keeps of the crate's
+  `[cargo."<directory>"]` table only its package and the dependencies its Jac imports
+  ([port](port.md)).
 
 - **The C modules it links are linked with it.** A wire from a file of one C module to a file
   of the extension's says so: that module's objects are made a library and given to the link,

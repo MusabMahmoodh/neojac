@@ -138,7 +138,8 @@ with entry {
 ### A class decorated by a function of the program
 
 A decorator of the program's own that is not a compile-time function (a function that takes the
-class and gives one back, or a call that makes such a function) is Python's too: it runs as the
+class and gives one back, a call that makes such a function, or a global of the project bound to
+one, `skipif = pytest.mark.skipif;` then `@skipif(...)`) is Python's too: it runs as the
 class is made, as `@retry_on_failure()` runs on a test class in Python. The class is then made by
 Python, as with a Python decorator, so Jac generates no constructor for it.
 
@@ -400,7 +401,8 @@ read gives strings and `typing.get_type_hints` gives the objects. It governs the
 classes too, and `neojac fmt --fix` keeps it there. In a program of any other host it does
 nothing, and is W3009.
 
-In such a module every annotation is the text written, and nothing more: `check` reads each as
+In such a module every annotation is the text written, a nested def's and an annotated local's
+among them, and nothing more: `check` reads each as
 `any` and resolves no name in it, as Python does not, so an annotation may name what only an
 `if TYPE_CHECKING:` import would bind, or nothing at all. The module's program hands Python the
 text as written:
@@ -629,6 +631,10 @@ def counted -> int {
 kit.used True 6
 ```
 
+A submodule read through its package (`kit_pkg.drawer`, where `kit_pkg` is a package of the
+space and `drawer` a module in it) is Python's read of the package's attribute, so it is the
+module object itself: `kit_pkg.drawer is drawer`.
+
 ## A module's `__file__`
 
 In a cpython space a module's `__file__` is its Jac source's whole path, as natively
@@ -642,6 +648,16 @@ and a module that finds its files beside itself (`os.path.dirname(__file__)`) fi
 - **`raise` takes any object**, as Python's does: a Python exception class's instance
   (`raise HTTPException(status_code=404)`) is raised as it is, and an object that is no exception
   raises Python's `TypeError`.
+
+## Other forms Python reads as it runs
+
+- **`super()` in a `class def` of a class Python makes** is Python's: it reaches the base's
+  classmethod, as `super().fromkeys(...)` does in Python.
+- **`def __exit__(self, *args, **kwargs)`** is a context manager's exit, as Python takes it, with
+  `*args` given the exception's type, value and traceback.
+- **A name only another target's `comptime if` arm declares** (`GetProcessHeap` under an arm
+  for Windows) is Python's lookup where it is read: a `NameError` where it runs on a target that
+  declares none, as Python's is where the source's `if WINDOWS:` did not run.
 
 ## What is rejected
 

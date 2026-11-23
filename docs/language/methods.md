@@ -72,7 +72,7 @@ Counter(n=6) Counter(n=12)
   `self.bump()`. A bare `n` in a method is not the field (W2001).
 - **`Self` as a type is the class the method belongs to**, and in a subclass
   that inherits the method, the subclass. Use it for methods that return
-  `self` or a new instance of the same class.
+  `self`, or an object of the class they are called through (below).
   `Self | None` is `Self` or `None`, and counts as `Self` where a subclass
   inherits the method.
 - **A static method's `Self` is the class it is called through**:
@@ -80,6 +80,46 @@ Counter(n=6) Counter(n=12)
   declares is a `Square | None`. Such a method returns an instance of the
   class it is called through, as a C++ base's `static T *last()` gives a
   deriving class's object ([C modules](../interop/c-modules.md#c-making-the-jac-object)).
+- **A `Self` result is tested where the class a call names is a subclass of
+  the method's own**: a method that makes its own class's object rather than
+  `self`'s, called through a subclass, raises `TypeError` ("the value given
+  as Self is not a Square") when it gives an object of another class, on
+  every host, so a `Square` is never a `Shape`. `None` stays `None` where
+  the type admits it.
+
+```jac
+obj Shape {
+    has sides: int = 0;
+
+    def copy -> Self {
+        return Shape(sides=self.sides);
+    }
+
+    static def first(sides: int) -> Self | None {
+        if sides == 0 {
+            return None;
+        }
+        return Shape(sides=sides);
+    }
+}
+
+obj Square(Shape) {}
+
+with entry {
+    print(Shape(sides=3).copy().sides, Square.first(0));
+    try {
+        Square(sides=4).copy();
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+3 None
+TypeError: the value given as Self is not a Square
+```
+
 - **`x.m` without a call is a bound method**: a function value that
   remembers the object `x` gave when it was read. `x` is evaluated once, at
   the read, and assigning `x` again later does not change the bound method.
