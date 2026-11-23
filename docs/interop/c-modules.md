@@ -344,7 +344,7 @@ Nothing needs to be `extern "C"`.
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
 | A method that hides a base's method of its Jac name, with other parameters | Named by its parameters, as an overload is, so that the base's stays reachable: `Rect`'s copy assignment, which hides `Figure`'s, is `r.op_assign_Rect(other)` beside the inherited `op_assign`; one of no parameters is named `_none` |
-| An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)` |
+| An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)`. Jac's own `a == b` or `a != b` of two values of C++ classes is E1624: it would compare the Jac objects |
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A result by value | Owned by Jac; a result by reference is borrowed |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
@@ -783,8 +783,9 @@ the container's name, `_`, and the member type, with the container's arguments.
   program compiles (E5133), and the reason says the type to write.
 - **An iterator is walked with its own members**, as C++ finds them: `op_ne` and `op_eq` compare
   two (C++'s `!=` and `==`), `op_deref()` reads the item and `op_deref_set(x)` stores through it,
-  `op_inc()` steps. Jac's own `==` and `!=` on two iterators compare the objects, not the
-  positions: write `pos.op_ne(stop)`.
+  `op_inc()` steps. Jac's own `==` and `!=` of two values of C++ classes, iterators among them,
+  are refused when the program compiles (E1624): they would compare the Jac objects, not the
+  positions. Write `pos.op_ne(stop)`, or `a is b` to ask whether two are the same object.
 - **An overload set is named as any member's**: `std::unordered_map`'s `begin()` and `end()` have
   a bucket's overload beside them, so the container's are `begin_()` and `end_()`.
 - **`std::atomic<T>` is `std_atomic[T]`**, its members C++'s: `store`, `load`, `fetch_add` and the

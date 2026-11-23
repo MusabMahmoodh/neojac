@@ -251,7 +251,9 @@ surrogates not allowed`); the `surrogatepass` handler encodes it
 Two surrogate escapes side by side stay two code points, as in Python: `"\ud83d\udc4d"` has
 length 2 and is not `"\U0001f44d"`, the character the pair stands for in UTF-16: it is
 `chr(0xd83d) + chr(0xdc4d)`. On a JavaScript host a `str` is UTF-16 text, in which the pair is that
-character ([Where the language differs by host](../apps/hosts.md#where-the-language-differs-by-host)).
+character: a str literal that holds a pair is refused there (E5221), and two surrogates a program
+joins as it runs are the one character
+([Where the language differs by host](../apps/hosts.md#where-the-language-differs-by-host)).
 
 ```jac
 with entry {
