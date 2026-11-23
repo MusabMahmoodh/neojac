@@ -1,5 +1,8 @@
 [project]
 name = "jaclang_org"
+# The site's example snippets are text the site shows, not modules of a
+# program.
+exclude = ["core/site/examples/*"]
 
 # Deployment values for the apps archwire.jac declares. Each is baked into the
 # artifact and can be overridden by its environment variable (`neojac build`
@@ -80,7 +83,6 @@ directories = ["."]
 [check.lint]
 select = ["style"]
 exclude = [
-    "core/site/examples/*",
     "core/site/source/FloatingSource.jac",
     "core/site/landing/Reveal.jac",
     "core/site/game/webgl_host.jac",
@@ -103,7 +105,6 @@ type = "module"
 "@hugeicons/react" = "^1.1.1"
 class-variance-authority = "^0.7.1"
 clsx = "^2.1.1"
-embla-carousel-react = "^8.6.0"
 lucide-react = "^0.469.0"
 mermaid = "^11"
 motion = "13.4.2"
