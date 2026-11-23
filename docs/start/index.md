@@ -25,10 +25,10 @@ Everything is a subcommand of `neojac`. `neojac` alone, or `neojac help` (`--hel
 | Group | Commands | What they do |
 |---|---|---|
 | Learn | `docs`, `skills` | Print this documentation, and playbooks for common tasks |
-| Build and run | `build`, `run`, `check`, `test`, `fmt` | Compile a program or a project's apps, run an app, check for errors, run tests, format source |
-| Packages | `install`, `remove`, `npm`, `npx` | A project's Python packages, and npm on neojac's Node |
+| Build and run | `build`, `run`, `dev`, `check`, `test`, `fmt`, `port`, `precommit`, `launch` | Compile a program or a project's apps, run an app, work on one as it rebuilds, check for errors, run tests, format source, translate source in another language, check a commit, and launch an app on the hosting platform |
+| Packages | `install`, `remove`, `absorb`, `packages`, `npm`, `npx` | A project's packages of every ecosystem, a repository's manifests taken into `jac.toml`, and npm on neojac's Node |
 | Runtimes and toolchains | `python`, `node`, `cc`, `c++`, `cargo`, `rustc`, ... | The CPython, Node, Clang and LLD, and Rust that neojac carries |
-| Inspect | `lsp`, `query`, `parse`, `grammar`, `emit-js`, `emit-py` | The language server and its answers, syntax trees, the grammar, and what a space compiles to |
+| Inspect | `lsp`, `query`, `browse`, `arch`, `parse`, `grammar`, `emit-js`, `emit-py` | The language server and its answers, a browser it drives, a project's architecture drawn, syntax trees, the grammar, and what a space compiles to |
 | About neojac | `help`, `version` | The commands, and the release |
 
 [Commands](../reference/commands.md) has every command with its options.

@@ -14,7 +14,7 @@ archwire = false
 # another: it is in this directory.
 [abstraction]
 interface = "files.contract.Files"
-interface_ver = 1
+interface_ver = 2
 per = "project"
 picked = "start"
 standard = "local_files"

@@ -355,7 +355,10 @@ Its settings, in `[auth.accounts]`:
 | `github`, `github_api` | `str` | `https://github.com`, `https://api.github.com` | Where GitHub is, and its API: others for GitHub Enterprise |
 | `origin` | `str` | `""` | Where callers reach the app (`https://example.org`), for the place another service sends them back to |
 
-Accounts are one server's.
+Accounts are one server's: the file is, and so is the key that signs a sign-in through GitHub.
+All of the above but the file is the library `accountbook`'s, which a plugin that keeps accounts
+where several servers reach them is built on
+([Plugins](plugins.md#what-a-plugin-imports)).
 
 #### Signing in through GitHub
 

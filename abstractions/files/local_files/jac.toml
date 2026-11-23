@@ -7,7 +7,7 @@ kind = "plugin"
 
 [plugin]
 fills = "files"
-interface_ver = 1
+interface_ver = 2
 class = "local_files.files.LocalFiles"
 
 # What opens its file at a layout, and upgrades an older one.

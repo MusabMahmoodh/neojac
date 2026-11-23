@@ -139,6 +139,10 @@ obj WindowLimits(Limits) {
      library**: nothing of stdjac, no other abstraction's contract (E2233), and never a plugin
      (E2218). A Jac library goes in the plugin's own `[packages]`: neojac's `sqlfile`, whose
      `open_db` opens a SQLite file at a layout, is one, in `libraries/sqlfile` of its tree.
+     An `auth` plugin that keeps accounts somewhere of its own extends `accountbook`'s
+     `AccountsAuth` (`libraries/accountbook`) and gives the `Book` they are kept in: signing in,
+     sessions and the settings are the library's
+     ([Plugins](../../apps/plugins.md#what-a-plugin-imports)).
    - **It is compiled for every host its abstraction runs on**, a `cpython` space among them.
      There a class imported from a Python module is no type: do not annotate with one.
 
