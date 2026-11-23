@@ -126,12 +126,29 @@ The architecture of shop is at http://127.0.0.1:8090/
   source writes the import), the names that cross, the rules that admit them, from the outermost
   level in, and the line of `archwire.jac` that holds the wire.
 - **Layers and Spaces** switch the view, and a project with profiles has a list of them.
+- **The code is beside the picture, and goes where the picture is clicked.** A layer opened is
+  shown where `archwire.jac` writes it, the whole of it marked; a module opened is its file; an
+  arrow is its first wire, and each wire in the list, and each error, is a link to its line. **Code**
+  puts the code away and brings it back, and the browser's Back returns to what was shown before.
+- **A name in the code is what the language server says of it.** Resting on a name shows what it
+  is. A click lists, beside the picture, where it is defined, declared and implemented and every
+  place it is used, each a link; a click with Ctrl or Cmd held, or a double click, goes to its
+  definition. **Outline** lists what the file declares. Names are colored by what they are, and a
+  diagnostic is underlined where it is. When the code is of another module than the picture's,
+  **Show ... in the picture** opens that module.
 - **The page follows the project.** It asks the server each second whether a file it read has
   changed, and the server reads the project again when one has.
 - **A wiring error is drawn where it is.** The viewer does not refuse a project with errors: it
   draws the wire or the box in red and lists each error with its code and its place.
 - **The page loads nothing from anywhere else.** Its code is a Jac program, compiled for the
   browser when neojac is built, and it is served from the same address as the picture.
+
+The code view is a client of [the language server](lsp.md): the viewer starts a `neojac lsp` of
+its own the first time code is shown, and relays between it and the page. So what a name is said
+to be is what an editor is told, and the first answer about a file waits for its program to be
+checked, which the code view says while it lasts (`checking main.jac...`). The server also indexes
+the project's other programs in the background, as it does for an editor. A file that is not Jac
+is shown as it is, with no answers. Only files of the project and of neojac's runtime are shown.
 
 `--listen <address>` says where it serves (`127.0.0.1:8090` when not given; port 0 is any free
 port). It serves until it is interrupted. It opens no browser: open the address in one, or have
