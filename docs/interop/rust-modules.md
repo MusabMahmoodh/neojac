@@ -191,6 +191,8 @@ each call goes through a shim it compiles.
   lets them go. A parameter Rust takes by value moves the object, and leaves the Jac object
   empty. `v[i]` reads and writes through `Index<usize>`; a field of an element is not a place
   (E1504), so `e = v[i]; e.x = 1; v[i] = e;`.
+- **A type that implements `Default`** has `default()`, its static: `String.default()`,
+  `HashMap[K, V, S].default()` for a map with a hasher of its own, which has no `new`.
 - **An enum** is a class whose variants are its values: `Ordering.Less`, `o.reverse()`,
   `o == Ordering.Less`; it prints as `Ordering.Less`.
 - **A trait** is an interface a Jac struct conforms to: listed as a base, its methods written in
@@ -467,6 +469,59 @@ b'\x03\x07\t' 17
 
 `m.clear()` before the last `print` would be E1302: `key` borrows `m`.
 
+### A `Vec` of numbers as a buffer
+
+A `Vec` of numbers (an integer of up to 64 bits, `f32` or `f64`) has Python's buffer protocol:
+`memoryview(v)` views its items in place, with no copy, one dimension, read-only, its format the
+item's (`u32` is `I`, `f64` is `d`, `usize` the target's word), and `bytes(m)` and `m.tolist()`
+read the `Vec`'s own memory. A view holds the `Vec` it views, which lives as long as the view does.
+
+- **A call that may resize the `Vec` while a view is out raises `BufferError`**, as a
+  `bytearray`'s does: each method that takes it `&mut` (`push`, `clear`, `reserve`) or by value,
+  and the `Vec` given to Rust by `&mut` or moved. A change in place (`v[i] = x`, `sort`, `fill`,
+  the slice's methods) is not one, and the view shows it. `m.release()` ends the view.
+- **A `Vec` Rust lends** (`&Vec`, a `Vec[Vec[u8]]`'s item by index) has no view (`BufferError`):
+  what lends it may change it through calls Jac does not see.
+- An extension module's class whose `__buffer__` gives such a view gives Python the same buffer
+  ([Packages](../toolchain/packages.md)); `neojac port` writes PyO3's `__getbuffer__` that fills a
+  view of a field's `Vec` so ([Porting Rust](port-rust.md)).
+
+```jac
+import from std.string { String }
+import from std.vec { Vec }
+
+def main {
+    v: own Vec[u32] = Vec[u32].new();
+    for n in [4, 5, 6] {
+        v.push(u32(n));
+    }
+    m = memoryview(v);
+    print(m.format, m.itemsize, m.readonly, len(m), m.tolist());
+    v[1] = u32(50);
+    print(m[1], bytes(m)[4]);
+    try {
+        v.push(u32(7));
+    } except BufferError as e {
+        print("BufferError:", e);
+    }
+    m.release();
+    v.push(u32(7));
+    s: own String = String.default();
+    print(v.len(), s.len());
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+I 4 True 3 [4, 5, 6]
+50 50
+BufferError: Existing exports of data: object cannot be re-sized
+4 0
+```
+
 ### A Result of Jac's types
 
 Std's `Result` and `Option` are Rust's own where they hold Rust's types. Where what they hold is
@@ -511,6 +566,37 @@ with entry {
 ```output
 True (4, 4) 3 (0, 0)
 called `Result::unwrap()` on an `Err` value: Fault { code: 5 }
+```
+
+Rust's `Box<dyn Error + Send + Sync>` is `rust`'s `DynError`: what a program can still ask of a
+boxed error, how `{}` and `{:?}` print it, held as `shown` and `debug`, which its `str()` and
+`repr()` give. `neojac port` writes a `Result<T, Box<dyn Error>>` as `Result[T, DynError]`, and
+`?` of another crate's error as `Err(DynError(shown=str(e), debug=repr(e)))`.
+
+```jac
+import from rust { DynError, Result, RustPanic }
+
+def parsed(text: str) -> Result[int, DynError] {
+    if not text.isdigit() {
+        why = DynError(shown="invalid digit", debug="ParseIntError { kind: InvalidDigit }");
+        return Result[int, DynError].Err(why);
+    }
+    return Result[int, DynError].Ok(int(text));
+}
+
+with entry {
+    print(parsed("42").unwrap(), parsed("4x").err());
+    try {
+        parsed("4x").unwrap();
+    } except RustPanic as e {
+        print(e);
+    }
+}
+```
+
+```output
+42 invalid digit
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
 ```
 
 ### Values that borrow, and how a Rust value prints

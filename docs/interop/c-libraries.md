@@ -615,39 +615,39 @@ every C function pointer ([Porting C](port-c.md)): `f != NULL` is `f is not None
 
 ```jac
 import from c {
-    obj Pair {
+    obj Duo {
         has a: i32,
             b: i32;
     }
 
-    obj Op {
-        has run: Callable[[Pair], Pair] | None,
-            total: Callable[[Pair], i32] | None;
+    obj Steps {
+        has run: Callable[[Duo], Duo] | None,
+            total: Callable[[Duo], i32] | None;
     }
 
     def signal(sig: i32, handler: Callable[[i32], None] | None) -> Callable[[i32], None] | None;
 }
 
-def swapped(p: Pair) -> Pair {
-    return Pair(a=p.b, b=p.a);
+def swapped(p: Duo) -> Duo {
+    return Duo(a=p.b, b=p.a);
 }
 
-def total(p: Pair) -> i32 {
+def total(p: Duo) -> i32 {
     return p.a + p.b;
 }
 
 with entry {
-    op = Op(run=swapped);
+    op = Steps(run=swapped);
     print(op.total is None);
     if op.run is not None {
-        s = op.run(Pair(a=i32(1), b=i32(2)));
+        s = op.run(Duo(a=i32(1), b=i32(2)));
         print(s.a, s.b);
     }
-    t: Callable[[Pair], i32] | None = Callable[[Pair], i32](ptr(total));
+    t: Callable[[Duo], i32] | None = Callable[[Duo], i32](ptr(total));
     if t is not None {
-        print(t(Pair(a=i32(3), b=i32(4))));
+        print(t(Duo(a=i32(3), b=i32(4))));
     }
-    gone: Callable[[Pair], i32] | None = Callable[[Pair], i32](ptr());
+    gone: Callable[[Duo], i32] | None = Callable[[Duo], i32](ptr());
     print(gone is None, ptr(gone).is_null());
     print(signal(i32(15), None) is None);
 }
@@ -661,7 +661,7 @@ True True
 True
 ```
 
-`swapped` and `total` take and give the C record `Pair` by value, as C passes it through a
+`swapped` and `total` take and give the C record `Duo` by value, as C passes it through a
 function pointer; `signal` gives `None` for the default handler it replaces, C's `SIG_DFL`.
 
 ### Converting a function value
