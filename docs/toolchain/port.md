@@ -202,8 +202,17 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **A JavaScript file reads a ported module as its JavaScript stood.** A later run ports a file
   that imports or requires a module an earlier run made Jac: the reader takes the Jac module's
   names, its `default` and, in a CommonJS directory, its exports as the JavaScript module gave
-  them. An npm tree's own tests run on what its space emits, a forwarder in each ported file's
-  place ([A project's own suites](test.md#a-projects-own-suites)).
+  them. A module ported from TypeScript gets a face beside it, `<stem>.d.ts`: TypeScript's own
+  declarations of the source, which the reader and the TypeScript files that stay read of the
+  Jac module ([A project's own JavaScript](../interop/npm.md#a-projects-own-javascript)); the
+  journal records it with the change. A declaration file of the tree (`env.d.ts`) holds no code
+  and is never ported: `--check` says so of it.
+- **A ported npm tree's own tools see what they saw.** Its tests, its scripts and its build run
+  on what its space emits, laid out as a tree of the source's shape: at each ported source's
+  place one file of the source's own name that gives the module, and what the space emits apart
+  in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
+  run there, with the tree's configuration as it is ([A project's own
+  suites](test.md#a-projects-own-suites)).
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
@@ -252,7 +261,12 @@ which [Modules](../language/modules.md) describes. Python's tests of `sys.platfo
 A Python module that another imports only under a test of the platform (`if sys.platform ==
 "win32": from . import _windows`) is in the plan's group of its importer, and ports with it: the
 group is checked for each target, and the module only for the targets whose test picks it, as
-Python imports it only there.
+Python imports it only there. Python's test of what such a module has, `if hasattr(_psplatform,
+"getloadavg"):`, ports to `comptime if` on [`hasattr` of the
+module](../language/compile-time.md#hasattr-of-a-module) where the module is one the run ports or
+is Jac already; `if hasattr(m, "x") and rest:` is `comptime if hasattr(m, "x") { if rest { ... }
+else { ... } } else { ... }`. A test of a module that stays Python is Python's, as the program
+runs.
 
 ## What is refused
 

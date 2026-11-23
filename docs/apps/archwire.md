@@ -283,7 +283,7 @@ What an app is follows from the hosts of the spaces it runs:
 |---|---|
 | Native spaces, with or without served pages | One native program, `dist/<app>-<platform>`, or a directory of that name when it carries pages, CPython or Node |
 | Native spaces and one `cpython` and/or one `node` space | The same, with CPython or Node embedded and those spaces run in its process |
-| One `node` or one `cpython` space alone | `dist/<app>/`: the space's modules, the interpreter and a launcher |
+| One `node` or one `cpython` space alone | `dist/<app>/`: a launcher, and in `@app/` the space's modules and the interpreter |
 | A `browser` space | A desktop app: the space in a window of its own ([Hosts](hosts.md)) |
 | One `hermes` space | `dist/<app>/`: the phone app's Hermes bundles |
 

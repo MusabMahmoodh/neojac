@@ -704,7 +704,9 @@ It declares a space for each npm tree that is a program's
 `graph spaces` block that is there or in a new one: a `node` space for a package that names a
 `main` or `exports` (`space sqlite_lite: node { "sqlite"; }`), and a `browser` space, with
 `[spaces.<space>.ui] plugin` the `ui` plugin its dependencies name, for a tree a bundler builds.
-Once a Python project has its space ([Recording a build](#recording-a-build)), its tests and
+A tree that names no bundler, no `main` and no `exports`, and is no workspace's root (a package of
+email templates a server renders), is a `node` space with the `ui` plugin its dependencies name,
+`react` for one that depends on React. Once a Python project has its space ([Recording a build](#recording-a-build)), its tests and
 scripts are a second `cpython` space, `<space>_dev`, which each later absorb grows with what came
 since. An npm package's files that run in Node and that the package does not ship (its tests,
 its benchmarks: what its `files` leaves out) are a second `node` space the same way,
@@ -947,10 +949,14 @@ recorded
   module's. The flags every unit was given are the module's `include`, `defines` and `cflags`,
   and what one unit alone was given is in its `[files."<source>"]`. The interpreter's own headers
   are named as the toolchain's (`{lib}/cpython/include/python3.15`), and the frameworks and
-  libraries of the link are the module's.
+  libraries of the link are the module's. The table's `name` is the last part of the extension
+  module's path (`_psutil_osx` for `psutil/_psutil_osx`): the key by which a wire names the C
+  module, apart from its directory ([The manifest](../interop/c-modules.md#the-manifest)). A
+  table recorded before without one is given it; a library's own name is kept.
 
   ```toml
   [c.psutil]
+  name = "_psutil_osx"
   sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
   include = ["{lib}/cpython/include/python3.15"]
   defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]

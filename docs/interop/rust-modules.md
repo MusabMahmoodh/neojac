@@ -332,6 +332,14 @@ panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `h
   argument; a parameter of type `&[u8]` takes a Jac `bytes`.
 - **An iterator of a Rust type has `next()`**, which gives an `Option` of its item: a loop steps
   it as Rust's `for` does, `while True { got = it.next(); if got.is_none() { break; } ... }`.
+  An item borrows what the iterator borrows (a `HashMap`'s `iter()`, `keys()` and `values()`,
+  a `Vec`'s `iter()`), not the iterator: `next` lends the iterator for its call alone, so the
+  loop steps it again while an item lives, and the collection is not changed while either is
+  used (E1302). An item that is a reference to a number, or a tuple of them (a `HashMap[u32,
+  u32]`'s `(&u32, &u32)`), is copied to the numbers.
+- **A `Vec` of another crate's values lends its item by index**: `v[i]` is Rust's `&v[i]`
+  (`Index::index`, its panic past the end), a borrow of `v`, which is not changed while the item
+  is used (E1302). A `Vec` of numbers gives the number.
 - **A method generic over its own type parameters is named by its instance at the call**:
   `o.zip[u32](p)`, `re.find_iter[str](text)`. A type argument is a number type or `str`, which
   names Rust's `str` (`Matches[str]`). Each instance a program names is made for it, as a C++
@@ -386,6 +394,41 @@ with entry {
 22 18 11
 [4, 5, 6, 7] Some((2, 3))
 panic: range end index 9 out of range for slice of length 4
+```
+
+```jac
+import from std.collections { HashMap }
+import from std.vec { Vec }
+
+def main {
+    m: own HashMap[u32, u32] = HashMap[u32, u32].new();
+    m.insert(u32(1), u32(10));
+    m.insert(u32(2), u32(20));
+    total = 0;
+    it = m.iter();
+    while True {
+        got = it.next();
+        if got.is_none() {
+            break;
+        }
+        (k, v) = got.unwrap();
+        total += int(k) * int(v);
+    }
+    rows: own Vec[Vec[u8]] = Vec[Vec[u8]].new();
+    first: own Vec[u8] = Vec[u8].new();
+    first.push(u8(26));
+    rows.push(first);
+    row = rows[u64(0)];
+    print(total, row.len(), row[u64(0)]);
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+50 1 26
 ```
 
 ### A Result of Jac's types

@@ -141,8 +141,10 @@ curl -X POST http://127.0.0.1:8000/__jac/call/svc/api/where
   ([Serving a space](server.md)).
 - **Its calls of other spaces are awaited**, as in any JavaScript host, and it may call only their
   `:pub` and `:protect` functions and walkers (E1210).
-- **Its artifact**, when an app runs it alone, is `dist/<app>/`: its modules (`.mjs`), Node, the
-  project's npm packages, and `dist/<app>/<app>`, the launcher that starts it.
+- **Its artifact**, when an app runs it alone, is `dist/<app>/`: the launcher `dist/<app>/<app>`
+  that starts it, and beside it `dist/<app>/@app/`, which holds its modules (`.mjs`), Node and
+  the project's npm packages. No app's name starts with `@`, so no app is named as a directory of
+  what it runs.
 - **It keeps a graph of its own**, as a native space does: `root ++> Spot(v=1) ++> Spot(v=2);`,
   `root spawn Look()`, `visit [-->]` and a walker's `reports` work there. Only a walker as an
   endpoint is refused (below).
@@ -214,9 +216,10 @@ with `for`, as in a native one ([Crossings](crossings.md)).
 `neojac emit-py <space> -o <dir>` writes a cpython space's code objects and, in `<dir>/py/`, each
 module as Python source.
 
-An app that runs a cpython space alone is `dist/<app>/`: the code, CPython, its home (the standard
-library compressed in `lib/python315.zip`, the project's packages in
-`lib/python3.15/site-packages`) and the launcher `dist/<app>/<app>`.
+An app that runs a cpython space alone is `dist/<app>/`: the launcher `dist/<app>/<app>`, and
+beside it `dist/<app>/@app/`, which holds the code (`@app/py/`, `@app/__main__.py`), CPython
+(`@app/python3.15`) and its home (the standard library compressed in `@app/lib/python315.zip`,
+the project's packages in `@app/lib/python3.15/site-packages`).
 
 ## Other hosts in a native app's process
 

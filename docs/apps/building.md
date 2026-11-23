@@ -79,8 +79,8 @@ build cache, shared by every project (see [build](../toolchain/build.md)).
 |---|---|
 | Native spaces only | `dist/<app>-<platform>`: one program |
 | Native spaces that serve pages, or run a cpython or node space, or use npm or Python packages, or load shared libraries | `dist/<app>-<platform>/`: the program `<app>` and what it reads, beside it |
-| One node space | `dist/<app>/`: its modules, Node, the project's npm packages and the launcher `<app>` |
-| One cpython space | `dist/<app>/`: its code, CPython and its home, and the launcher `<app>` |
+| One node space | `dist/<app>/`: the launcher `<app>`, and in `@app/` its modules, Node and the project's npm packages |
+| One cpython space | `dist/<app>/`: the launcher `<app>`, and in `@app/` its code, CPython and its home |
 | A browser space it runs (a desktop app) | `dist/<app>-<platform>/`: the program and the pages |
 | One hermes space | `dist/<app>/`: the phone app's bundles, as Expo exported them |
 
