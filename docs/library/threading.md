@@ -252,8 +252,8 @@ Empty
   `ThreadPoolExecutor` or [`flow`](../language/async.md#tasks-flow-and-wait) for calls that
   wait, `flow for` for work on the processors, or [subprocess](subprocess.md) for another
   program.
-- **`threading.serialize_iterator` has no `send`** (E5142): a Jac generator takes no value. Its
-  `throw` and `close` reach the generator it wraps, one thread at a time.
+- **`threading.serialize_iterator` has no `send`** (E5142): iterate it with `next()` or a `for`
+  loop. Its `throw` and `close` reach the generator it wraps, one thread at a time.
 - **A `ThreadPoolExecutor` dropped without `shutdown()` keeps its threads until the program
   ends**, when they are stopped and joined; CPython's end when the executor is collected. Use
   `with`, or call `shutdown()`.
