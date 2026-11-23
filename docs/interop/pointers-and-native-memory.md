@@ -245,8 +245,8 @@ released
 
 - `x` is a counted object: an instance of an `obj`, `node`, `edge` or `walker`. A number, a
   struct or a C record is refused (E1635), and so is a struct or a C record as `held`'s `T`.
-- Each `hold` is one reference, and each is released once. `held` neither adds one nor takes one
-  away: it may be called on the same address any number of times.
+- Each `hold` is one reference of C's, and each is released once. `held` leaves C's reference as
+  it is: it may be called on the same address any number of times, and `release` after the last.
 - While C holds it, the object is a root of the cycle collector: a cycle one of whose objects C
   holds stays whole until `release`.
 - Only native code has addresses: in a cpython, node, browser or hermes space each of the three is
