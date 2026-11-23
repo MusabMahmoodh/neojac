@@ -57,6 +57,7 @@ anything else is refused where it is indexed (E1152).
 | `p == q`, `p != q`, `p < q`, `p <= q`, `p > q`, `p >= q` | Comparison of the addresses |
 | `p.is_null()` | Whether the address is zero |
 | `int(p)` | The address |
+| `str(p)` of a `ptr[i8]` | A copy of the NUL-ended UTF-8 text at `p`, as a `str`; `ValueError` for the null pointer. `print(p)` and `f"{p}"` give the same text. A pointer of any other item type has no text (E5090) |
 | `p.view(n)` | A bounds-checked view of the first `n` items (below) |
 | `p.load(i, ...)`, `p.store(i, v, ...)`, `p.vector(i, N)` | An access that says more than `p[i]` (below) |
 

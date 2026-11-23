@@ -96,10 +96,14 @@ record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cm
 no C address (a closure that captures) raises `TypeError` there. A function pointer C may give
 as `NULL` is `Callable[...] | None`, `None` where C's is null: test it before calling it.
 `ptr[u16]("text")` and `ptr[u32]("text")` are C's `u"text"` and `U"text"`, of a literal only.
-A C++ library's pointer to a function of C++ types (`int (*f)(Counter &, int)`) takes a def of
-the calling module by its name, of exactly its Jac form (`def bump_by(c: Counter, step: i32) ->
-i32`); a lambda, a bound method or another signature is E1639. C++ must call it on the thread
-that called into C++: from a thread of the library's own the program ends, naming the function.
+A C++ library's pointer to a function of C++ types (`int (*f)(Counter &, int)`), a member's
+parameter or a free function's, takes a def or a static method by its name, of exactly its Jac
+form (`def bump_by(c: Counter, step: i32) -> i32`); a lambda, a bound method or another
+signature is E1639. A pointer to a member function of the class a Jac class derives
+(`int (T::*m)(int)`) takes a method by its class (`Drop.plus_size`), E1623 otherwise. C++ must
+call it on the thread that called into C++: from a thread of the library's own the program ends,
+naming the function. A C++ member's `const char *` result (`s.c_str()`) is a `ptr[i8]` into the
+object: keep the object in an `own` local while it is used, and `str(p)` copies its text.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
