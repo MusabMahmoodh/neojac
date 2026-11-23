@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_unpack, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -235,10 +235,10 @@ module's exports do. A function whose first parameter is `self` is constructible
 `new P(3)` of `def P(self: any, x: any) { self.x = x; }` makes the object. Natively the face
 holds what JavaScript sets on it, and a native function takes no attribute of Jac's.
 
-On a JavaScript host the face's `name` is the function's, a nested `def`'s own name among them
-(`add`, where a lambda's is empty), and its `length` is the count of its positional parameters
-before `*args`, `self` not counted where JavaScript gives it as `this`, as mocha reads `length`
-to tell a test that takes `done`. Natively the face's `name` is empty and its `length` 0.
+On every host the face's `name` is the function's, a nested `def`'s own name among them (`add`,
+where a lambda's is empty), and its `length` is the count of its positional parameters before
+`*args`, `self` not counted where JavaScript gives it as `this`, as mocha reads `length` to tell
+a test that takes `done`: `def add(x: int, y: int = 1, *rest: any)` has `length` 2.
 
 **JavaScript's arguments are bound by the function's parameters**, on every host: its positional
 parameters by position, its `*args` the arguments past them, a parameter left out its default
@@ -258,8 +258,7 @@ async generator takes none. **A coroutine crosses as a promise** of its result, 
 natively it runs at once to its first wait, as an async function's body does, and on as each
 promise it awaits settles; its exception is the promise's rejection. A Jac `async for` takes
 JavaScript's async iterables, anything with a `Symbol.asyncIterator` (an async generator, a
-stream), on a JavaScript host; natively that is not built yet, an `AttributeError`
-(`'Object' object has no attribute '__aiter__'`).
+stream), on every host.
 
 <!-- example: not checked: runs in a node space -->
 ```jac
@@ -371,8 +370,9 @@ operator it names; natively each runs in the program's Node.
 | `js_item(o, k)`, `js_set_item(o, k, v)` | `o[k]`; `o[k] = v`, whose value is `v` |
 | `js_delete(o, k)` | `delete o[k]` in strict code: `True`, a `TypeError` where the property cannot be removed |
 | `js_rest(o, keys)` | The `...rest` of the pattern `{ a, b, ...rest } = o` whose other names `keys` lists: a new object of `o`'s own enumerable properties but those |
-| `js_method(o, name, ...)` | `o[name](...)`, an array's or a string's own method among them |
+| `js_method(o, name, ...)` | `o[name](...)`, called on `o`: `name` a string or a symbol (`Symbol.iterator`), an array's or a string's own method among them |
 | `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
+| `js_unpack(o, n, rest)` | The array pattern `[a, , c, ...more] = o`: `o` iterated as JavaScript iterates it, a list of its first `n` items (`None` past its end) and, where `rest`, a list of the items after them last. An iterator the pattern leaves unfinished is closed (its `return()`); a `TypeError` where `o` is not iterable. `js_unpack(new Set([10, 20, 30]), 2, True)` is `[10, 20, [30]]` |
 | `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
 | `js_new_target()` | `new.target` of the call that reached the function it is written in: the function JavaScript called with `new`, else `None` ([below](#a-class-with-a-javascript-base)) |
 | `js_global(name)` | The global `name` read where the call is written |

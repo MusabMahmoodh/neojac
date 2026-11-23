@@ -126,6 +126,12 @@ module that both wire in.
 Because an unplaced module has no space to be served from, a `:pub` or `:protect` function or
 walker in one is E1211.
 
+A JavaScript or TypeScript file of the project that no space holds is loaded the same way: into
+the space whose module imports it, and run there. What it takes of that space's Jac modules is an
+ordinary call, never a crossing, so it makes no endpoint: in a node space whose `main` imports
+`kit/echo.js`, which imports `scaled` from the space's `maker.jac`, `neojac run` runs `main` and
+exits, and serves nothing.
+
 ### A space of a tree
 
 A space may hold a tree of the repository that another tool packs, by its directory, quoted, as
