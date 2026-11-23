@@ -382,6 +382,12 @@ tail.py:3:1: error[E4005]: port writes no Jac yet that keeps the meaning of modu
 | E4031 | A C function defined with `...`, which a C file the run does not port calls |
 | E4043 | A unity build's source, held back because a file it includes is refused |
 
+- **An object in memory nothing constructed is never ported** (E4001): a C++ placement `new` into
+  storage the program gives, an explicit destructor call, and an object used in memory no
+  constructor made (a class's object in the zero-filled memory a C library hands back). No Jac
+  form keeps an object in raw memory; the source makes the object with `new` where it first needs
+  it and deletes it where it is done, and that ports
+  ([Porting C++](../interop/port-cxx.md#what-is-refused)).
 - **A source its own compiler rejects** is reported by that compiler, under its own code
   (`error[cpython SyntaxError]`, `error[tsc TS2322]`, Clang's and rustc's own messages).
 - **`neojac port --check`** reports the same and writes nothing: run on a codebase, it lists what
