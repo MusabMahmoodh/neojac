@@ -78,7 +78,7 @@ build cache, shared by every project (see [build](../toolchain/build.md)).
 | The app | Its artifact |
 |---|---|
 | Native spaces only | `dist/<app>-<platform>`: one program |
-| Native spaces that serve pages, or run a cpython or node space, or use npm or Python packages | `dist/<app>-<platform>/`: the program `<app>` and what it reads, beside it |
+| Native spaces that serve pages, or run a cpython or node space, or use npm or Python packages, or load shared libraries | `dist/<app>-<platform>/`: the program `<app>` and what it reads, beside it |
 | One node space | `dist/<app>/`: its modules, Node, the project's npm packages and the launcher `<app>` |
 | One cpython space | `dist/<app>/`: its code, CPython and its home, and the launcher `<app>` |
 | A browser space it runs (a desktop app) | `dist/<app>-<platform>/`: the program and the pages |
@@ -90,6 +90,7 @@ holds, as its app needs:
 | Path | Holds |
 |---|---|
 | `<app>` | The program |
+| `libgeom.dylib`, `libhalf.so`, `libneojac-rust-<hash>.so` | Each shared library the program loads from beside itself: a C module built `shared`, a library of the project's own that an import names (built with `neojac cc`), and on Linux the program's Rust library |
 | `pages/<space>/` | Each browser space it serves, as its bundler wrote it |
 | `lib/python315.zip` | CPython's standard library, compressed |
 | `lib/python3.15/site-packages/` | The project's Python packages |

@@ -1,6 +1,6 @@
 ---
 description: Rust crates as modules of a Jac program - what a crate's interface gives Jac, Rust's own API used natively (std's types, a crate's items, generics, enums, traits a Jac struct conforms to, closures, panics, drops), calling back into Jac and C, how crates are compiled, cached and linked into the one binary, and what goes wrong.
-keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, slice_bytes, slice_str, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
+keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, slice_bytes, slice_str, rust.Result, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
 ---
 # Rust modules
 
@@ -319,6 +319,52 @@ with entry {
 3 3
 b'el' llo
 panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `héllo`
+```
+
+### A Result of Jac's types
+
+Std's `Result` and `Option` are Rust's own where they hold Rust's types. Where what they hold is
+Jac's (a crate's own type once it is ported, a tuple), a `Result` is `rust`'s `Result[T, E]`, a Jac
+class with std's meaning: `Ok` and `Err` to make one, and `is_ok`, `is_err`, `ok`, `err`, `unwrap`,
+`unwrap_err`, `expect` and `unwrap_or`, which panic (`RustPanic`) with Rust's messages, the value
+printed by its `repr`, as Rust prints it by `Debug`. An `Option` of a Jac type is `T | None`.
+Rust's unit as a type argument of a Rust type is `None`: `Result<(), Error>` is `Result[None, Error]`.
+`neojac port` writes these for a crate's `Result`s
+([Porting Rust](port-rust.md)), with a `Display` impl as `__str__` and a derived `Debug` as
+`__repr__`.
+
+```jac
+import from rust { Result, RustPanic }
+
+obj Fault {
+    has code: int;
+
+    def __repr__ -> str {
+        return f"Fault {{ code: {self.code} }}";
+    }
+}
+
+def halves(n: int) -> Result[tuple[int, int], Fault] {
+    if n % 2 == 1 {
+        return Result[tuple[int, int], Fault].Err(Fault(code=n));
+    }
+    return Result[tuple[int, int], Fault].Ok((n // 2, n // 2));
+}
+
+with entry {
+    r = halves(8);
+    print(r.is_ok(), r.unwrap(), halves(3).err().code, halves(3).unwrap_or((0, 0)));
+    try {
+        halves(5).unwrap();
+    } except RustPanic as e {
+        print(e);
+    }
+}
+```
+
+```output
+True (4, 4) 3 (0, 0)
+called `Result::unwrap()` on an `Err` value: Fault { code: 5 }
 ```
 
 ### Values that borrow, and how a Rust value prints
