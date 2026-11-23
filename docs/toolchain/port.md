@@ -268,6 +268,19 @@ is Jac already; `if hasattr(m, "x") and rest:` is `comptime if hasattr(m, "x") {
 else { ... } } else { ... }`. A test of a module that stays Python is Python's, as the program
 runs.
 
+Such a module that no target loads, only a system neojac builds for no target of (`if
+sys.platform.startswith("sunos"):`), has nothing to check its Jac against: it stays Python
+(E4017). One whose Jac fails the check of the one system that loads it stays Python too, with
+that check's errors shown (E4018). In both, the importer imports it as Python does where its test
+picks it, and the rest of the run is written.
+
+**What port checks is checked for each target.** The Jac a run writes is checked first as the
+host builds it, then each target's variant, under that target's operating system and
+architecture, its variant file in place of the module's file: the Windows variant is checked
+with Windows' system headers. So a C record a system header declares with other fields on
+another target (`struct stat`) is that target's record in that target's check, and meets no
+other declaration of it ([one record across the program](../interop/c-libraries.md#one-record-across-the-program)).
+
 ## What is refused
 
 A file ports whole or not at all. Port reports every construct it refuses, each at its place in
@@ -299,6 +312,8 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4011 | In a project, a path into a C module its table says is another project's code (`vendored = true`) |
 | E4012 | A module that imports one the run does not port, held back with it |
 | E4016 | A Python source importing a module neojac cannot find |
+| E4017 | A Python module only a system neojac builds for no target of loads: it stays Python |
+| E4018 | A Python module whose Jac fails the check of the one system that loads it: it stays Python |
 | E4030 | A C file calling a header's `static inline` function, where no C module holds the header |
 | E4031 | A C function defined with `...`, which a C file the run does not port calls |
 | E4043 | A unity build's source, held back because a file it includes is refused |

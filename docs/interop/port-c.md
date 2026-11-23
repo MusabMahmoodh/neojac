@@ -34,6 +34,7 @@ the module `geom`.
 | `enum { RED, GREEN = 5 };` | `comptime RED: i32 = 0;`, `comptime GREEN: i32 = 5;` |
 | `typedef struct { } point;`, `typedef int count;` | The record by its typedef's name; any other typedef is the type it names |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }` | `if c { } elif d { } else { }`, `while c { }`; a condition that is a number is `c != 0` |
+| GNU's statement expression, `if (({ int t = f(x); t > 2; })) { }`, glibc's `CPU_SET` and `CPU_ISSET` | Its statements written before the statement whose evaluation it begins (an expression statement, an `if`'s condition, a `return`'s value, a declaration's value), then its last expression: `t = f(x);` then `if t > 2 { }`; anywhere else it is refused |
 | `for (int i = 0; i < n; i++) { }`, `for (p = head; p; p = p->next) { }` | `for i = i32(0) while i < n with i += 1 { }`, `for p = head while p != ptr[link](ptr()) with p = p[0].next { }` |
 | `do { } while (c);`, with no `continue` of its own | `while True { ... if not c { break; } }` |
 | `return v;`, `break;`, `continue;` | The same |

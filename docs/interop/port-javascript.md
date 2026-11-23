@@ -19,6 +19,7 @@ an operand as JavaScript does.
 |---|---|
 | `const x = 1;` at the top, of a literal, before any other code | `glob x: float = 1.0;` |
 | `const t = make();` at the top, which a function reads: before any other code, or after it | `glob t: any = make();`, made where the module starts, in order; `glob t: any;` and `t = make();` in `with entry`, where the statement stands (`= None` of a `var`): a read before the code that makes it raises NameError, where JavaScript throws |
+| A top-level function, class, variable or type the file does not export, in an ES module, a CommonJS module (not on `exports`) or a script | `def:priv f`, `obj:priv C`, `glob:priv x`, `type:priv T`: the module's names are the source's exports, as TypeScript has them, and the names the port makes (`given_1`, `length_2`) are private too |
 | Any other statement at the top | A statement of the module's one `with entry { }` |
 | `function f(a: number, c?: string): number { }`; `function g(a, b = a + 1, c) { }`, a parameter with a default and those after it | `def f(a: float, c: str \| None = None) -> float { }`; `def g(a: any = None, *given_1: any) { got_2: any = js_item(given_1, 0); b: any = js_add(a, 1.0) if got_2 is None else got_2; c: any = js_item(given_1, 1); }`: a default is made at each call, where the argument is left out or undefined, and reads the parameters before it, as JavaScript's; the function's JavaScript `length` counts the parameters before the first with a default or `...`, as Jac's counts those before its `*args` |
 | `(a: number) => a + 1`, `function (a) { }`, `async (a) => { }` | `lambda (a: float) -> float { return a + 1.0; }`; a function in a function is a closure in both; one made in a loop that uses the pass's `const` variables takes them as its own, `(lambda (k: str) -> any { return lambda -> str { return k; }; })(k)`, as each pass has its own |
@@ -60,10 +61,10 @@ an operand as JavaScript does.
 | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x++;`, `x--;` as statements | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x += 1.0;`, `x -= 1.0;` |
 | `f(a)`, `o.m(a)`, `new C(a)`, `o.x` | `f(a)`, `o.m(a)`, `C(a)`, `o.x` |
 | `console.log(a, b)`, `Math.sqrt(x)`, `Math.PI` | The same, on JavaScript's own `console` (`import from "node:console" { default as console }`) and `Math` |
-| `[a, b]`, `xs[0]`, `xs.length`, `xs.push(v);`; `[1, , 3]`, a hole, in a JavaScript space | `[a, b]`, `(xs[0] if len(xs) > 0 else None)` (`xs[0] = v;` assigned), `float(len(xs))`, `xs.append(v);`; `[js_delete(holed_1 := [1.0, None, 3.0], 1), holed_1][1]`: JavaScript's own hole, which `in`, `forEach` and `Object.keys` skip and `length` counts |
+| `[a, b]`, `xs[0]`, `xs.length`, `xs.push(v);` of an array the file's own code alone reaches: iterated, spread or indexed where it stands, or held by a variable that is only read so, its `length`, or a method of an array that keeps it to itself; any other array, `Object.freeze([1])`, `box.add(xs)`, `return [a]`; `[1, , 3]`, a hole, in a JavaScript space | `[a, b]`, `(xs[0] if len(xs) > 0 else None)` (`xs[0] = v;` assigned), `float(len(xs))`, `xs.append(v);`; `js_array([1.0])`, JavaScript's own array, an `any` read through `js`, which crosses to JavaScript as itself where a Jac list crosses as a copy; `[js_delete(holed_1 := [1.0, None, 3.0], 1), holed_1][1]`: JavaScript's own hole, which `in`, `forEach` and `Object.keys` skip and `length` counts |
 | Any other method of an array or a string, `xs.join(", ")`, `s.split("")`; a string's `length` | `js_method(xs, "join", ", ")`, `js_method(s, "split", "")`, `js_item(s, "length")`, of `js`: JavaScript's own method, called on the value |
 | `a ?? b`; `o?.x`, `o?.m(a)`, `xs?.[0]` of a value TypeScript types; `f?.(a)` of a name | `a ?? b`; `o?.x`, `o?.m(a)`, `xs?[0]`; `f(a) if f is not None else None` |
-| `export default function f() { }`, `export default class C { }`, `export default f;` of a function, class or variable of the file | `default def f { }`, `default obj C { }`: the module's default |
+| `export default function f() { }`, `export default class C { }`, `export default f;` of a function, class or variable of the file; `export default make({ a: 1 });`, a value its code makes, before the file's other code | `default def:priv f { }`, `default obj:priv C { }`: the module's default, whose own name the module does not export; `default glob:priv given_1: any = make(globalThis.Object.fromEntries([("a", 1.0)]));`, made where the module starts, in order |
 | `<div className="a" {...rest}>text {v}<C x={1} /></div>`, `<></>`; a type `JSX.Element` | The same JSX; `JsxElement`; a function returning one, of one parameter `props`, takes `**props`: its props, as the JSX runtime gives them; one TypeScript types `JSX.Element \| null` returns `JsxElement \| None`, its `return null` a `return None`, which renders nothing |
 | `` tag`a${x}b` `` of a function the file declares | `tag(["a", "b"], x)`: the parts, then the values |
 | `v as T`, `<T>v`, `v!`, `v satisfies T` | `v`: TypeScript erases them |
@@ -107,6 +108,8 @@ construct in the table whose Jac would mean something else (E4005):
 - **`arguments` in a class method whose JavaScript `length` counts a parameter** (one before
   the first with a default or `...`). A method's `length` is its class's to give.
 - **A class's `length`, `name` and the other properties JavaScript's Function gives it.**
+- **`export default` of a function or class expression, of a value after the file's code has
+  started, and `export =`.** An expression's function is named `default` in JavaScript.
 - **A class in a function, and a class expression, outside a JavaScript space.** JavaScript
   makes a class each time the statement runs; a native Jac class is made once.
 - **A hole in an array literal outside a JavaScript space**, where a list has no holes.

@@ -180,7 +180,11 @@ graph spaces {
   tree's own files and its tests import it as they did
   ([A project's own suites](../toolchain/test.md#a-projects-own-suites)).
 - **An npm tree's space is where its imports resolve**: a space that holds one tree needs no
-  `[spaces.<space>] npm` row, though the project has several (E1288).
+  `[spaces.<space>] npm` row, though the project has several (E1288), and so is its client
+  space's: the `_dev` space of a tree takes the tree's npm packages.
+- **A space that holds no Jac module is its tree's tools' alone**: a project's `neojac check`
+  leaves it out, since its files are another language's (a Python tree's tests before any is
+  ported, a TypeScript tree's tests), and checks it once a port makes one of them Jac.
 
 ### What a space's program starts from
 

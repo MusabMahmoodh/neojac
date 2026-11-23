@@ -475,11 +475,14 @@ neojac npx [<npx argument>...]
 
 The npm that Node ships, with its own command line. In a project it runs in an npm tree of jac.toml (the one whose directory it is run in or under, or the project's only one), and what it writes to the tree's package.json and package-lock.json is taken into jac.toml and jac.lock as it ends.
 
+Where some of the tree's sources are ported, `run`, `run-script`, `test` and `start`, and npx, run in the tree as its tools saw it: under .jac/test/spaces/, each ported source's place holds a file of its own name that gives the module, and what the tree's space emits is beside them.
+
 Its arguments, --help among them, are that program's own: `neojac npm --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac npm ls` |  |
+| `neojac npm run build` | The tree's own build, its ported sources too |
 
 Its guide: [interop/npm](../interop/npm.md) (`neojac docs interop/npm`).
 

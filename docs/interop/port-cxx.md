@@ -86,6 +86,10 @@ the library is named as its interface names it (an overload set's member by its 
 `twice_i32`), wherever in the library's directory it is defined, and the wire names the set by
 its C++ name (`tally.tally ++> app.use { twice }`).
 
+A record a system header declares that C could declare too (`struct stat`,
+`napi_property_descriptor`, `sqlite3_module`) is C's, as in a C file: the file's import block
+binds it with its fields, and a local of it C++ leaves unset (`struct stat st;`) is made zeroed.
+
 ## A unity build
 
 A file its module compiles only inside another (a source that `#include`s it) is read as that
@@ -123,6 +127,8 @@ A member whose destructor runs code (`std::vector<int> xs;`) is a field with no 
 annotation, a managed place: `destroy` ends it after the destructor's body, `del self.xs;`,
 members in reverse declaration order and then `super.destroy();`, as C++ ends them at the
 `delete`. A class with such members and no destructor of its own is given that `destroy`.
+A member of a library class with no default constructor (`tally::Counter kept;`, which each
+constructor initializes) is a field with no default, which `init` sets.
 
 A local of such a class made by a constructor, `TempConverter conv(this);`, is
 `conv: TempConverter = TempConverter(self);` where no class of it declares a destructor, so
@@ -130,8 +136,14 @@ nothing runs where its scope ends, and `&conv` is `conv`. Every copy of such an 
 or move constructor, a copy assignment, a parameter, a result or a field by value) is refused,
 so the local is the one object, and the Jac reference names it.
 
+A pointer to such an object that may be null is `T | None`: a local, parameter, field or
+result the run gives null or tests against null is (decided across the run), and so is every
+one its value goes to, so no `T | None` reaches a place typed `T`. `NULL` is `None`, `p == NULL`
+is `p is None`, `if (p)` is `if p is not None`, and a member of one that holds None raises
+AttributeError where C++ would read through the null pointer.
+
 An object of such a class held by value where its destructor would run, copied, a pointer to
-one that may be null, a call
+one that may be null given to C as a `void *` or held by a C struct, a call
 of a member function on `this` in its constructor or destructor (C++ dispatches there as the
 class being made), an overloaded virtual function, more than one base or constructor and a
 `return` in its destructor are refused.
@@ -148,4 +160,6 @@ port does not write as an `obj`, references but a library class's as a parameter
 `obj`'s, lambdas, range `for`, exceptions, `new` into storage the program gives, `new[]` and
 `delete[]` of anything but numbers and pointers, a static data member another file defines, a member
 of a library class its interface does not bind (a member template's instance whose arguments
-are no class or number type among them), and a field of a record a system header declares.
+are no class or number type among them), a member of a library class with no default
+constructor in a class port writes as a struct, and a field of a C++ class a system header
+declares that C could not declare.

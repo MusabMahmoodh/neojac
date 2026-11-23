@@ -343,7 +343,9 @@ backend/pyproject.toml: pytest tests
   declares each value the module gives, so a tool that reads the file's text (a router reading a
   route file's exports) finds them. Everything emitted, the modules, their maps, their
   [faces](../interop/npm.md#a-projects-own-javascript) (`kinds.d.ts`) and the runtime, is apart
-  in the laid tree's `.jac/`, imported by relative paths. The tree's configuration is not
+  in the laid tree's `.jac/`, imported by relative paths, and an emitted module imports a file of
+  the tree (a stylesheet, a file that stays JavaScript) by its relative path to that file's place
+  in the laid tree, not through an alias of neojac's own. The tree's configuration is not
   changed, and its own files are not touched. Where the package's dev space
   (`<space>_dev: node`, its tests and benchmarks) holds Jac too, the script runs in the dev
   space's laid tree, which holds the package's modules too: one copy of each module in the

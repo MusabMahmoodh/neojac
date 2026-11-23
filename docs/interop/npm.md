@@ -122,10 +122,14 @@ graph import {
   `tone.js` beside it, so `kit/echo.js` writes `import { tone, bump } from "../tone.js";`, which
   the wire `tone --> kit.echo { tone, bump }` declares, and its names are held to the Jac module.
   A module's [default](../language/modules.md#a-modules-default) is its default export. What it
-  imports is the module's forwarder, which gives every function of the module as JavaScript calls
-  it (below). In a node space the forwarder stands at that place; in a browser space the
-  bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)), and the module starts
-  as the bundle imports it.
+  imports is the module's forwarder, which gives exactly the module's names: its public
+  functions, and its globals of a function type, by their faces as JavaScript calls them (below),
+  its classes, other globals and types as they are, and nothing of its own (`:priv` names, the
+  module's machinery). In a laid tree ([A project's own suites](../toolchain/test.md#a-projects-own-suites))
+  a value or a class is declared in the forwarder's own text (`export const LIMIT = $m.LIMIT`),
+  so that a tool reading the text finds it. In a node space the forwarder stands at that place;
+  in a browser space the bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)),
+  and the module starts as the bundle imports it.
 - **A `.d.ts` beside a Jac module of its stem** (`kinds.d.ts` beside `kinds.jac`) is that
   module's face to TypeScript, as a C header beside a module is its face to C: TypeScript reads
   the module's types there, and a type a TypeScript file imports of the module is held to it. It
@@ -133,6 +137,10 @@ graph import {
   beside the module's JavaScript. [`neojac port`](../toolchain/port.md) writes it of a module it
   made from TypeScript, as TypeScript's own declaration output for the source. A `.d.ts` file of
   the project's own holds no code, and is never ported.
+- **A face is held to its module.** `neojac check` has TypeScript read it, and each name it
+  declares must be one the module gives (E2313), each name the module gives one it declares
+  (E2314), and each of the same kind, a value or a type (E2315). A module with no face of its
+  own still has one for TypeScript, its forwarder's names, each `any`.
 - **A CommonJS file** (`.cjs`, or a `.js` where Node reads the place as CommonJS) that `require`s
   a Jac module is given it as CommonJS: its exports, and for `require` itself the module's
   default where it has one.
@@ -231,9 +239,12 @@ objects with the same properties are not equal. `copy.copy` of one is that same 
 A Jac function or object stays one JavaScript value for as long as JavaScript holds it, and comes
 back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` added.
 
-**A Jac function is one function to both sides.** What JavaScript holds of it, its face, is the
-function itself as JavaScript calls it, and its `prototype.constructor` is the face. On a
-JavaScript host a property either side sets on it is the other's (JavaScript's `f.tag = "x"`,
+**A Jac function is one function to both sides.** What JavaScript holds of it, its face, is a
+JavaScript function, one for each Jac function, so JavaScript sees the same function each time it
+is handed it; it is no `Proxy`, its prototype is `Function.prototype`, and its
+`prototype.constructor` is the face. On a JavaScript host a generator function's face is a
+generator function, and the Jac function's own prototype is its face, so a property either side
+sets on it is the other's (JavaScript's `f.tag = "x"`,
 Jac's `setattr(f as any, "tag", "x")`), and it is constructible where the function is, as in
 JavaScript: `new f(...)` constructs an object of `f.prototype`, `self` the new object, and a
 subclass's `super(...)` reaches it, where an async function or a generator function is not
@@ -481,6 +492,52 @@ made by new: True
 bad (7) True None
 made by new: True
 caught thrown
+```
+
+### A class over a value
+
+On a JavaScript host a class's base may be a global of type `any`, as a JavaScript class
+`extends` an expression: JavaScript makes the class over the value the global holds, a JavaScript
+class or a function JavaScript constructs (a Jac function by its face, `self` the new object).
+Such a class, and every class derived from it, is made where its statement runs, as Python makes
+a class: in module code, in order with the module's other statements, so a class over a global
+made after it is a `NameError`, as reading the global there is. A base of another type is E2312.
+Natively a base is a class.
+
+<!-- example: not checked: runs in a node space -->
+```jac
+glob Plain: any = globalThis.Set;
+
+obj Tally(Plain) {
+    def count -> int {
+        return self.size;
+    }
+}
+
+def counter(self: any, start: int) {
+    self.n = start;
+}
+
+glob Counter: any = counter;
+
+obj Up(Counter) {
+    def twice -> int {
+        return self.n * 2;
+    }
+}
+
+with entry {
+    t = Tally();
+    t.add(1);
+    t.add(2);
+    t.add(2);
+    u = Up(4);
+    print(t.count(), isinstance(t, Plain), u.twice(), isinstance(u, Counter));
+}
+```
+
+```text
+2 True 8 True
 ```
 
 ## Exceptions
