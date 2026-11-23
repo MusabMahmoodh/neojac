@@ -80,10 +80,13 @@ BaseException
 | `repr(e)` | `ValueError('bad input')` |
 | `e.__cause__` | The exception named by `raise ... from`, else `None` |
 | `e.__traceback__` | The calls it has passed through, outermost first, as CPython's traceback objects: each has its line (`tb_lineno`), its function's name and file (`tb_frame.f_code.co_name`, `co_filename`), and in `tb_next` the call it made, `None` for the one that raised. `None` before it is raised |
-| `OSError`: `errno`, `strerror`, `filename`, `filename2` | Set when it is made with two to five arguments, as in CPython. Its message is then `[Errno 2] No such file or directory: 'f.txt'` |
-| `StopIteration.value` | Its one argument |
-| `SystemExit.code` | Its one argument: the exit status |
+| `OSError`: `errno`, `strerror`, `filename`, `filename2` | Set when it is made with two to five arguments, as in CPython, and `None` otherwise. Its message is then `[Errno 2] No such file or directory: 'f.txt'`. Its `args` are the two first where a filename is given (`OSError(2, "gone", "f").args` is `(2, 'gone')`), and all it was made with where none is |
+| `StopIteration.value` | Its one argument, `None` where it was made with none |
+| `SystemExit.code` | Its one argument: the exit status; `None` where it was made with none |
 | `ExceptionGroup`: `message`, `exceptions` | Made as `ExceptionGroup(message, [e1, e2])` |
+
+Each holds the same on every host, a JavaScript host's included: a field that was not set reads
+`None` there too.
 
 An exception that nothing catches ends the program with status 1, after its traceback is
 written to standard error in CPython's form:

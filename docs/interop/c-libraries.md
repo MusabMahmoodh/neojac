@@ -758,6 +758,46 @@ True True
 True
 ```
 
+### A pointer to a function pointer
+
+C's `void (**out)(int)`, a place in C memory that holds a function pointer, is
+`ptr[Callable[[i32], None] | None]`. Its item, `p[0]`, is read and written as a record's
+function-pointer field is: a read gives the function C holds there, or `None` where it holds
+`NULL`; a write takes a named function, `None` (C's `NULL`) or `Callable[[P], R](a)` of an
+address. The item's type must admit `None`, since C memory may hold `NULL`, and its signature must
+be one C has: `ptr[Callable[[i32], i32]]` or `ptr[Callable[[list[int]], int] | None]` indexed is
+E1152.
+
+```jac
+import from c {
+    def malloc(n: u64) -> ptr;
+    def free(p: ptr) -> None;
+}
+
+import from jaclang.comptime { sizeof }
+
+def tripled(n: i32) -> i32 {
+    return n * i32(3);
+}
+
+with entry {
+    slot = ptr[Callable[[i32], i32] | None](malloc(u64(sizeof(ptr))));
+    slot[0] = tripled;
+    f = slot[0];
+    if f is not None {
+        print(f(i32(4)));
+    }
+    slot[0] = None;
+    print(slot[0] is None);
+    free(slot);
+}
+```
+
+```output
+12
+True
+```
+
 `swapped` and `total` take and give the C record `Duo` by value, as C passes it through a
 function pointer; `signal` gives `None` for the default handler it replaces, C's `SIG_DFL`.
 

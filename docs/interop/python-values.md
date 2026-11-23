@@ -511,10 +511,29 @@ JacCoroutine 6
 ```
 
 - Jac code holds no GIL while it computes, so a thread Python started runs alongside it.
-- Python's threads, a thread pool's among them, may call Jac functions. They run Jac code one at a
-  time, under one lock of Jac's runtime. A thread waiting for it gets its turn at a switch point,
-  and the switch points are the program's own loops: a Jac loop waiting on what such a thread sets
-  (the timer's `flip` above) sees it.
+- Python's threads, a thread pool's among them, may call Jac functions, an extension module's
+  from several threads at once. They run Jac code one at a time, under one lock of Jac's runtime,
+  the Jac lock. A thread waiting for it gets its turn at a switch point, and the switch points are
+  the program's own loops: a Jac loop waiting on what such a thread sets (the timer's `flip` above)
+  sees it. The Jac lock and Python's GIL keep to five rules:
+  1. Jac's runtime runs one thread at a time under the Jac lock, and Python's threads run beside it
+     under the GIL. Jac's runtime state is touched only by the thread holding the Jac lock.
+  2. A call from Python into Jac gives the GIL up and takes the Jac lock; a call from Jac into
+     Python gives the Jac lock up for the Python it runs.
+  3. Where the bridge between the two holds the GIL, to convert a value or call a Python object, it
+     runs its Jac code under the Jac lock too, kept while it waits for the GIL.
+  4. A thread may wait for the GIL holding the Jac lock, and never waits for the Jac lock holding
+     the GIL.
+  5. Every wait of Jac's runtime (for the Jac lock, in a blocking call, for a `flow for`'s threads)
+     gives the GIL up first, as CPython's own blocking calls do. So Python code run holding the Jac
+     lock, a collection's finalizers or a `__del__`, may give the GIL up and take it back.
+
+  While a Jac function called from Python waits for the Jac lock, other Python threads run: a
+  borrowed reference held across the wait may be let go by one of them, as across CPython's
+  `Py_BEGIN_ALLOW_THREADS`. Jac holds only owned references there.
+- A thread of Python's that ran Jac gives Jac's heap for it back as it ends, and a thread of
+  Python's entering Jac takes a heap an ended thread left before making one, as the program's own
+  threads do: a pool of Python threads made again and again does not grow the process.
 - A Jac coroutine reaching Python is a `JacCoroutine`, a `collections.abc.Coroutine`, which
   CPython's `asyncio.run` and `asyncio.gather` take and a Python coroutine awaits. A Jac async
   generator is a `JacAsyncGenerator`, a `collections.abc.AsyncGenerator`; an exception its

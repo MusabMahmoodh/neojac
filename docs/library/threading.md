@@ -100,6 +100,11 @@ lock of the runtime while it runs, and gives it up:
   or a write of a file, a pipe or a socket; in `select`; for a child process;
 - at its loops, when another thread is waiting for its turn.
 
+In a program that uses Python, a thread that waits for its turn, or waits in any of the ways
+above, gives Python's GIL up first, so Python's threads run meanwhile; Python's threads that call
+Jac take the same lock ([Classes, threads and async](../interop/python-values.md#classes-threads-and-async)
+has the rules the two locks keep).
+
 So what a thread does between two such points is one step to every other thread: an operation of
 a builtin type (`xs.append(x)`, `d[k] = v`, `n += 1`) is never seen half done. A sequence of
 steps (read a global, then write it) still needs a `Lock`, as in Python.

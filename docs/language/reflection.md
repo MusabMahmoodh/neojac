@@ -81,7 +81,8 @@ What the compiler checks of these:
   `AttributeError`. A class's `__getattr__` and `__setattr__` are asked for
   names it does not declare (see [Special methods](methods-special.md)).
 - **An object has only its declared fields**: `setattr` cannot add one.
-- **A class is a value.** Held in an `any` (`k: any = Point3`, or what
+- **A class is a value.** Named directly, it has `__name__` (`Point3.__name__`,
+  `OSError.__name__`). Held in an `any` (`k: any = Point3`, or what
   `type(x)` gives), it has `__name__` and `__qualname__`, `is` compares it
   with a class, calling it constructs an instance (binding the `init`'s
   parameters, keywords included), `k.m(x)` calls the class's own method `m`

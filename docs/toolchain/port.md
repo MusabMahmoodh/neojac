@@ -291,6 +291,22 @@ declarations differ throughout go to the module's target variant files (`geom.wi
 which [Modules](../language/modules.md) describes. Python's tests of `sys.platform` and
 `os.name` port to `comptime if` the same way.
 
+A Python `if` whose test joins a platform test to tests made as the program runs, where the
+platform test comes first and guards them (`if not (WINDOWS and err.winerror == 6):`), is split:
+`comptime if` on the platform, and in each arm what the platform leaves of the test, so that
+`err.winerror`, which only Windows gives, is checked only for Windows:
+
+```text
+comptime if target().os == "windows" {
+    if not err.winerror == 6 { return "raise"; }
+} else {
+    return "raise";
+}
+```
+
+A platform test that guards nothing after it (`if err.errno == 2 and WINDOWS:`) stays part of
+the test as the program runs: Python evaluates what stands before it on every platform.
+
 A Python module that another imports only under a test of the platform (`if sys.platform ==
 "win32": from . import _windows`) is in the plan's group of its importer, and ports with it: the
 group is checked for each target, and the module only for the targets whose test picks it, as

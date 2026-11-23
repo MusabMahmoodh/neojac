@@ -278,6 +278,12 @@ unpack into targets (E1020): `(a, b) = tuple(g);` does (see
   expression, the operands to the left of `(yield x)` are evaluated before the generator pauses
   and kept while it is paused.
 - `str(g)` is `<generator object>`, with no name or address.
+- An iterator's class is Python's, on every host: `type(g).__name__` is `generator` for every
+  generator and generator expression, and an iterator `iter()` gives is named by what it walks:
+  `list_iterator`, `tuple_iterator`, `set_iterator`, `bytes_iterator`, `str_ascii_iterator` (or
+  `str_iterator` for text that is not all ASCII), `dict_keyiterator`, `range_iterator`; `enumerate`
+  and `zip` are their own. `type(iter([1])) is type(iter(["a"]))`, and a message names the class
+  (`'list_iterator' object has no attribute 'send'`).
 - A paused generator keeps the values of its frame alive, and an iterator keeps the collection it
   walks alive, wherever it is held.
 - `return value;` is written in a generator declared `-> Generator[Y, S, R]`, whose `R` is the
