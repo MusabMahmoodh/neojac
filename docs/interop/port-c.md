@@ -20,7 +20,7 @@ the module `geom`.
 | C | Jac |
 |---|---|
 | `int`, `unsigned`, `long long`, `int64_t`, `signed char`, `unsigned char`, `short`, `double`, `float`, `_Bool` | `i32`, `u32`, `int`, `int`, `i8`, `u8`, `i16`, `float`, `f32`, `bool`: an integer by its width on each target, and a signed 64-bit one is `int`, as a C module's interface declares it |
-| `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `long long (*)()` (a function of no prototype, as `FARPROC`), `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32] \| None`, `ptr` (converted to a prototype before each call, as C does), `array[i8, 16]` |
+| `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `int (**)(int)`, `long long (*)()` (a function of no prototype, as `FARPROC`), `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32] \| None`, `ptr[Callable[[i32], i32] \| None]` (its item `p[0]` read and written as the function pointer, and a local whose address is taken the item in the frame), `ptr` (converted to a prototype before each call, as C does), `array[i8, 16]` |
 | `char`, whose sign is the target's: `int n = c;`, `c == 'a'` | `i8` on every target. Its value as a number is the target's: `n = i32(c);`, and `n = i32(u8.wrap(c));` where `char` is unsigned (Linux arm64), the two under `comptime if` where the targets differ |
 | `int f(int a, double b) { }`, `void g(void) { }` | `def f(a: i32, b: float) -> i32 { }`, `def g { }` |
 | `CFSTR("name")` (CoreFoundation's `__builtin___CFStringMakeConstantString`) | `__CFStringMakeConstantString(ptr[i8]("name"))`, the function CoreFoundation's header names for it where the compiler has no builtin, declared in `import from c` |
@@ -76,8 +76,9 @@ Anything not in the table is refused with E4001, and nothing is written for the 
 a record with no name and a bit-field the file declares, a copy of a union a system header
 declares, a `goto` back to a label, into a loop or to a label inside a block other than a loop's
 body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
-argument of a `v` function, a pointer to an array or to a function pointer (the address of an
-array given where C takes another pointer is the address of its first item), a record
+argument of a `v` function, a pointer to an array (the address of an array given where C takes
+another pointer is the address of its first item), an array of function pointers in a
+function's frame, a record
 or a field with an attribute other than packed or aligned, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 
