@@ -614,10 +614,12 @@ C++ constructs the base before any of `init` runs, each argument of `super.init`
 ([E2336](../reference/diagnostics/e22-4.md#e2336)).
 
 - **`T *` and `T &` are the Jac object itself.** A member of the base that gives `T *`
-  (`static T *last()`) gives the object C++ holds, or `None` for a null pointer, and one that
-  takes `const T &` takes the object. A `T` by value is not bound.
-- **A static method declared `-> Self | None`** in the base's interface has, called through the
-  deriving class, that class's type: `Kid.last()` is a `Kid | None`, as `Self` is.
+  (`static T *last()`) gives the object C++ holds, or `None` for a null pointer, typed as the
+  class deriving the instance: `Keeper[Kid].last()` and `Kid.last()` are a `Kid | None`. Called
+  through a class deriving `Kid` (`Grandkid.last()`) it is a `Kid | None` too, as C++'s
+  `Keeper<Kid>::last()` gives a `Kid *` whoever calls it; the object it gives may be a `Grandkid`.
+  A member that takes `const T &` takes the object, of `Kid` or of any class deriving it. A `T` by
+  value is not bound.
 - **An object C++ made is C++'s until C++ deletes it** (`delete` in `Keeper<T>::end()`): the
   delete runs its `destroy`, ends its C++ part and lets the Jac object go. An object Jac made
   ends where its owner drops it, as any other.
