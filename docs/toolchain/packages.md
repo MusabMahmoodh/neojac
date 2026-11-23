@@ -925,7 +925,10 @@ neojac writes these from jac.toml and jac.lock now, and git still tracks them
 - **A lock is moved when nothing of it is open**: each pin reproduced, or accepted by name
   ([A lock another tool wrote](#a-lock-another-tool-wrote)). One neojac does not read stays.
 - **The folder is no part of the project.** A manifest in it is no tree, a program in it is no
-  source and has no wire, and `neojac port` reads nothing there.
+  source and has no wire, `neojac port` reads nothing there, and
+  [`neojac launch`](launch.md#launching-an-app) does not send it: the platform builds an
+  extension module from its `[extensions]` table alone, so its `recorded` must name the
+  platform's machines (E5172 otherwise).
 - **`--check` moves nothing** and lists what an absorb would move. `--json` has `replaced`, each
   with its `path` and what stands in for it, `by`: `jac.toml`, `jac.lock`, `record` or `pins`.
   It has `tracked` as well, the manifests git still tracks.
