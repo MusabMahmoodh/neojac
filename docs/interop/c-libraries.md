@@ -245,6 +245,48 @@ A record's fields are of the types in the table above, other records included. A
 bases, methods, static fields or properties (E5090), and cannot contain itself (E1150): link
 records through `ptr[T]` fields.
 
+A field of an `obj` or a struct whose type is a C record keeps the record in the object's own
+memory, as a C member is, and has a record's value semantics there: reading the field as a value
+copies it, a field of it is read and written in place, and assigning the field copies the record
+in. `addressof(t.pair)` is the field's own address, good while the object lives, and
+`held[T](pair=p)` finds the object back from it
+([An object found by a record it keeps](pointers-and-native-memory.md#an-object-found-by-a-record-it-keeps)).
+A field typed `Pair | None` holds a reference to a record, not the record.
+
+```jac
+import from c {
+    obj Pair {
+        has a: i32,
+            b: f32;
+    }
+}
+
+obj Tally {
+    has n: int,
+        pair: Pair,
+        last: Pair | None = None;
+}
+
+with entry {
+    t = Tally(n=1, pair=Pair(a=i32(3)));
+    w = t.pair;
+    w.a = i32(9);
+    t.pair.b = f32(1.5);
+    o = Pair(a=i32(5));
+    t.last = o;
+    o.a = i32(6);
+    print(t.pair.a, t.pair.b, w.a, t.last.a if t.last is not None else 0);
+    t.pair = o;
+    o.a = i32(7);
+    print(t.pair.a, o.a);
+}
+```
+
+```output
+3 1.5 9 6
+6 7
+```
+
 A record C declares packed or aligned is declared so: `@packed`, `@packed(n)` and `@align(n)`
 (from `jaclang.comptime`) lay it out as C's `__attribute__((packed))`, `#pragma pack(n)` and
 `__attribute__((aligned(n)))` do, as they do a struct's ([Decorators](../language/decorators.md#packed)):

@@ -88,7 +88,9 @@ C's `free`, its size `sizeof(T)` (`import from jaclang.comptime { sizeof }`); `p
 `range(len(v))`. A Jac `list` is not a C array: copy into C memory. Where C keeps an address
 after the call, use `pin(x)` (`neojac docs pin`); to give C a Jac object as a callback's user
 data, `hold(obj)`, taken back in the callback by `held[T](p)` (a `TypeError` for an address C
-does not hold) and given up by `release(p)`.
+does not hold) and given up by `release(p)`. A C record field of an `obj` is kept in the object
+(a read of it copies; `addressof(t.f)` is its address), and `held[T](f=p)` is the `T` C holds whose
+field `f` is at `p` (E1638 where `f` or `p`'s type does not fit).
 Only a named function is a callback as it is; a function value (a variable, a parameter, a
 record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cmp)`, and one with
 no C address (a closure that captures) raises `TypeError` there. A function pointer C may give
