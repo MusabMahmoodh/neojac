@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_unpack, js_invoke, js_with_length, js_promise, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_unpack, js_array, js_invoke, js_with_length, js_promise, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -126,8 +126,12 @@ graph import {
   functions, and its globals of a function type, by their faces as JavaScript calls them (below),
   its classes, other globals and types as they are, and nothing of its own (`:priv` names, the
   module's machinery). In a laid tree ([A project's own suites](../toolchain/test.md#a-projects-own-suites))
-  a value or a class is declared in the forwarder's own text (`export const LIMIT = $m.LIMIT`),
-  so that a tool reading the text finds it. In a node space the forwarder stands at that place;
+  the forwarder of a module ported from TypeScript is the JavaScript file of the source's stem, as
+  TypeScript's own output is (`util.ts` is `util.js`, `.mts` is `.mjs`, `.cts` is `.cjs`), with
+  the module's face, its `.d.ts`, beside it; a value or a class the module never assigns again is
+  declared in the forwarder's own text (`export const LIMIT = $m.LIMIT`), so that a tool reading
+  the text finds it, and any other global is given live from the module. In a node space the
+  forwarder stands at that place;
   in a browser space the bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)),
   and the module starts as the bundle imports it.
 - **A `.d.ts` beside a Jac module of its stem** (`kinds.d.ts` beside `kinds.jac`) is that
@@ -218,6 +222,14 @@ copied: an array a `list` of what its items become, a plain object (whose protot
 `bytes`. Any other object is a `TypeError` where another type is wanted. A cycle the copy reaches
 is one value, reached again.
 
+On a JavaScript host an array JavaScript gives Jac is JavaScript's own, and crosses back as
+itself, not as a copy: what a JavaScript function returns, a property or an item read of a
+JavaScript object, a method's result, what a promise resolves to, and an argument JavaScript calls
+a Jac function's face with. Jac holds it as an `any` or a `list` with no copy, and JavaScript
+given it again gets the same array (`===`), so a `WeakSet` or a `Map` keyed by it finds it. An
+array a Jac list makes is a new one each time it crosses; `js_array(items)` of `js` makes
+JavaScript's own array of Jac's items, which crosses as itself.
+
 A `JsObject` equals only itself: `a == b` is whether they are the same JavaScript value, so two
 objects with the same properties are not equal. `copy.copy` of one is that same value.
 
@@ -243,7 +255,8 @@ back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` a
 JavaScript function, one for each Jac function, so JavaScript sees the same function each time it
 is handed it; it is no `Proxy`, its prototype is `Function.prototype`, and its
 `prototype.constructor` is the face. On a JavaScript host a generator function's face is a
-generator function, and the Jac function's own prototype is its face, so a property either side
+generator function, an async function's an async function and an async generator's an async
+generator function (`Object.prototype.toString` gives `[object AsyncFunction]`), and the Jac function's own prototype is its face, so a property either side
 sets on it is the other's (JavaScript's `f.tag = "x"`,
 Jac's `setattr(f as any, "tag", "x")`), and it is constructible where the function is, as in
 JavaScript: `new f(...)` constructs an object of `f.prototype`, `self` the new object, and a
@@ -384,6 +397,7 @@ operator it names; natively each runs in the program's Node.
 | `js_shl`, `js_shr`, `js_ushr`, `js_band`, `js_bor`, `js_bxor` | `<<`, `>>`, `>>>`, `&`, `\|`, `^`: each operand made a 32-bit integer (both BigInts, or neither), `>>>`'s result unsigned |
 | `js_inc(x)`, `js_dec(x)`, `js_number(x)` | What `x++` and `x--` make `x`; `+x` |
 | `js_same(a, b)` | `a === b` |
+| `js_array(items)` | JavaScript's own array of `items`, which crosses to JavaScript as itself, not as a copy as a Jac list does; natively a `JsObject` |
 | `js_typeof(x)` | `typeof x` |
 | `js_item(o, k)`, `js_set_item(o, k, v)` | `o[k]`; `o[k] = v`, whose value is `v` |
 | `js_delete(o, k)` | `delete o[k]` in strict code: `True`, a `TypeError` where the property cannot be removed |

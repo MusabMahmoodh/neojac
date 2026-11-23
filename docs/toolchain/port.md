@@ -20,7 +20,7 @@ neojac port src/half.c -o build/jac # outside a project: write under another dir
 | C++ | `.cc`, `.cpp`, `.cxx`, `.hpp` | Clang, the same way | [Porting C++](../interop/port-cxx.md) |
 | Rust | A crate, by its `src/lib.rs` | rustc, for every target neojac builds Rust for | [Porting Rust](../interop/port-rust.md) |
 | Python | `.py` | CPython | [Porting Python](../interop/port-python.md) |
-| JavaScript, TypeScript | `.js`, `.mjs`, `.cjs`, `.ts`, `.jsx`, `.tsx` | TypeScript | [Porting JavaScript and TypeScript](../interop/port-javascript.md) |
+| JavaScript, TypeScript | `.js`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, `.jsx`, `.tsx` | TypeScript | [Porting JavaScript and TypeScript](../interop/port-javascript.md) |
 
 Each language is read by its own compiler, the one neojac ships, so port sees a source exactly as
 a build of it does: its types, what every name refers to, its macros expanded. A language's
@@ -211,8 +211,8 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   and is never ported: `--check` says so of it.
 - **A ported npm tree's own tools see what they saw.** Its tests, its scripts and its build run
   on what its space emits, laid out as a tree of the source's shape: at each ported source's
-  place one file of the source's own name that gives the module, and what the space emits apart
-  in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
+  place a forwarder that gives the module (a TypeScript source's is the JavaScript file of its
+  stem, its face beside it), and what the space emits apart in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
   run there, with the tree's configuration as it is ([A project's own
   suites](test.md#a-projects-own-suites)).
 - **A module imported by a file of no space** (a script outside every space and every Python

@@ -91,8 +91,10 @@ ENOENT
 
 3. **Convert at the boundary.** An object, array or function JavaScript gives is a `JsObject`:
    - `C.new(args)` is `new C(args)`; `o.f()` calls with `o` as `this`.
-   - Annotate to convert: `xs: list[int] = arr` copies an array into a list, a plain object
-     into a `dict`. `str(arr)` is JavaScript's `String()`, `1,2,3`.
+   - Annotate to convert: `xs: list[int] = arr` copies an array into a list natively, a plain
+     object into a `dict`. On a JavaScript host an array JavaScript gives stays JavaScript's own,
+     and goes back as the same array; `js_array(items)` makes one from Jac. `str(arr)` is
+     JavaScript's `String()`, `1,2,3`.
    - `undefined` is `None`; `null` is `JsNull` from `import from js { JsNull }`.
    - An `int` past 2**53 sent to JavaScript is `OverflowError`.
    - A Jac function JavaScript calls binds JavaScript's arguments by its parameters, on every
@@ -100,7 +102,8 @@ ENOENT
      names are dropped, as JavaScript drops them, or are its `*rest`.
    - A Jac function JavaScript holds is a JavaScript function, one per Jac function (its face,
      no `Proxy`): on a JavaScript host a property either side sets is the other's, and `new f()`
-     constructs with `f.prototype`.
+     constructs with `f.prototype`. An async function's face is an async function, a
+     generator's a generator function.
    - JavaScript's `TypeError` and `RangeError` arrive as `TypeError` and `ValueError`, anything
      else as `RuntimeError`; `js_error(e)` is what was thrown, with its `.code` and `.name`.
    - Where a value's type is not known and JavaScript's own meaning is wanted, `js` has each
