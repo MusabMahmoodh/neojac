@@ -202,12 +202,12 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
 ```
 
 - `name` (in a project's table) gives the module a key of its own, by which a wire names it
-  (`[c."psutil/arch"] name = "_psutil"`, `_psutil ++> main { ... }`); the table stays keyed by its
+  (`[c."probe/arch"] name = "_probe"`, `_probe ++> main { ... }`); the table stays keyed by its
   directory. It is identifiers joined by `.`, and a key no Jac or Python module of the program
   has (E2270). `neojac absorb --record` writes it, as the last part of the extension module the
   module is built into. Without it the module's key is its directory. A program that reaches the
   module both by its `name` and through the wires of the files it holds (a ported file's
-  `_psutil ++> psutil.arch.osx { ... }` beside a C file's own `-->` wires) reaches one module,
+  `_probe ++> probe.arch.osx { ... }` beside a C file's own `-->` wires) reaches one module,
   built and linked once. A wire from the module, where its directory is also a Python package,
   names it by its `name`: the directory's dotted name is the package's (E2270).
 - `headers`, where the table has the key, is the module's whole list of headers. An entry is a

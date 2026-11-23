@@ -148,9 +148,9 @@ space when `absorb --record` records the project's build:
 <!-- example: not checked: an archwire is one file of a project, and this one's project holds a pyproject.toml and two package.json -->
 ```jac
 graph spaces {
-    space psutil: cpython { "."; }
-    space psutil_dev: cpython { _bootstrap | scripts.* | tests.*; }
-    space sqlite_lite: node { "sqlite"; }
+    space probe: cpython { "."; }
+    space probe_dev: cpython { _buildinfo | scripts.* | tests.*; }
+    space store: node { "store"; }
     space frontend: browser { "frontend"; }
 }
 ```
@@ -329,13 +329,13 @@ it (`[pypi."<directory>"]`):
 graph spaces {
     space lib: cpython { "."; }
 
-    package tiktoken { ship lib; }
+    package spamlib { ship lib; }
 }
 ```
 
 ```text
-$ neojac build tiktoken
-dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
+$ neojac build spamlib
+dist/spamlib-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
 ```
 
 - **The space holds what the project's own packaging ships**: the files `jac.toml`'s

@@ -214,9 +214,9 @@ Each language is read by its own engine, the one that runs or compiles the file:
 | `.rs`, in a crate whose manifest `jac.toml` holds | rustc | every path that names an item another file of the crate defines: in a `use`, a type, an expression or a pattern ([A crate's files](../interop/rust-modules.md#a-crates-files)) | each item's name in its file: a variant's is its enum's. None where the file takes a module whole (`use crate::util::*;`), which covers the names it uses of it |
 
 A module a build makes from native code, which `jac.toml` declares as an
-[extension](../reference/jac-toml.md#extensionspath) (`[extensions."tiktoken/_tiktoken"]`), is a
+[extension](../reference/jac-toml.md#extensionspath) (`[extensions."spamlib/_tally"]`), is a
 module too, though no file is: a Python file that imports it is wired from it,
-`tiktoken._tiktoken --> tiktoken.core;`, and any name is taken of it.
+`spamlib._tally --> spamlib.core;`, and any name is taken of it.
 
 A file's module name is its path from the archwire, without its extension, so two files of one
 name and two languages in one directory (`util.py`, `util.ts`) are refused (E2224). Where a part

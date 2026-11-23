@@ -238,7 +238,7 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 
 ## [extensions."\<path\>"]
 
-A module that a build makes from native code and an interpreter loads: a CPython extension module, a Node-API addon. The table is named by the module's path from the project's root, without its file's ending (`tiktoken/_tiktoken` is the module Python imports as `tiktoken._tiktoken`), and names the unit of the project it is built from.
+A module that a build makes from native code and an interpreter loads: a CPython extension module, a Node-API addon. The table is named by the module's path from the project's root, without its file's ending (`spamlib/_tally` is the module Python imports as `spamlib._tally`), and names the unit of the project it is built from.
 
 | Key | Type | Meaning |
 |---|---|---|
@@ -252,7 +252,7 @@ A module that a build makes from native code and an interpreter loads: a CPython
 [cargo."."]
 # Cargo.toml, as it stands
 
-[extensions."tiktoken/_tiktoken"]
+[extensions."spamlib/_tally"]
 cargo = "."
 features = ["python"]
 recorded = ["linux-aarch64", "macos-aarch64"]
@@ -278,10 +278,10 @@ What the wheel of a Python project, `[pypi."<directory>"]`, holds. `neojac absor
 ```toml
 [wheel."."]
 tag = "cp38-abi3"
-files = ["psutil/__init__.py", "psutil/_common.py"]
+files = ["probe/__init__.py", "probe/_common.py"]
 
 [wheel.".".metadata]
-Name = "psutil"
+Name = "probe"
 Version = "8.0.0"
 ```
 

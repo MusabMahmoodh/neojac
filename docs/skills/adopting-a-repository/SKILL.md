@@ -110,8 +110,8 @@ neojac test                        # builds the project from the tables, then ru
   which holds no extension module. Where the tests' directory has an `__init__.py`, pytest puts
   the project's directory first on Python's path unless it is told `--import-mode=append` (or
   `importlib`): give it that.
-- **What the tests need that no group or extra lists** (tiktoken's `pytest` and `hypothesis`
-  are named only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
+- **What the tests need that no group or extra lists** (`pytest` and `hypothesis`, where a
+  project names them only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
   `neojac install --pypi pytest hypothesis`.
 - **An npm tree's addon is built from its recorded tables** before its suite runs: record it
   first (`neojac install`, then `neojac absorb --record`). Leave a script that needs a tool

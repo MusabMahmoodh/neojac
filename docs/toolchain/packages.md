@@ -472,12 +472,12 @@ A program with no `jac.toml` above it keeps its manifests as files: a loose `mai
 
 ## Extension modules
 
-A Python package's module may be native code that a build makes: tiktoken's `tiktoken._tiktoken`
-is a Rust crate, psutil's `psutil._psutil` a C library. No file of the project is that module, so
+A Python package's module may be native code that a build makes: `spamlib._tally` built from a
+Rust crate, `probe._probe_osx` from a C library. No file of the project is that module, so
 `jac.toml` says which unit is:
 
 ```toml
-[extensions."tiktoken/_tiktoken"]
+[extensions."spamlib/_tally"]
 cargo = "."
 features = ["python"]
 recorded = ["linux-aarch64", "macos-aarch64"]
@@ -505,7 +505,7 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   `neojac test` builds them before the tree's suite.
 
   ```toml
-  [extensions."build/Release/better_sqlite3"]
+  [extensions."build/Release/kvstore"]
   c = "src"
   ```
 
@@ -574,9 +574,9 @@ A Python project the repository holds is built from `jac.toml` alone, with no bu
 [pypi."."]                            # pyproject.toml, as it stands
 
 [wheel."."]                           # what its wheel holds: written by `neojac absorb --record`
-files = ["tiktoken/__init__.py", "tiktoken/core.py", "tiktoken/py.typed"]
+files = ["spamlib/__init__.py", "spamlib/core.py", "spamlib/py.typed"]
 
-[extensions."tiktoken/_tiktoken"]
+[extensions."spamlib/_tally"]
 cargo = "."
 features = ["python"]
 
@@ -737,7 +737,7 @@ every import between the project's files, as each language's own engine reads th
 It declares a space for each npm tree that is a program's
 ([A space of a tree](../apps/archwire.md#a-space-of-a-tree)), named for its package, in the
 `graph spaces` block that is there or in a new one: a `node` space for a package that names a
-`main` or `exports` (`space sqlite_lite: node { "sqlite"; }`), and a `browser` space, with
+`main` or `exports` (`space store: node { "store"; }`), and a `browser` space, with
 `[spaces.<space>.ui] plugin` the `ui` plugin its dependencies name, for a tree a bundler builds.
 A tree that names no bundler, no `main` and no `exports`, and is no workspace's root (a package of
 email templates a server renders), is a `node` space with the `ui` plugin its dependencies name,
@@ -765,7 +765,7 @@ item**. `absorb` lists each at its file, and does not guess:
 
 ```text
 $ neojac absorb --check
-tiktoken is a Python project (pyproject.toml) and a Rust package (Cargo.toml)
+spamlib is a Python project (pyproject.toml) and a Rust package (Cargo.toml)
 
   jac.toml     [pypi."."]   pyproject.toml, as it stands
                [cargo."."]  Cargo.toml, as it stands
@@ -796,7 +796,7 @@ open items.
 $ neojac install
 neojac install: cffi: pinned 2.0.0 by another tool's lock, which has no wheel for this Python and does not build (.jac/pins/cffi-2.0.0.log): 2.1.1 is used
 neojac install: 73 PyPI distributions in .jac/venv
-neojac install: the npm tree ., with its workspaces frontend, packages/react-email
+neojac install: the npm tree ., with its workspaces frontend, packages/mail
 $ neojac absorb --check
 ...
 locks
@@ -897,7 +897,7 @@ neojac writes these from jac.toml and jac.lock now, and git still tracks them
   tracking a path it already tracks, so absorb prints the command that stops it. neojac changes
   nothing of git's index.
 - **A moved file's wires go with it.** Where `archwire.jac` wired a file absorb moves (a
-  `setup.py` that imports the package is `_bootstrap --> setup`), the wire is dropped as the file
+  `setup.py` that imports the package is `_buildinfo --> setup`), the wire is dropped as the file
   moves, so that no wire names a file that is not there (E2097).
 - **A build's own files move only when the record is whole**
   ([Recording a build](#recording-a-build)): every native module of the build is an
@@ -951,7 +951,7 @@ it and watches.
 $ neojac absorb --record
 ...
 recorded
-  [extensions."tiktoken/_tiktoken"]  the crate ., with pyo3/extension-module, python
+  [extensions."spamlib/_tally"]  the crate ., with pyo3/extension-module, python
 ```
 
 - **It installs an npm tree's packages as `jac.toml` says first**, where a build of it
@@ -985,22 +985,22 @@ recorded
   and what one unit alone was given is in its `[files."<source>"]`. The interpreter's own headers
   are named as the toolchain's (`{lib}/cpython/include/python3.15`), and the frameworks and
   libraries of the link are the module's. The table's `name` is the last part of the extension
-  module's path (`_psutil_osx` for `psutil/_psutil_osx`): the key by which a wire names the C
+  module's path (`_probe_osx` for `probe/_probe_osx`): the key by which a wire names the C
   module, apart from its directory ([The manifest](../interop/c-modules.md#the-manifest)). A
   table recorded before without one is given it; a library's own name is kept.
 
   ```toml
-  [c.psutil]
-  name = "_psutil_osx"
-  sources = ["_psutil_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
+  [c.probe]
+  name = "_probe_osx"
+  sources = ["_probe_osx.c", "arch/all/errors.c", "arch/osx/cpu.c"]
   include = ["{lib}/cpython/include/python3.15"]
-  defines = ["PSUTIL_POSIX=1", "PSUTIL_MACOS=1"]
+  defines = ["PROBE_POSIX=1", "PROBE_MACOS=1"]
 
-  [c.psutil.target.darwin]
+  [c.probe.target.darwin]
   frameworks = ["CoreFoundation", "IOKit"]
 
-  [extensions."psutil/_psutil_osx"]
-  c = "psutil"
+  [extensions."probe/_probe_osx"]
+  c = "probe"
   recorded = ["macos-aarch64"]
   ```
 
@@ -1043,7 +1043,7 @@ recorded
 
   ```toml
   [c.src]
-  sources = ["better_sqlite3.cpp"]
+  sources = ["kvstore.cpp"]
   include = ["{lib}/node/include", "../node_modules/node-addon-api", "../deps/sqlite3"]
   cxxflags = ["-O3", "-fvisibility=hidden", "-flto", "-std=c++20"]
   ldflags = ["-Wl,-search_paths_first", "-Wl,-dead_strip"]
@@ -1052,7 +1052,7 @@ recorded
   sources = ["sqlite3.c"]
   defines = ["SQLITE_DQS=0", "SQLITE_ENABLE_FTS5"]
 
-  [extensions."build/Release/better_sqlite3"]
+  [extensions."build/Release/kvstore"]
   c = "src"
   recorded = ["macos-aarch64"]
   ```
@@ -1073,31 +1073,31 @@ platform's build did: `macos-aarch64`, `linux-x86_64`. `neojac absorb --record`,
 another, adds that platform's record to the same tables.
 
 ```toml
-[c.psutil]                             # what every recorded platform compiles
+[c.probe]                              # what every recorded platform compiles
 sources = ["arch/all/errors.c", "arch/posix/init.c"]
 include = ["{lib}/cpython/include/python3.15"]
-defines = ["PSUTIL_POSIX=1"]
+defines = ["PROBE_POSIX=1"]
 
-[c.psutil.target.darwin]               # what macOS's build adds
-sources = ["_psutil_osx.c", "arch/osx/cpu.c"]
-defines = ["PSUTIL_MACOS=1"]
+[c.probe.target.darwin]                # what macOS's build adds
+sources = ["_probe_osx.c", "arch/osx/cpu.c"]
+defines = ["PROBE_MACOS=1"]
 frameworks = ["CoreFoundation", "IOKit"]
 
-[c.psutil.target.linux]                # what Linux's adds
-sources = ["_psutil_linux.c", "arch/linux/mem.c"]
-defines = ["PSUTIL_LINUX=1"]
+[c.probe.target.linux]                 # what Linux's adds
+sources = ["_probe_linux.c", "arch/linux/mem.c"]
+defines = ["PROBE_LINUX=1"]
 
-[extensions."psutil/_psutil_osx"]
-c = "psutil"
+[extensions."probe/_probe_osx"]
+c = "probe"
 recorded = ["macos-aarch64"]
 
-[extensions."psutil/_psutil_linux"]
-c = "psutil"
+[extensions."probe/_probe_linux"]
+c = "probe"
 recorded = ["linux-aarch64"]
 ```
 
 - **Each extension module lists the platforms it was recorded on** (`recorded`), and is built
-  on those. A build that links different modules on different systems, as psutil's does, has a
+  on those. A build that links different modules on different systems, as `probe`'s does, has a
   table for each.
 - **What every recorded platform's build compiled is the C module's own**, and what only some
   did is under a target table: an operating system's (`[target.linux]`), an architecture's
