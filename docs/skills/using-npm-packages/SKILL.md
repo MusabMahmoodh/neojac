@@ -114,8 +114,13 @@ ENOENT
      `f.prototype`, `js_as_method(f, "m")` for an object literal's method `m` (`f` takes the
      object first), `js_global(name)`, `js_async_generator(g)` for a Jac async generator as
      JavaScript's own (`neojac docs js_add`).
-   - On a JavaScript host a Jac async generator crosses as JavaScript's async generator, and
-     `async for` takes JavaScript's async iterables (`Symbol.asyncIterator`, a stream).
+   - A Jac async generator crosses as JavaScript's async generator, and a coroutine as a promise
+     of its result, on every host; on a JavaScript host `async for` takes JavaScript's async
+     iterables (`Symbol.asyncIterator`, a stream).
+   - A project's JavaScript file that imports a module's `glob` reads it live, but a global of a
+     function type and the module's default, which it takes as they stand once the module has
+     started: assigning one of those again is E2311. Keep such a function in a global the file
+     does not import, and give the file a function that calls it.
    - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
      JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
      it uses `self` (`neojac docs E2252`).

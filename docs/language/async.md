@@ -231,8 +231,9 @@ in dict and set comprehensions. It too belongs inside an `async def`.
 `async for` is also how a page, or any code on a JavaScript host, reads a stream of another
 space: a call of a function there that gives an iterator gives an `AsyncIterator[T]` here
 ([Crossings](../apps/crossings.md#calling-a-stream)). On a JavaScript host it takes JavaScript's
-own async iterables too, and an async generator that reaches JavaScript is JavaScript's async
-generator ([npm and Node](../interop/npm.md#jacs-values-in-javascript)).
+own async iterables too. On every host an async generator that reaches JavaScript is
+JavaScript's async generator, and a coroutine a promise of its result
+([npm and Node](../interop/npm.md#jacs-values-in-javascript)).
 
 ```jac
 async def ticker(n: int) -> AsyncIterator[str] {

@@ -129,6 +129,20 @@ graph import {
 - **A CommonJS file** (`.cjs`, or a `.js` where Node reads the place as CommonJS) that `require`s
   a Jac module is given it as CommonJS: its exports, and for `require` itself the module's
   default where it has one.
+- **A global is live, but a function's and the default.** What a file imports of a module's
+  `glob` is the global as it is when read, as an ES module's export is: a global the module
+  assigns again is seen anew. A global whose declared type is a function type
+  (`glob scale: Callable[[int], int] = twice;`) is given through its face, and the module's
+  `default` as itself, each as it stands once the module has started, as `export default` and
+  `module.exports =` are. A program that assigns such a global again while a file imports it is
+  refused (E2311): the file would keep the first. A CommonJS file's exports are live, all of them:
+  each is read from the module when used, and what JavaScript assigns to one replaces it, as a
+  CommonJS `exports` object takes it.
+- **A module JavaScript runs through its forwarder is named by the forwarder**: its `js_meta()`
+  `url`, `filename` and `dirname` are the forwarder's place (`lib/util.js`, not the emitted
+  `lib/util.mjs`), as a CommonJS module's `__filename` is the file that runs, so a ported
+  module's `__filename` and a worker started on it (`new Worker(js_meta().filename)`) find it.
+  A worker that loads the forwarder starts the program in its own thread.
 - **A Jac module's `with entry` code runs once JavaScript first reaches the module**; the space's
   entry module's runs at the end of its loading.
 - A node space carries the file, and every file of the project it imports, beside its own modules,
@@ -217,8 +231,14 @@ Jac's `setattr(f as any, "tag", "x")`), and it is constructible where the functi
 JavaScript: `new f(...)` constructs an object of `f.prototype`, `self` the new object, and a
 subclass's `super(...)` reaches it, where an async function or a generator function is not
 constructible. A module's `default` that is a function crosses as its face, as a CommonJS
-module's exports do. Natively the face holds what JavaScript sets on it, and a native function
-takes no attribute of Jac's.
+module's exports do. A function whose first parameter is `self` is constructible natively too:
+`new P(3)` of `def P(self: any, x: any) { self.x = x; }` makes the object. Natively the face
+holds what JavaScript sets on it, and a native function takes no attribute of Jac's.
+
+On a JavaScript host the face's `name` is the function's, a nested `def`'s own name among them
+(`add`, where a lambda's is empty), and its `length` is the count of its positional parameters
+before `*args`, `self` not counted where JavaScript gives it as `this`, as mocha reads `length`
+to tell a test that takes `done`. Natively the face's `name` is empty and its `length` 0.
 
 **JavaScript's arguments are bound by the function's parameters**, on every host: its positional
 parameters by position, its `*args` the arguments past them, a parameter left out its default
@@ -228,15 +248,18 @@ gives three arguments may name one. What the function gives back to JavaScript c
 argument does: a function as its face, a list as a new array, a dict as an object, and of a
 coroutine a promise of that.
 
-**An async generator crosses as JavaScript's own** on a JavaScript host: where a Jac async
-generator reaches JavaScript (an argument, a result), JavaScript's `for await` drives it, its
-`next(v)`, `return(v)` and `throw(e)` answer as an async generator's do (`{ value, done }`, a call
-made before the last one settles waits its turn), and it is an `[object AsyncGenerator]`.
-`js_async_generator(g)` of `js` gives that face in Jac: `js_method(js_async_generator(g), "next")`
-is JavaScript's `g.next()`. A Jac `async for` takes JavaScript's async iterables, anything with a
-`Symbol.asyncIterator` (an async generator, a stream). Natively neither crosses yet: a Jac async
-generator handed to JavaScript is a `TypeError`, and `async for` over a JavaScript value an
-`AttributeError`.
+**An async generator crosses as JavaScript's own**: where a Jac async generator reaches
+JavaScript (an argument, a result), JavaScript's `for await` drives it, its `next(v)`, `return(v)`
+and `throw(e)` answer as an async generator's do (`{ value, done }`, a call made before the last
+one settles waits its turn), and it is an `[object AsyncGenerator]`. `js_async_generator(g)` of
+`js` gives that face in Jac: `js_method(js_async_generator(g), "next")` is JavaScript's
+`g.next()`. Natively a value JavaScript's `next(v)` sends is a `RuntimeError`, since a native
+async generator takes none. **A coroutine crosses as a promise** of its result, on every host:
+natively it runs at once to its first wait, as an async function's body does, and on as each
+promise it awaits settles; its exception is the promise's rejection. A Jac `async for` takes
+JavaScript's async iterables, anything with a `Symbol.asyncIterator` (an async generator, a
+stream), on a JavaScript host; natively that is not built yet, an `AttributeError`
+(`'Object' object has no attribute '__aiter__'`).
 
 <!-- example: not checked: runs in a node space -->
 ```jac
