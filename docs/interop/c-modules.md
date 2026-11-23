@@ -804,6 +804,30 @@ with entry {
 ```
 
 `with_counter` makes a `Counter` of its second argument and calls the function with it and 2.
+
+**A member template that takes a callable** (`template <typename Hook> int bump_with(Hook hook,
+int by)`), whose template argument C++ deduces from the function given, as napi's `Function::New`
+takes one, is called by the template's own name with a def or a static method, and no type
+arguments: `h.bump_with(bump_by, i32(2))`, `Hooks.run(Bumper.by_ten, i32(5))` for a static
+template. The program's build makes the instance for the C++ type of the function given, one for
+each function. A function with a parameter or a result that is no C++ type, or one the
+template's definition does not compile for, is
+[E1641](../reference/diagnostics/e16.md#e1641).
+
+<!-- example: not checked: needs the C++ header library whose Hooks has the member templates run and bump_with -->
+```jac
+with entry {
+    h = Hooks.make(i32(1));
+    print(Hooks.run(bump_by, i32(5)), h.bump_with(bump_by, i32(2)));
+}
+```
+
+```text
+1111 5
+```
+
+`Hooks::run(cb, start)` makes a `Counter` of `start` and gives `cb(c, 3) * 100 + c.value()`, and
+`bump_with` calls the hook with the counter the `Hooks` keeps.
 A library's registration has that shape: node-addon-api's `NODE_API_MODULE(name, InitAll)` is a
 call of its `RegisterModule(env, exports, InitAll)`, given the module's own function, and
 [`neojac port`](../toolchain/port.md) writes the addon's Node-API entry points over that call, with
