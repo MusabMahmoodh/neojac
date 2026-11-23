@@ -275,6 +275,44 @@ glob first: int = second + 1;
 glob second: int = 2;
 ```
 
+A function the initializer calls is not held to that: it may read a global declared below, which
+has its value whenever the function is called later. Where the call comes first, the global its
+code makes is not made yet, and the read raises `NameError`, as Python's does, on every host:
+natively, in a `cpython` space and on a JavaScript host alike.
+
+```jac
+def peek -> str {
+    try {
+        return str(late);
+    } except NameError as e {
+        return f"NameError: {e}";
+    }
+}
+
+def make -> list[int] {
+    seen.append(peek());
+    return [1, 2];
+}
+
+glob seen: list[str] = [];
+glob late: list[int] = make();
+
+with entry {
+    print(seen[0]);
+    print(peek());
+}
+```
+
+```output
+NameError: name 'late' is not defined
+[1, 2]
+```
+
+Only a global made by code has this check: one whose value is inert (a literal, or a value made
+with no code a program could observe) is made as the program starts, before any code runs. Of the
+reads of a global made by code, only those that can run before its making are checked, and the
+rest read it as they read any global.
+
 ## Scope
 
 Three kinds of scope hold names: a module, a function, and a comprehension.
@@ -422,6 +460,11 @@ dict a key, and a tuple raises `TypeError: 'tuple' object doesn't support item d
 
 `del` of anything else is E0083: a literal, a call's result, a module global. A name deleted and
 assigned again keeps its type.
+
+In a `cpython` space, `del` of a module's own global, function or imported name deletes it from
+the module, as Python's `del` does, in module code or in a function (`del scratch;`); a later read
+raises `NameError`. Another module's names and a class's are still E0083 there, and natively a
+module's names are.
 
 ```jac
 with entry {

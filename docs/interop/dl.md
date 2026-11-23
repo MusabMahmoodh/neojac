@@ -59,8 +59,9 @@ that type. Calling it calls the C function there with the platform's C ABI.
   integers and `int`, `f32` and `f64`, `str` as `const char *`, `ptr` and `ptr[T]`
   ([the table](c-libraries.md#types-in-a-declaration)).
 - A signature naming what a C function pointer cannot pass is refused (E5090): a list, a C
-  record by value, a callback. So is one that leaves its parameters unstated,
-  `Callable[..., R]`.
+  record by value. So is one that leaves its parameters unstated, `Callable[..., R]`. A
+  parameter may be a callback, passed as its C address
+  ([Callbacks](c-libraries.md#a-callback-that-takes-a-callback)).
 - The argument is a pointer (E1053).
 - Calling it allocates nothing.
 - One made from a null address raises `TypeError` when called, as calling `None` does.
@@ -130,7 +131,7 @@ TypeError: 'NoneType' object is not callable
 ```
 
 ```jac
-# expect: E1053, E5090 x4
+# expect: E1053, E5090 x3
 import from c {
     obj Pair {
         has a: i32,
@@ -142,7 +143,6 @@ with entry {
     p = ptr();
     f = Callable[[f64], f64](3);
     g = Callable[[list[int]], int](p);
-    h = Callable[[Callable[[int], int]], int](p);
     k = Callable[..., int](p);
     r = Callable[[Pair], int](p);
 }

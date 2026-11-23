@@ -449,8 +449,10 @@ Only a named function can be a callback as it is; a lambda or a bound method can
 a `Callable` record field is assigned a named function, `None` or a conversion of a function value
 (below). `None` passes `NULL`, which removes a callback where C says so. A `str`
 parameter of a callback receives C's `const char *` as a `str`. A callback's signature cannot
-take `bytes` or a `bytearray` (C passes no length), a C record by value, or another callback
-(E5090). An exception a callback raises does not unwind through C's frames: the callback returns
+take `bytes` or a `bytearray` (C passes no length) or a C record by value (E5090). It may take
+another callback: a `Callable` parameter inside a function pointer's signature is passed as its C
+address, and a Jac function C calls through such a pointer takes it as a function value made from
+that address ([below](#a-callback-that-takes-a-callback)). An exception a callback raises does not unwind through C's frames: the callback returns
 to C, which runs on, and the exception is raised in the Jac code that called the C function, once
 that returns.
 
@@ -477,6 +479,72 @@ with entry {
 ```output
 60
 ```
+
+### A callback that takes a callback
+
+A function pointer's signature may hold another: `Callable[[Callable[[int], int], int], int]` is
+C's `long (*)(long (*)(long), long)`. A Jac function of that signature given to C takes the inner
+callback as a value made from the address C passed, and calls it as C does; a function value passed
+the other way goes as its C address.
+
+```jac
+import from c {
+    obj Table {
+        has apply: Callable[[Callable[[int], int], int], int];
+    }
+}
+
+def negated(n: int) -> int {
+    return -n;
+}
+
+def twice(f: Callable[[int], int], x: int) -> int {
+    return f(f(x)) + 1;
+}
+
+with entry {
+    t = Table(apply=twice);
+    print(t.apply(negated, 5));
+}
+```
+
+```output
+6
+```
+
+### A function pointer C gives
+
+A C function's result, or a record's field, may be a function pointer: a `Callable` result is a
+function value made from the address C gave, which the program calls, passes back to C and
+compares by `ptr(f)`. `signal` gives the handler it replaces:
+
+```jac
+import from c {
+    def signal(sig: i32, handler: Callable[[i32], None]) -> Callable[[i32], None];
+}
+
+def on_term(sig: i32) -> None {
+    print("handled", sig);
+}
+
+def on_term_again(sig: i32) -> None {
+    print("again", sig);
+}
+
+with entry {
+    signal(i32(15), on_term);
+    before = signal(i32(15), on_term_again);
+    print(ptr(before) == ptr(on_term));
+    before(i32(15));
+}
+```
+
+```output
+True
+handled 15
+```
+
+### Converting a function value
 
 A function converts to another function pointer type, or to a pointer, by calling the type, as a
 data pointer converts by `ptr[T](p)`: `Callable[[int], int](f)` of a function `f` is its C
