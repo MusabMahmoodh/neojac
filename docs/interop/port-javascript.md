@@ -23,7 +23,8 @@ an operand as JavaScript does.
 | `(a: number) => a + 1`, `function (a) { }`, `async (a) => { }` | `lambda (a: float) -> float { return a + 1.0; }`; a function in a function is a closure in both; one made in a loop that uses the pass's `const` variables takes them as its own, `(lambda (k: str) -> any { return lambda -> str { return k; }; })(k)`, as each pass has its own |
 | `const f = (a) => { };`, `const f = function (a) { };` at the top | `def f(a: any) { }` |
 | A parameter of untyped JavaScript, `function f(a) { }` | `def f(a: any = None) { }`: JavaScript passes `undefined` for an argument a call leaves out |
-| `function f(this: T, a) { this.x }` outside a class, or one whose body reads `this`; `f.call(o, a)` | `def f(self: T, a: any) { self.x }`, its `self` the object JavaScript calls it on (`any` where nothing types `this`); `f(o, a)` |
+| `arguments` in `function f() { }`; in strict code, in `function f(a, b = 2, ...more) { }` | `def f(*arguments_1: any) { }`; `def f(*arguments_1: any) { a: any = js_item(arguments_1, 0); b: any = js_item(arguments_1, 1); if b is None { b = 2.0; } more: list[any] = list(arguments_1)[2:]; }`: what the call gave, whatever the function names or defaults |
+| `function f(this: T, a) { this.x }` outside a class, or one whose body reads `this`; `f.call(o, a)`; `f.bind(o)`; `this.p` of such a function where `this` is not typed | `def f(self: T, a: any) { self.x }`, its `self` the object JavaScript calls it on (`any` where nothing types `this`); `f(o, a)`; `js_method(js_as_method(f, "f"), "bind", o)`, JavaScript's own `bind` of the method; `js_item(self, "p")`, undefined where the object has no `p` |
 | `class C { x: number; constructor(x) { this.x = x; } m() { } }`; `class D extends C { y = 1; constructor() { super(2); } }` of the file's `C`; `class E extends Error { constructor(m) { check(m); super(m); this.c = 1; } }` of a JavaScript class; `static n = 0;`, `static f() { }`; `get p() { }`, `set p(v) { }`; no constructor | `obj C { has x: float; def init(x: float) { self.x = x; } def m { } }`; `obj D(C) { has y: float; def init { super.init(2.0); self.y = 1.0; } }`, `super.m()`; `obj E(globalThis.Error) { def init(m: any) { check(m); super.init(m); self.c = 1.0; } }`, a class JavaScript makes, whose `init` is its constructor and `super.init(...)` its `super(...)`; `static has n: float = 0.0;`, `static def f { }`; `has p: T { getter { } setter(v: T) { } }`; `def init(*args: any) { }`, which takes what a call gives as JavaScript's does |
 | `let x = v;`, `const x: T = v;`, `let x;` | `x: T = v;`, with the type TypeScript gives `x`; `let x;` is `x: any = None;` |
 | `import.meta`; a CommonJS module's `__filename`, `__dirname`, `require.main === module`; `new.target`; `F.prototype` of a function used as a constructor | `js_meta()` of `js`, `import.meta` of the module on a JS host; `js_meta().filename`, `js_meta().dirname`, `js_meta().main`; `new.target` is `js_new_target()` of `js`, the `new.target` of the call that reached the function: a function's, and a constructor's of a class JavaScript makes; `F.prototype` is `js_prototype(F)` of `js`, the prototype of the function's JavaScript face, which JavaScript's `new` constructs with |
@@ -38,7 +39,7 @@ an operand as JavaScript does.
 | `"a"`, `'a'`, `` `a${s}b` `` of strings | `"a"`, `"a" + s + "b"` |
 | `null`, `x === null`, `x == null` | `JsNull`, `x is JsNull`, `(x is None or x is JsNull)`, of `import from js { JsNull }` |
 | `if (x)`, `!x`, `a \|\| b`, `a && b` of values that are not booleans; `o[k]`, `o[k] = v` but of an array's literal index | `if js_truthy(x)`, `not js_truthy(x)`, `(a if js_truthy(a) else b)`, `(b if js_truthy(a) else a)`; `js_item(o, k)`, `js_set_item(o, k, v);`, of `js` |
-| `catch (e) { use(e); }`; Node's `process`, `Buffer`, `setImmediate`, `setTimeout` | `except BaseException as caught { e: any = js_error(caught); use(e); }`; imported from `node:process`, `node:buffer`, `node:timers` |
+| `catch (e) { use(e); }`; Node's `process`, `Buffer`, `setImmediate`, `setTimeout`; Node's `global`, and a name a file sets on it (`global.expect = f;`) or no file declares, in untyped JavaScript | `except BaseException as caught { e: any = js_error(caught); use(e); }`; imported from `node:process`, `node:buffer`, `node:timers`; `globalThis`, `js_global("expect")` of `js`: the global object's property where the code runs |
 | `true`, `false`, `undefined`, `this` | `True`, `False`, `None`, `self` |
 | `a + b`, `a - b`, `a * b`, `a ** b` of numbers; `s + t` of strings | The same operators |
 | `{ a: 1, "b": 2, 3: 4 }`, of any type, a table's (`Record<string, number>`, an index signature) too; `d[k]`, `d[k] = v;` of a table | `globalThis.Object.fromEntries([("a", 1.0), ("b", 2.0), (globalThis.String(3.0), 4.0)])`, JavaScript's own object, a number as a key the string JavaScript makes of it; `js_item(d, k)`, `js_set_item(d, k, v);`, of `js` |
@@ -73,6 +74,8 @@ an operand as JavaScript does.
 | `typeof x === "string"`, `"boolean"`, `"number"`, `"undefined"`, `"function"`, `"object"` | `isinstance(x, str)`, `isinstance(x, bool)`, `(isinstance(x, float) or globalThis.Number.isInteger(x))`, `x is None`, `callable(x)`; of any other name `js_typeof(x) == "object"`, JavaScript's `typeof` |
 | `typeof x` but compared with a string literal | `js_typeof(x)` |
 | `delete o.p`, `delete o[k]`, in a module or a strict script | `js_delete(o, "p")`, JavaScript's `delete`, of a table's key too |
+| `void e` | `[e, None][1]`; `e;` as a statement |
+| `a, b` (the comma operator); `x++`, `++x`, `o.p++`, `++o[k]` used as a value, of an untyped `x` or a property of a name or `this` | `[a, b][1]`; `a;` and `b;` as a statement; `[js_number(x), (x := js_inc(x))][0]`, `(x := js_inc(x))`, `[(old := js_number(js_item(o, "p"))), js_set_item(o, "p", js_inc(old))][0]`, `js_set_item(o, k, js_inc(js_item(o, k)))`, of `js`: JavaScript's value of each |
 | `x instanceof C`, `k in o`, `a === b` of values TypeScript does not type, `` `n=${n}` `` of a number | `isinstance(x, C)`, `globalThis.Reflect.has(o, k)`, `a is b`, `"n=" + globalThis.String(n)` |
 | `import { a, b as c } from "pkg";`, `import d from "pkg";`, `import * as ns from "pkg";`, `import "pkg";`, `import { f } from "./helper.js";`; `export function f`, `export const x`, `export class C`; `export { f as g };` of a function or class | `import from "pkg" { a, b as c }`, `{ default as d }`, `{ * as ns }`, `import "pkg";`, `import from "./helper.js" { f }` of a file that stays JavaScript, `import from .helper { f }` of a Jac module of the program (one the run ports, or a module a path alias of `tsconfig.json` names, `@/lib/utils`); the declaration, a Jac module's names being its own; `glob g: any = f;` |
 | `const fs = require("fs");` at the top; `exports.f = f;`, `exports.f = function () { };` | `import from "fs" { default as fs }`; nothing, `f` is the module's; `def f { }` |
@@ -89,10 +92,10 @@ construct in the table whose Jac would mean something else (E4005):
   JavaScript loop has its own, which the pass may change; a Jac function has one.
 - **`yield*` in an async generator.** Jac's async generator has no `yield from`.
 - **A getter, a setter or `super` in an object literal.**
-- **A variable declared again inside the block of another of its name.** A Jac function has
-  one variable of a name. (One a function inside another declares, where the other has a
-  variable of its name, is a variable of another name, as a Jac closure shares the variables
-  of the functions around it.)
+- **A variable declared inside the block of another of its name, where a third of its name
+  is renamed already.** A Jac function has one variable of a name, so the inner one is a
+  variable of another name, as is one a function inside another declares where the other
+  has a variable of its name; one at a time.
 - **A top-level variable that functions use, made by code after the file's other code, or
   from what is made after it.** A Jac global has its value before the module's code runs.
 - **A function called before a variable it reads is declared.** Jac declares it after them.

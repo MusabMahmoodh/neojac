@@ -57,8 +57,11 @@ the module `geom`.
 | `f(a, b)`; `printf("%d\n", n)` of the C library | `f(a, b)`; `printf("%d\n", n)`, with `import from c { def printf(format: str, *args: any) -> i32; }` |
 | `__builtin___strcpy_chk(d, s, n)`, `__builtin___snprintf_chk(b, n, f, k, fmt, ...)`: what `strcpy` and `snprintf` expand to where a header fortifies them | `strcpy(d, s)`, `snprintf(b, n, fmt, ...)`: the C library's function, without the check of a size the compiler would have known |
 | `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
-| `__builtin_constant_p(x)` | `1` or `0`, the answer Clang gives where it compiles the call: 1 for a constant, 0 for an argument with side effects (not run) or that is not a number. One Clang leaves to the optimizer is refused |
+| `__builtin_constant_p(x)` | `1` or `0`, the answer Clang gives where it compiles the call: 1 for a constant, 0 for an argument with side effects (not run), that is not a number, or that the optimizer is left to prove (0 is an answer the builtin always allows) |
 | `const char *names[3];` in a record, `static const char *kinds[3] = {"a", "b"};` | `names: array[ptr[i8], 3]`, `glob kinds: array[ptr[i8], 3] = array[ptr[i8], 3](ptr[i8]("a"), ptr[i8]("b"), ptr[i8]())`: an array of pointers, zeroed as null; `char _f[0]` at a system record's end, padding that holds no bytes, is left out |
+| `struct __attribute__((aligned(4), packed)) buf { uint32_t size; uint64_t used; };`, `#pragma pack(2)` | `@packed @align(4) struct buf { has size: u32 = u32(0), used: u64 = u64(0); }` (`@packed(2)`), with `import from jaclang.comptime { align, packed }`: C's offsets, size and alignment; another attribute of a record, or one of a field, is refused |
+| `struct { ... } buf;` in a function `f` | `struct f_buf { ... }` of the module, named for the function and the variable |
+| `struct sysinfo info; sysinfo(&info);` (a system record whose tag is also a function's or a global's name) | `obj sysinfo as struct_sysinfo { ... }` beside `def sysinfo(a0: ptr[struct_sysinfo]) -> i32;` in `import from c` |
 | `sizeof(int)` | Its value on each target, `u64(4)` |
 | `offsetof(struct s, f)` | Its value on each target, `u64(8)` |
 
@@ -70,9 +73,8 @@ declares, a `goto` back to a label, into a loop or to a label inside a block oth
 body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
 argument of a `v` function, a pointer to an array or to a function pointer (the address of an
 array given where C takes another pointer is the address of its first item), a function
-pointer that may be null, a conversion of a function pointer a variable holds, a
-`__builtin_constant_p` whose answer Clang leaves to the optimizer, a record declared in a
-function, a packed record, a thread-local variable. So is a
+pointer that may be null, a conversion of a function pointer a variable holds, a record
+or a field with an attribute other than packed or aligned, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 
 - **A division of floats whose operands have side effects.** Port tests the divisor, and would

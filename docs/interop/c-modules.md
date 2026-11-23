@@ -327,9 +327,60 @@ Nothing needs to be `extern "C"`.
 | A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
+| A member function template | `o.m[A, B](args)`, the instance `m<A, B>`, made for the program ([below](#member-function-templates)) |
 | A class template of the module | Instantiated only by a Jac class deriving it with itself (below); the standard library's are `libcxx`'s |
 
 A wire may name an overload set by its C++ name, and binds each member.
+
+### Member function templates
+
+A call of a C++ class's member function template names its instance by type arguments in brackets,
+as a call of a Jac generic method may ([Generics](../language/generics.md)): `o.m[A, B](args)` calls
+`m<A, B>`, and a static one is called by its class, `C.m[A](args)`.
+
+- **Its type arguments are Jac types**, as the interface writes C++ types: a class of the module, a
+  `libcxx` class, or a number type (`i32` for `int`, `int` for a 64-bit integer, `float` for
+  `double`).
+- **A template is named by its C++ name** where the class has one template of that name. Templates
+  of one name are named as an overload set's members are, by the types of the parameters that do
+  not name the template's own: `add(const T &)` is `add_`, `add(const char *, const T &)` is
+  `add_ptr_i8`.
+- **The program's build makes each instance it names**, though nothing in the C++ makes it: the
+  module's headers are read again with the instance asked for, and the interface binds it as a
+  member of the class. A result of a class type is owned, as any result by value is.
+- An instance the template does not take, or whose argument is no class or number type of C++, is
+  E1620.
+
+The header library `tally/tally.h`, a C module of the project with `language = "c++"`:
+
+```cpp
+class Counter {
+public:
+    explicit Counter(int start) : count(start) {}
+    int value() const { return count; }
+    template <class T> T to() const { return T(count); }
+    template <class T> int add(const T &x) { count += int(x); return count; }
+    template <class T> int add(const char *why, const T &x) { count += int(x) * 2; return count; }
+
+private:
+    int count;
+};
+```
+
+<!-- example: not checked: needs the C module tally, wired tally.tally ++> main { Counter } -->
+```jac
+with entry {
+    c = Counter.make(i32(7));
+    again = c.to[Counter]();
+    print(c.to[float](), again.value());
+    print(c.add_[i32](i32(2)), c.add_ptr_i8[float]("half", 1.5));
+}
+```
+
+```text
+7.0 7
+9 11
+```
 
 ### A Jac class deriving a C++ class
 

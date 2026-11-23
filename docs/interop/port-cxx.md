@@ -54,6 +54,12 @@ under another's name stands for it where their parameters are the same to Jac
 refused, with the interface's reason. A parameter that is a reference to such a class
 (`const C&`, `C&`) is a borrow of it, `c: &C`.
 
+A call of a library class's member template names the instance by its type arguments, as Jac
+types: `v.As<Napi::Object>()` is `v.As[Object]()`, `c.to<double>()` is `c.to[float]()`. Member
+templates of one name are named as an overload set is, by the types of the parameters the
+template does not make: `o.Set("k", fn)` is `o.Set_ptr_i8[Function]("k", fn)`. The program's
+build makes each instance it names.
+
 ## A unity build
 
 A file its module compiles only inside another (a source that `#include`s it) is read as that
@@ -67,5 +73,6 @@ the file's own classes, the file's own templates, an instance of a header librar
 template, a standard library class the library keeps to itself (`std::__wrap_iter`), operators
 and conversions of the file's own classes, a non-member operator, destructors, references but a
 library class's as a parameter, lambdas, range `for`, exceptions, `new` and `delete`, a static
-data member another file defines, a member template or a member of a library class its
-interface does not bind, and a field of a record a system header declares.
+data member another file defines, a member of a library class its interface does not bind
+(a member template's instance whose arguments are no class or number type among them), and a
+field of a record a system header declares.

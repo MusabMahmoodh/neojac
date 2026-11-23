@@ -948,7 +948,7 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
-              "title": "E1615 to E1618: type parameter packs",
+              "title": "E1615 to E1620: type parameter packs, and C++ member templates",
               "page": "reference/diagnostics/e16.md"
             },
             {
@@ -980,7 +980,7 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
-              "title": "E2240 to E2310: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if and quoted paths",
+              "title": "E2240 to E2325: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, quoted paths, JavaScript's faces and C tags",
               "page": "reference/diagnostics/e22-4.md"
             },
             {

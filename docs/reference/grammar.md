@@ -44,7 +44,7 @@ type_alias ::= "type" access_tag (KEYWORD | NAME) ("[" type_params "]")? (":=" |
 
 import_stmt ::= "comptime"? ("include" | "import" "type"?) ("from" from_path import_items? | (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)? ("," (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)?)* ";")
 
-archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
+archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("as" NAME)? ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
 
 enum_decl ::= decorators "enum" access_tag NAME (":" atomic_chain | "(" atomic_chain ("," atomic_chain)* ")")? ("{" (enum_member "," | module_code)* "}" | ";")
 

@@ -358,6 +358,46 @@ fields of the same types in the same order, or one of them declares it with no f
 (E1236 otherwise). A record a [C module](c-modules.md)'s headers declare is the same type as one
 of that name a block declares.
 
+### A record named in Jac other than by its tag
+
+C keeps a record's tag apart from its other names, so a header may declare `struct stat` and the
+function `stat` both. In Jac they would be one name. `obj <tag> as <name>` declares the C record
+`<tag>` under the Jac name `<name>`: `obj stat as struct_stat { ... }` beside
+`def stat(path: str, buf: ptr[struct_stat]) -> i32;`. The record is C's `struct <tag>` in every
+way a record is (its layout, one type across the program by its tag), and the program names it
+`<name>` alone. Only a C record has a tag: `as` on any other archetype is E2325.
+
+```jac
+import from c {
+    obj tm as struct_tm {
+        has tm_sec: i32,
+            tm_min: i32,
+            tm_hour: i32,
+            tm_mday: i32,
+            tm_mon: i32,
+            tm_year: i32,
+            tm_wday: i32,
+            tm_yday: i32,
+            tm_isdst: i32,
+            tm_gmtoff: int,
+            tm_zone: ptr[i8];
+    }
+
+    def timegm(t: ptr[struct_tm]) -> int;
+}
+
+with entry {
+    t = struct_tm();
+    t.tm_year = i32(70);
+    t.tm_mday = i32(2);
+    print(timegm(addressof(t)));
+}
+```
+
+```output
+86400
+```
+
 ## Passing addresses
 
 A parameter declared `&T` or `&mut T` takes the address of a variable or field of the caller:

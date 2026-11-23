@@ -58,6 +58,8 @@ else its defaults.
 | `(a, b)`, `t.0`, `t.1 += 1`, `Vec<(usize, u32)>` | `(a, b)`, `t[0]`, `t = (t[0], t[1] + 1)`, `Vec[tuple[u64, u32]]` |
 | `impl Ord for Merge { fn cmp(&self, o: &Self) -> Ordering { } }`, `#[derive(PartialEq, Eq)]`, `BinaryHeap<Merge>` | `struct Merge(Ord, PartialOrd, Eq, PartialEq) { def cmp(other: &Merge) -> Ordering { } }`: the struct conforms to Rust's traits, which Rust's generic code calls |
 | `assert!(c)` outside a test | `if not c { raise RustPanic("assertion failed: c"); }`, `RustPanic` imported from `rust` |
+| `impl Display for E { fn fmt(&self, f: &mut Formatter) -> fmt::Result { write!(f, "e {} {{x}}", self.code) } }`, `e.to_string()` | `impl E.__str__ -> str { return "e " + str(self.code) + " {x}"; }`, the String made of `str(e)` before the statement; `{}` of an integer, a `str`, a `String` or such a type only, and any other `fmt` body refused |
+| `Result<(u32, u32), Fault>`, `Option<Shelf>` of what is Jac's after the port (the crate's own types, tuples): `Ok(x)`, `Err(e)`, `?`, `match`, `unwrap()` | `Result[tuple[u32, u32], Fault]` of the `rust` module, Jac's own, with `Ok`, `Err` and std's `is_ok`, `is_err`, `ok`, `err`, `unwrap`, `unwrap_err`, `expect`, `unwrap_or`; `Shelf \| None`, and an `Option` of what can itself be None refused |
 | A file of the crate (`pub mod extra;` in `src/extra.rs`) | Its own Jac file, `src/extra.jac`; a file the crate does not compile with the features the project builds it with (its extension module's, else its defaults) is refused |
 
 ## What is refused
