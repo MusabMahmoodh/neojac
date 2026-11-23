@@ -1,6 +1,6 @@
 ---
 description: Rust crates as modules of a Jac program - what a crate's interface gives Jac, Rust's own API used natively (std's types, a crate's items, generics, enums, traits a Jac struct conforms to, closures, panics, drops), calling back into Jac and C, how crates are compiled, cached and linked into the one binary, and what goes wrong.
-keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, slice_bytes, slice_str, rust.Result, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
+keywords: Rust module, crate, Cargo.toml, extern "C", no_mangle, repr(C), native Rust import, std.collections, RustPanic, slice_bytes, slice_str, Slice, Rust slice, Rust iterator, rust.Result, Rust trait, Rust enum, Rust closure, .cargo/config.toml, CARGO_INCREMENTAL, RUSTFLAGS, CARGO_ENCODED_RUSTFLAGS
 ---
 # Rust modules
 
@@ -321,6 +321,73 @@ b'el' llo
 panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `héllo`
 ```
 
+### Slices, iterators and generic methods
+
+- **A slice of numbers, `&[T]`, is `rust`'s `Slice[T]`**: `def total(s: Slice[u32])` takes one,
+  `v.as_slice()` gives a `Vec`'s, and `s.sub(a, b)` and `s.sub_from(a)` are `&s[a..b]` and
+  `&s[a..]`, which panic where Rust's ranges panic. `s[i]` reads an item by a `u64` index,
+  `s.len()`, `is_empty()` and `to_vec()` are `[T]`'s own; a slice is never written through. It
+  borrows what it is a slice of, so it is a value that borrows (below): a parameter or a local,
+  and its `Vec` is not changed while it is used (E1302). `Slice[u8]` names `&[u8]` as a type
+  argument; a parameter of type `&[u8]` takes a Jac `bytes`.
+- **An iterator of a Rust type has `next()`**, which gives an `Option` of its item: a loop steps
+  it as Rust's `for` does, `while True { got = it.next(); if got.is_none() { break; } ... }`.
+- **A method generic over its own type parameters is named by its instance at the call**:
+  `o.zip[u32](p)`, `re.find_iter[str](text)`. A type argument is a number type or `str`, which
+  names Rust's `str` (`Matches[str]`). Each instance a program names is made for it, as a C++
+  member template's is.
+
+```jac
+import from rust { RustPanic, Slice }
+import from std.option { Option }
+import from std.vec { Vec }
+
+def total(s: Slice[u32]) -> int {
+    t = 0;
+    for k in range(int(s.len())) {
+        t += int(s[u64(k)]);
+    }
+    return t;
+}
+
+def main {
+    v: own Vec[u32] = Vec[u32].new();
+    for n in [4, 5, 6, 7] {
+        v.push(u32(n));
+    }
+    print(
+        total(v.as_slice()),
+        total(v.as_slice().sub_from(u64(1))),
+        total(v.as_slice().sub(u64(1), u64(3))),
+    );
+    steps = v.iter();
+    seen: list[int] = [];
+    while True {
+        got = steps.next();
+        if got.is_none() {
+            break;
+        }
+        seen.append(int(got.unwrap()));
+    }
+    print(seen, Option[u32].Some(u32(2)).zip[u32](Option[u32].Some(u32(3))));
+    try {
+        v.as_slice().sub(u64(3), u64(9));
+    } except RustPanic as e {
+        print("panic:", e);
+    }
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+22 18 11
+[4, 5, 6, 7] Some((2, 3))
+panic: range end index 9 out of range for slice of length 4
+```
+
 ### A Result of Jac's types
 
 Std's `Result` and `Option` are Rust's own where they hold Rust's types. Where what they hold is
@@ -373,7 +440,7 @@ called `Result::unwrap()` on an `Err` value: Fault { code: 5 }
   `Result<&str, Utf8Error>`) is a Jac value that may only be a local, borrowing what rustc says it
   borrows: the receiver of the `&self` method that gave it, or the `str` or `bytes` a function was
   given. Its type is written as rustc writes it, a reference as a type argument:
-  `Result[&str, Utf8Error]`, `Option[&Vec[u8]]`, `&bytes` for `&[u8]`. It may not be stored in a field, a global or a container, nor
+  `Result[&str, Utf8Error]`, `Option[&Vec[u8]]`, `Slice[u8]` for `&[u8]`. It may not be stored in a field, a global or a container, nor
   returned (E1315), and while it is used its owner may not be changed, moved or dropped (E1302,
   E1303, E1304), as Rust's borrow checker holds it. A `&T` result is a borrow of the Rust value
   (`got.unwrap()` above is a `&Vec[u8]`), and a `&mut self` method lends its receiver mutably for
