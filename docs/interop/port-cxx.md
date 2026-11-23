@@ -189,11 +189,12 @@ not write as an `obj`, the file's own class templates, a function template with 
 or a default among its parameters or whose body applies an operator to a value of its type
 parameter, a header library's function template whose instance the call names by what is
 no class or number type, a
-standard library class the library keeps to itself (`std::__wrap_iter`), operators
+standard library class the library keeps to itself (`std::__wrap_iter`) named but through a
+local a call gives it to, operators
 and conversions of the file's own classes, a non-member operator, `std::move` but as a
 library class's `T&&` argument, the destructor of a class
 port does not write as an `obj`, references but a library class's as a parameter, an `obj`'s
-and a struct's place, lambdas, range `for`, exceptions, a placement `new` (into storage the
+and a struct's place, lambdas, a range `for` over an array, exceptions, a placement `new` (into storage the
 program gives) and an explicit destructor call (no Jac form keeps an object in raw memory), `new[]` and
 `delete[]` of anything but numbers and pointers, a static data member another file defines, a member
 of a library class its interface does not bind (a member template's instance whose arguments
