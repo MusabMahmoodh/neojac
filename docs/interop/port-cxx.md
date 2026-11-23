@@ -27,6 +27,9 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `a == b`, `v[i]`, `s += t` on a class a library gives | `a.op_eq(b)`, `v.op_index(i)`, `s.op_iadd(t)`: the member its interface binds for the operator, `op_` and the operator's name, a conversion `op_to_` and its type |
 | `NULL` where C++ takes it as the integer it is (an argument of `...`) | `0`, of the type C++ gives it; where it becomes a pointer, `None` or the null address as C's `NULL` is |
 | `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference or of a pointer to an object of a class with virtual functions is refused |
+| `auto next = [&rd]() { return rd() << 1; };`, `next()` | `next: Callable[[], u32] = lambda -> u32 { return rd() << 1; };`, `next()`: a Jac closure, which shares the variables it names, as a capture by reference does; a capture by copy of a variable that may change, one that makes a variable, and a lambda with `auto` parameters are refused |
+| `const Ref Agg::*which = &Agg::fn;`, `(self->*which).Value()` | `which: Callable[[Agg], Ref] = lambda (of: Agg) -> Ref { of.fn };`, `which(self).Value()`: a pointer to a member that is const through it is the function that reads the member; one a write may go through, and one to a member function, are refused |
+| `template <class T, int (*method)(const Info &)> int checked(int n) { ... method(i) ... }`, `checked<Gauge, &Gauge::read>` | `def checked_Gauge_Gauge_read(n: i32) -> i32 { ... Gauge.read(i) ... }`, `checked_Gauge_Gauge_read`: a function template with a pointer to a function among its parameters is written once for each instance the program makes, as C++ makes it, named by the template and its arguments; each is a named function, which C may hold and call |
 
 ## Overloads
 

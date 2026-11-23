@@ -97,7 +97,7 @@ inherit_list ::= (call_arg ("," call_arg)* ","?)?
 
 where_clause ::= "where" expression ("," expression)?
 
-archetype_member ::= (STRING? (ability | has_stmt | members_if | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
+archetype_member ::= (STRING? (ability | has_stmt | members_if | members_try | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
 
 atomic_chain ::= atom ("?" (("<." | "." | ".>")? attr_name | index_slice) | ("<." | "." | ".>") attr_name | "(" ("=" (kw_arg ("," kw_arg)* ","?)? | call_args) ")" | "[" filter_body | index_slice)*
 
@@ -158,6 +158,8 @@ call_arg ::= kw_arg | ("**" | "*") expression | expression compr_clauses?
 has_stmt ::= "static"? "has" access_tag has_var ("," has_var)* ";"?
 
 members_if ::= "comptime"? "if" expression members_block ("elif" expression members_block)* ("else" members_block)?
+
+members_try ::= "try" members_block ("except" expression members_block)* ("else" members_block)? ("finally" members_block)?
 
 stmt ::=
     jsx_element ";"?

@@ -62,10 +62,12 @@ the module `geom`.
 | `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
 | `__builtin_constant_p(x)` | `1` or `0`, the answer Clang gives where it compiles the call: 1 for a constant, 0 for an argument with side effects (not run), that is not a number, or that the optimizer is left to prove (0 is an answer the builtin always allows) |
 | `const char *names[3];` in a record, `static const char *kinds[3] = {"a", "b"};` | `names: array[ptr[i8], 3]`, `glob kinds: array[ptr[i8], 3] = array[ptr[i8], 3](ptr[i8]("a"), ptr[i8]("b"), ptr[i8]())`: an array of pointers, zeroed as null; `char _f[0]` at a system record's end, padding that holds no bytes, is left out |
+| `struct kauth_acl acl;` whose field is `struct kauth_ace acl_ace[1];`, `acl.acl_ace[0].ace_flags = 2;`, `struct kauth_acl again = acl;` | `acl_ace: array[kauth_ace, 1]` in the import block's `obj kauth_acl`, `acl[0].acl_ace[0].ace_flags = 2;`, `again[0] = kauth_acl(acl_entrycount=acl[0].acl_entrycount, acl_flags=acl[0].acl_flags, acl_ace=acl[0].acl_ace);`: an array of records held in the record, each item the record where it lies, and a copy of the record copies its array |
+| `struct ifreq` of the kernel's `<linux/if.h>` in `kernel.c` and of the C library's `<net/if.h>` in `libc.c` | Each file's import block declares the record as its header does (`ifru_data: ptr` and `ifru_settings: if_settings` for `kernel.c`, `ifru_data: ptr[i8]` for `libc.c`): declarations of one tag that agree are one type across the program, and ones that differ are each their module's own, as C's two files hold two types |
 | `struct __attribute__((aligned(4), packed)) buf { uint32_t size; uint64_t used; };`, `#pragma pack(2)` | `@packed @align(4) struct buf { has size: u32 = u32(0), used: u64 = u64(0); }` (`@packed(2)`), with `import from jaclang.comptime { align, packed }`: C's offsets, size and alignment; another attribute of a record, or one of a field, is refused |
 | `struct { ... } buf;` in a function `f` | `struct f_buf { ... }` of the module, named for the function and the variable |
 | `struct sysinfo info; sysinfo(&info);` (a system record whose tag is also a function's or a global's name) | `obj sysinfo as struct_sysinfo { ... }` beside `def sysinfo(a0: ptr[struct_sysinfo]) -> i32;` in `import from c` |
-| `sizeof(int)` | Its value on each target, `u64(4)` |
+| `sizeof(int)`, `_Alignof(double)` | Its value on each target, `u64(4)`, `u64(8)`: every size and alignment C folds to a constant; one of no fixed size (a variable-length array's) is refused |
 | `offsetof(struct s, f)` | Its value on each target, `u64(8)` |
 
 ## What is refused
