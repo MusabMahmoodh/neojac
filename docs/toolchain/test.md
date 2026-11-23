@@ -287,7 +287,11 @@ its manifest says: a `test` script written for another tool is simply not named.
 writes the table where the tree says how it is tested: an npm tree's `[test.npm."<directory>"]`
 where its `package.json` has a `test` script, and a Python project's `[test.pypi."<directory>"]`
 from its `[tool.cibuildwheel] test-command`, `{project}` and `{package}` read as the tree's own
-directory (`pytest {project}/tests` is `command = ["pytest", "tests"]`).
+directory (`pytest {project}/tests` is `command = ["pytest", "tests"]`). What cibuildwheel installs
+for the tests, its `test-requires` and the packages of a `before-test` that is `pip install ...`,
+becomes the tree's `test` dependency group (`[dependency-groups] test = ["pytest",
+"hypothesis"]`) where it has none, which the table names in `groups`, so `neojac install` then
+`neojac test` runs the suite with nothing written by hand.
 
 | Table | The tree | What is run, in the tree's directory |
 |---|---|---|
@@ -319,6 +323,13 @@ backend/pyproject.toml: pytest tests
 
 - **A Python project is built first** (`neojac build backend/pyproject.toml`), and its suite runs
   against that build, with `.jac/venv` first on `PATH`.
+- **A Python project some of whose modules are Jac runs its command over what its spaces emit.**
+  Where a space holding the tree's modules holds a Jac module (one `neojac port` made), the
+  command runs in `.jac/test/trees/<tree>`: the Python that the tree's client space
+  (`<space>_dev`, its tests and scripts) emits, with the tree's other files laid over it, and
+  nothing of what the built package holds at its top. The package is the build's, first on
+  Python's path, in the suite's process and in every Python the suite starts, and the client
+  space shares the package's runtime, so a test and the package it imports are one program.
 - **An npm tree's script and a crate's tests run as `neojac npm` and `neojac cargo` run
   anything**: the tree's manifest written first, with the toolchain's compilers. A tree's
   extension modules, its addons, are built first (`neojac build <directory>/package.json`).

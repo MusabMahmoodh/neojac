@@ -162,7 +162,11 @@ graph spaces {
   import the space's modules as the space builds them, and hold none of them back. Once a
   Python tree has its space, absorb declares the tree's clients a second `cpython` space,
   `<space>_dev`, by the fewest patterns that hold them, and a later absorb adds to it what came
-  since; it imports the first space's modules.
+  since; it imports the first space's modules. A browser tree's files that run in Node and import
+  the space's modules (Playwright's tests importing the generated client) are its clients too, the
+  `node` space `<space>_dev`, which absorb declares by the fewest patterns that hold them:
+  `space frontend_dev: node { frontend.tests.utils.privateApi; }`. A node tree's own tests stay
+  the tree's.
 - **A Python tree's own files are its tool's to build**: only its Jac modules are the space's
   roots. **A node or browser space of an npm tree takes the tree's JavaScript as its program**:
   each file is emitted as it is, beside its Jac modules, and a module `neojac port` made Jac gets

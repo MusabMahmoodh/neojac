@@ -586,7 +586,14 @@ pyproject.toml: pytest tests --import-mode=append
 - **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`
   after the Jac tests, in the project's directory, with `.jac/venv` first on `PATH`. It names the
   `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
-  `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
+  `pyproject.toml` that the command needs, which `neojac install` installs with the rest. Where
+  the tree's tests are Jac, it runs over what its spaces emit
+  ([Testing](test.md#a-projects-own-suites)).
+- **A module of the tree has the name Python gives it**: a module under the wheel's `root` is
+  named from there (`src/fastlib/api.jac` is `fastlib.api` where `root = "src"`), and one outside
+  it, a test, from the tree's directory (the template's `backend/app/models.jac` is
+  `app.models`). A Jac module's Python name is the one its
+  Python siblings import it by, and the one the wheel holds it under.
 - **The suite runs against what was built.** The build is first on Python's path, and the
   directory a Python is started in is not on it (`PYTHONSAFEPATH`), in the command and in every
   Python it starts. A package's directory beside the tests holds no extension module, so pytest

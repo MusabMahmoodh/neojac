@@ -200,14 +200,15 @@ A module keeps its file's name though the stem is no identifier (`sqlite-error.j
 JavaScript package names its files), and is imported by its path, quoted, from the importing
 file's directory and without the extension: `import from "./sqlite-error" { SqliteError }`. The
 quoted path stands wherever a module's path does: in an import in a code body, in `include from`,
-and in a wire, from the archwire's directory (`"lib/sqlite-error" ++> main { SqliteError }`). A
+and in a wire and a layer's item, from the archwire's directory
+(`"lib/sqlite-error" ++> main { SqliteError }`, `layer errors { "lib/sqlite-error"; }`). A
 stem that holds a dot is no identifier either: `types.gen.jac` is imported as
 `import from "./types.gen" { Row }`, since `.types.gen` would name `gen` in a package `types`, and
 its wire names it so too: `"gen/types.gen" ++> main { Row }`. Its variant files keep their tags
 after the stem (`types.gen.darwin.jac` is the macOS form of `types.gen`). So does a module in a
 directory whose name is no identifier: `import from "./v1.2/util" { two }`. A module whose path is
 all identifiers, the stem and each directory, is imported by its dotted name, and a quoted path to
-one is E2310, in an import as in a wire: `import from "./util" { two }` is
+one is E2310, in an import as in a wire or a layer: `import from "./util" { two }` is
 `import from .util { two }`, and `"util" ++> main { two }` is `util ++> main { two }`.
 
 `sqlite-error.jac` and `main.jac`:
