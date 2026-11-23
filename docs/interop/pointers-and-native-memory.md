@@ -1,6 +1,6 @@
 ---
-description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, hold, held and release for Jac objects C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
-keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, hold, held, user data, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
+description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, hold, held, held_at and release for Jac objects C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
+keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, hold, held, held_at, user data, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
 ---
 # Pointers and native memory
 
@@ -189,7 +189,7 @@ True True
 - The cell lives as long as the program holds it. Keep it in a field or a global for as long as C
   uses the address.
 
-## Objects C keeps: `hold`, `held`, `release`
+## Objects C keeps: `hold`, `held`, `held_at`, `release`
 
 A C library that calls back often takes a `void *` beside the callback, its user data, and hands
 it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
@@ -198,7 +198,8 @@ it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
 |---|---|
 | `hold(x)` | A `ptr`: the address of the object `x`, with one reference to it that C holds. The object stays, at that address, until the reference is released, though nothing in Jac holds it |
 | `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where `p` is null or holds an object of no class that is or derives from `T` |
-| `release(p)` | C's reference goes. The object is freed when nothing else holds it |
+| `held_at(x)` | The address C holds the object `x` at, with no reference of its own: what `hold(x)` gave. `TypeError` where C holds none of `x` |
+| `release(p)` | C's reference goes. The object is freed when nothing else holds it. `TypeError` where C holds no object at `p` |
 
 ```jac
 import from c {
@@ -254,8 +255,56 @@ released
   it is: it may be called on the same address any number of times, and `release` after the last.
 - While C holds it, the object is a root of the cycle collector: a cycle one of whose objects C
   holds stays whole until `release`.
-- Only native code has addresses: in a cpython, node, browser or hermes space each of the three is
+- Only native code has addresses: in a cpython, node, browser or hermes space each of them is
   refused (E1540, "native memory").
+
+`held_at` is for an object C holds from where it gets it to where it lets it go, as a C++ object is
+held from its `new` to its `delete`: the program keeps the object as a Jac reference and gives C
+its address each time, with no new reference, and releases it once at the end. This is how
+`neojac port` writes a C++ class whose objects' addresses go to C ([Porting C++](port-cxx.md)).
+
+```jac
+obj Hub {
+    has name: str;
+
+    def __del__ {
+        print("hub freed:", self.name);
+    }
+}
+
+def lifetime {
+    hub = held[Hub](hold(Hub(name="main")));
+    p = held_at(hub);
+    print(held[Hub](p).name, held_at(hub) == p);
+    release(held_at(hub));
+    print("C holds it no more");
+    try {
+        release(p);
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+
+with entry {
+    lifetime();
+    try {
+        held_at(Hub(name="loose"));
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+main True
+hub freed: main
+C holds it no more
+TypeError: release() of an address C holds no object at
+TypeError: held_at() of a Hub C does not hold
+hub freed: loose
+```
+
+The object is freed at the `release`: the local `hub` is not used after it.
 
 ## `addressof`
 

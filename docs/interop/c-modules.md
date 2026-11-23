@@ -319,12 +319,15 @@ Nothing needs to be `extern "C"`.
 | C++ | Jac |
 |---|---|
 | A class | An `obj`, its methods called as Jac's: `r.area()`, `Figure.alive()` for a static one |
-| A constructor | `C.make(args)`; a class that declares none has `make()` |
+| A constructor | `C.make(args)`; a class that declares none has `make()`. `C()` is the default constructor, where the class has one the interface binds; a call of the class with arguments, or of one with no default constructor, is E1621 |
+| A constructor template | Each instance the program's C++ or its port names, a constructor named by its parameters as any other: `std::string s(p)` is `std_string.make_ptr_i8(p)` |
 | A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
 | An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A non-member operator is not bound |
 | A result by value | Owned by Jac; a result by reference is borrowed |
+| A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
+| A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
 | A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
@@ -520,9 +523,11 @@ with entry {
 ### C++ values whose destructor runs code
 
 A C++ class whose destructor is not trivial (`std::string`, `std::vector`, a class of the module
-that frees what it holds) is an [owned value](../language/ownership.md): a local or a field holding
-one is declared `own`, and the C++ object is destroyed where its owner's scope ends, as C++
-destroys it (E1256 without `own`). A Jac class deriving such a class is one too.
+that frees what it holds) is an [owned value](../language/ownership.md): a local holding one is
+declared `own`, and the C++ object is destroyed where its owner's scope ends, as C++ destroys it
+(E1256 without `own`). A field with no ownership annotation is a managed place: it holds one
+counted, and destroys it when its last reference goes, or at `del o.f`. A Jac class deriving such
+a class is one too.
 
 - **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
   interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
@@ -544,7 +549,9 @@ module's function gives is the string another's takes.
   `std_lock_guard[std_mutex]`. libcxx makes each instance the program names, whether or not any
   C++ of the program reaches it.
 - **Its members are bound as a C++ class's are**: overloads by their parameters' types, so a
-  `std::vector`'s default constructor is `make_()`; `at` past the end raises `IndexError`.
+  `std::vector`'s default constructor is `make_()`, which `std_vector[i32]()` calls; `at` past the
+  end raises `IndexError`, and `v.at_set(i, x)` and `v.op_index_set(i, x)` store as `v.at(i) = x`
+  and `v[i] = x` do.
 - **A class whose destructor runs code is bound `own`** (below).
 - A name that is no class of the standard library, or a type argument its template does not
   take, does not compile in libcxx: E5200.
@@ -561,8 +568,9 @@ def main {
     v: own std_vector[i32] = std_vector[i32].make_();
     v.push_back(i32(42));
     v.push_back(i32(7));
-    names: own std_vector[std_string] = std_vector[std_string].make_();
-    mu: own std_mutex = std_mutex.make();
+    v.at_set(u64(1), i32(8));
+    names: own std_vector[std_string] = std_vector[std_string]();
+    mu: own std_mutex = std_mutex();
     print(v.size(), v.at(u64(1)), names.size(), guarded(&mu), mu.try_lock());
     mu.unlock();
     try {
@@ -578,7 +586,7 @@ with entry {
 ```
 
 ```output
-2 7 0 1 True
+2 8 0 1 True
 IndexError
 ```
 

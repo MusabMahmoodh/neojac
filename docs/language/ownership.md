@@ -306,8 +306,51 @@ is dropped where its scope ends, as Rust and C++ drop it, not at its last use:
 - not at all once it is moved: `b = a`, an `own` parameter and a Rust parameter taken by value
   empty it, as Rust's drop flags do.
 
-A local or a field of a scoped class is bound with `own` (E1256): it has one owner, which drops
-it there.
+A local of a scoped class is bound with `own` (E1256): it has one owner, which drops it there.
+A field is one of two places:
+
+- **A field declared `own`** (`has s: own HashSet[u32];`) owns its value: the object holding it
+  drops it with itself, and makes its own class scoped.
+- **A field with no ownership annotation is a managed place**, as a managed container's item is:
+  an owner stored there is handed over and counted, and is dropped when its last reference goes,
+  with the object or before it. A field of a scoped class need not be `own`.
+
+`del o.f` ends a field's value where it is written: its drop runs at once where the field held the
+only reference, and reading the field before it is assigned again raises `AttributeError`.
+
+```jac
+obj Guard {
+    has name: str = "";
+
+    def __del__ {
+        print("  release", self.name);
+    }
+}
+
+obj Gate {
+    has g: Guard;
+}
+
+with entry {
+    k = Gate(g=Guard(name="first"));
+    del k.g;
+    print("after del");
+    try {
+        print(k.g.name);
+    } except AttributeError {
+        print("AttributeError");
+    }
+    k.g = Guard(name="second");
+    print(k.g.name);
+}
+```
+
+```output
+  release first
+after del
+AttributeError
+second
+```
 
 ```jac
 import from std.collections { HashSet }
@@ -392,7 +435,7 @@ def frozen_param(b: Buffer) {
 | E1309 | A field is written through an `imm` binding. |
 | E1311 | `imm` of a value that may be aliased, such as a parameter. |
 | E1507 | A struct binding is marked `own`, `lin` or `imm`. |
-| E1256 | A local or a field of a scoped class is bound without `own`. |
+| E1256 | A local of a scoped class is bound without `own`. |
 
 The errors of borrows and owned places (E1302 to E1304, E1306, E1315 to
 E1323, E1328, E1330) are on
