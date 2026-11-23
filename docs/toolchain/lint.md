@@ -395,7 +395,7 @@ A module is checked as a program of its own. One that is no program is fixed and
 
 | Not checked | Why | What checks it |
 |---|---|---|
-| Another target's variant (`host.windows.jac` on Linux) | The check is of this machine's target | `neojac check <main.jac> --target <platform>` |
+| Another target's variant: `host.windows.jac` on Linux, and `host.jac` there when the module has a `host.linux.jac` | The check is of this machine's target, which has the module's other file | `neojac check <main.jac> --target <platform>` |
 | A file `jac.toml`'s `[check] exclude` names | The project says so: a fixture that must fail, say | The project's tests |
 
 A file of a project whose `archwire.jac` declares spaces is checked in its project, whose apps are its programs: precommit runs `neojac check` there once, however many of its files are staged ([Checking a project](check.md#checking-a-project)).
@@ -407,14 +407,16 @@ A file of a project whose `archwire.jac` declares spaces is checked in its proje
 exclude = ["tests/*"]   # fnmatch patterns of file paths, relative to the project's root
 ```
 
-neojac's own names `rt/*` and `tests/*`: the runtime's modules are parts of programs (its internal ones are refused as a program, E5153), and the suites check the tests' programs.
+neojac's own names `tests/*`: the suites check the tests' programs.
+
+One of the runtime's own modules is checked as any module is. Named as a program it is the module neojac loads into every program, so its check is of the runtime it is part of.
 
 ## Which files the rules judge
 
 Selected rules judge the project's own modules as their author wrote them:
 
 - modules under the project's root (the directory of the `jac.toml`), but not what `[check.lint] exclude` names;
-- not the runtime's modules, which belong to the toolchain;
+- the runtime's modules only where the runtime stands in the project's own tree, as neojac's does: an installed toolchain's are outside it, and belong to the toolchain;
 - not the modules of a library or a plugin the project declares, which are their package's own wherever its directory is: one installed in the project's `eco/jac/`, or one declared by a directory inside the project's tree;
 - not code the compiler writes into a module.
 
