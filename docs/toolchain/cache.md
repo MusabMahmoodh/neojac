@@ -49,6 +49,7 @@ Deleting the cache when no build is running is safe: the next build makes it aga
 | `objects/` | Compiled units: each Jac module compiled for a target, each C file, each C module's interface, each Rust crate, and the shared library a plain build links a program's Rust modules into. And each Jac module's record: what a later build takes the module by ([below](#modules-taken-from-an-earlier-build)) |
 | `size` | How many bytes the cache holds, as the builds that added to it counted |
 | `lock`, `size.lock` | The locks builds hold while they run, and while one adds to `size` |
+| `sweep.lock`, `trash/` | The lock of the one build deleting what is over the cache's size, and what it has taken out of `objects/` and is deleting |
 | `claims/` | An empty file for each Rust crate and build script's run a build has made here, which a build locks while it makes that one |
 | `compilers` | Each neojac's identity, remembered by its executable's size and time so that it is computed once |
 | `pystubs/`, `jsstubs/`, `typescript/` | What a build learned of Python packages' and npm packages' types, and the TypeScript neojac reads npm types with |
@@ -68,7 +69,7 @@ NEOJAC_CACHE_SIZE=20G neojac build main.jac -o main
 ```
 
 - A build marks each entry it uses as used now, and counts what it adds. That is all it does to the cache while the cache is under its size: its work there is in proportion to what it used, however much the cache holds.
-- When the cache is over its size, a build that finishes with no other build running deletes the entries used longest ago, and what it used itself last of all, until the cache holds three quarters of its size. The builds after it go on as before.
+- When the cache is over its size, a build that finishes deletes the entries used longest ago, and what it used itself last of all, until the cache holds three quarters of its size. Nothing waits on it: it lists and sizes the entries without a lock, then takes them out in holds of the cache's lock alone of a tenth of a second at most, each when no other build is inside, and gives the lock back between them; another build that starts meanwhile goes on at once. One build deletes at a time, and a build that finds another deleting leaves it to that one. An entry another build used since it was listed stays, and a directory is moved into `trash/` while the lock is held and deleted after, so a sweep that dies leaves its trash to the next.
 - An edit compiles again only the units it changed: the module's own, the program's own unit, and a unit that took in a copy of a function the edit changed, to inline it ([build](build.md#--release); a `--release` build takes in more).
 - A plain build's unit of a module is the same in every program that imports the module, so one program's build uses what another's compiled: the runtime and the standard library are compiled once for all of them. The units they replace stay until they are the ones used longest ago, so an edit undone finds them.
 - A program deleted, or built with other options, leaves what it was made from in the cache. Alternating `neojac build main.jac -o main` and `neojac build main.jac -o main --release` compiles each of the two once.
@@ -77,7 +78,7 @@ NEOJAC_CACHE_SIZE=20G neojac build main.jac -o main
 
 ## Builds running at once
 
-Builds share the cache. Each holds the cache's lock, shared, while it runs, and entries are deleted only by a build that holds it alone, so no build deletes what another is using. When a build dies, the operating system releases its lock.
+Builds share the cache. Each holds the cache's lock, shared, while it runs, and entries are taken out only by a build that holds it alone, so no build deletes what another is using. When a build dies, the operating system releases its lock.
 
 - Builds starting at the same moment into a cache that does not exist yet all succeed: the directory is made whole under a name of its own, with its tag, and moved into place.
 - Builds that compile Rust crates run side by side, in one cache as in two. A build claims a crate, or a build script's run, while it makes it (a file of `claims/` it holds a lock on, which the system releases if the build is killed). Another build that needs the same one leaves it and does its other work; with nothing else to do it waits, and says so: `neojac: waiting for the crates another build is compiling`. Then it reads what the first made, or makes it itself if the first failed.
