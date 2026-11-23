@@ -609,8 +609,10 @@ C's function pointer may be `NULL`, and `Callable[[P], R] | None` says so: a par
 a record's field or a variable of that type holds `None` where C's holds `NULL`. Each place C gives
 one is tested as it crosses: a result C returns as `NULL`, a field that holds it, a parameter C
 passes it to a Jac function as, and `Callable[[P], R](p)` of a null address given to a place of
-the `| None` type, are `None`. `ptr(f)` of an `f` that is `None` is the null address, and a call of one that holds `None` stops
-the program, as a call of `NULL` stops C's: test it first (`if f is not None`). A
+the `| None` type, are `None`. `ptr(f)` of an `f` that is `None` is the null address, and a call of one that holds `None` raises
+`TypeError` (`'NoneType' object is not callable`), as Python's call of `None` does, where a call of
+`NULL` stops C's program. Nothing makes a program test it first, though `if f is not None` narrows
+it, as for any `T | None`. A
 `Callable[[P], R]` place (no `| None`) holds a function value made from the address whatever it
 is; calling one made from the null address is undefined, as in C. This is how `neojac port` writes
 every C function pointer ([Porting C](port-c.md)): `f != NULL` is `f is not None`.
@@ -641,6 +643,11 @@ def total(p: Duo) -> i32 {
 with entry {
     op = Steps(run=swapped);
     print(op.total is None);
+    try {
+        op.total(Duo(a=i32(1), b=i32(1)));
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
     if op.run is not None {
         s = op.run(Duo(a=i32(1), b=i32(2)));
         print(s.a, s.b);
@@ -657,6 +664,7 @@ with entry {
 
 ```output
 True
+TypeError: 'NoneType' object is not callable
 2 1
 7
 True True

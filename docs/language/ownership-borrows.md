@@ -43,7 +43,11 @@ moves.
 - **One mutable borrow at a time** (E1302), and no change through the owner
   while a shared borrow is live (E1303). A `&mut x` argument and a call of a
   method whose receiver is `self: &mut` lend `x` mutably for the call, so
-  `r = &a; bump(&mut a); print(r.n)` is E1302.
+  `r = &a; bump(&mut a); print(r.n)` is E1302. A borrow a call returns
+  counts as one written out: with `def lent(self: &Counter) -> &Counter`,
+  `r = c.lent(); c.poke(); print(r.n)` is E1302 where `poke` takes
+  `self: &mut Counter`, though no `&` is written. `neojac check` judges
+  what a call or an index returns as `neojac build` does.
 - **A shared borrow only reads.** Through `&x`, a `self: &T` receiver or
   the element a shared `flow for` lends, assigning a field is E1320 and
   calling a method that changes the object is E1318. A method changes its

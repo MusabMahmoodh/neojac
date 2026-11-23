@@ -533,6 +533,13 @@ recorded = ["linux-aarch64", "macos-aarch64"]
     object lists its other members, fields with no default among them.
   - **A class's `static has __module__: str`** is its Python class's `__module__`; without one it
     is the module's name.
+  - **A class whose own `init` is `:priv` has no constructor for Python**: calling the class
+    raises `TypeError` (`cannot create 'spamlib._eggs.Sealed' instances`, PyO3's text), while
+    Jac makes it as before and hands it to Python. An instance of a `:priv` class that Python
+    gets keeps the face's rules: its `:priv` members hidden, its module, no constructor.
+  - **A class that defines no `__repr__` has Python's default repr**, `<spamlib._eggs.Basket
+    object at 0x...>`, the address Python's own, as an extension's class has; Jac's generated
+    repr would show its `:priv` fields. A Jac module Python imports keeps Jac's repr.
   - **A Jac exception crosses as itself**: one the program raises reaches Python holding the Jac
     object, with its `args` and its fields (`e.code`), and is that object again where it comes
     back into Jac; Python makes one (`_eggs.Fault(5)`) by the class's `init`.
@@ -547,7 +554,8 @@ recorded = ["linux-aarch64", "macos-aarch64"]
 
   `neojac port` writes such a module from a crate's PyO3 bindings
   ([Porting Rust](../interop/port-rust.md)): `#[pyclass]` with its `#[pymethods]` is an `obj`
-  holding the crate's value in a `:priv` field, with `__module__` `builtins` as PyO3 gives it.
+  holding the crate's value in a `:priv` field, with `__module__` `builtins` as PyO3 gives it,
+  and a `#[pyclass]` with no `#[new]` an `obj` whose `init` is `:priv`.
   The extension is built from that module once its `[extensions]` row names it by `jac`
   (`jac = "src/py.jac"`) in place of the crate's `cargo`. Port writes that row where the crate
   ports whole, the port of the file that holds `#[pymodule]`, and drops the crate's
