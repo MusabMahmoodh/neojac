@@ -150,8 +150,8 @@ API needs no `extern "C"`: `import from std.collections { HashSet }`, and a crat
 slice of numbers as `Slice[u32]` (`import from rust { Slice }`, `v.as_slice().sub(a, b)`,
 `bytes(s)` of a `Slice[u8]`), a slice's methods on a `Vec` (`v.sort()`, `v.contains(&x)`), an
 iterator stepped by `next()`, a panic as `RustPanic` (`import from rust { RustPanic }`). A value
-whose drop runs code is bound `own` in a local (E1256); a field with no ownership annotation holds
-one as a managed place. `neojac docs Rust module` has what crosses.
+whose drop runs code is dropped where an `own` local's scope ends; a local or a field with no
+ownership annotation holds one as a managed place, from which no `own` binding takes it (E1637). `neojac docs Rust module` has what crosses.
 
 4. **Call Jac from C.** A wire gives a C module a Jac function by name
    (`jhelp --> shapes.shapes { jhelp_scale }` for the project's own C file), and the C includes
@@ -213,7 +213,7 @@ with entry {
 | E1021 `cannot iterate PtrView` | A view in a `for` | `for i in range(len(v))` |
 | E1145 | The header or crate has no such name | Check spelling; for Rust, `pub` and `#[unsafe(no_mangle)]` |
 | E5138 | A Rust item Jac cannot bind; the message says why (a type that borrows) | Use what it returns instead, or give it a C signature |
-| E1256 | A local holding a Rust value whose drop runs code, bound without `own` | `s: own HashSet[u32] = ...` |
+| E1637 | An `own` binding takes a Rust value whose drop runs code from a managed local or field | Bind it `own` where it is made (`s: own HashSet[u32] = HashSet[u32].new();`), or keep the binding managed |
 | E5134, E5135, E5140 | The headers, a C source, or a crate fail to compile | Read Clang's or rustc's errors printed above |
 | E5149, W5021 | A library name that is no file, or absent on the target | `neojac docs C library` (naming the library) |
 | Crash or garbage at run time | A declaration that disagrees with C, or a bad pointer | Recheck the prototype; nothing checks it for you |

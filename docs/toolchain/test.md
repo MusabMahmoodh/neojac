@@ -340,14 +340,24 @@ backend/pyproject.toml: pytest tests
   `.jac/test/spaces/<space>/<tree>/` (at `.jac/test/spaces/<space>/` for a tree at the project's
   root), its own files there as they are, with no Jac file, `jac.toml` or `jac.lock` among them
   and `node_modules` linked, not copied. At each ported source's place stands a forwarder that
-  gives the module: a JavaScript source's own name (`lib/twice.js`), and for a TypeScript source
-  the JavaScript file of its stem, as TypeScript's own output is (`lib/kinds.ts` is
-  `lib/kinds.js`, `.mts` is `.mjs`, `.cts` is `.cjs`), with the module's
-  [face](../interop/npm.md#a-projects-own-javascript) beside it (`lib/kinds.d.ts`). The
-  forwarder declares in its own text each value the module gives and never assigns again, so a
-  tool that reads the file's text (a router reading a route file's exports) finds them, and gives
-  any other global live from the module. Everything else emitted, the modules, their maps and the
-  runtime, is apart in the laid tree's `.jac/`, imported by relative paths, and an emitted module imports a file of
+  gives the module, under the source's own name and extension (`lib/twice.js`, `lib/kinds.ts`,
+  `src/main.tsx`, `tests/auth.setup.ts`), so that what the tree's tools find by a source's name
+  (a test runner's pattern, an `index.html`'s script, an import by `./counter.mts`) is there. A
+  TypeScript source's forwarder is a TypeScript module of ES syntax (a `.cts` source's is
+  CommonJS, as Node runs it), typed by the module's
+  [face](../interop/npm.md#a-projects-own-javascript): a function as
+  `export const bump: typeof $m.bump = ...`, a class and a value the module assigns again
+  re-exported live (`export { count, Box } from ...`), a type by `export type { Kind } from ...`.
+  A forwarder declares in its own text each value the module gives and never assigns again
+  (`export const start = $m.start;`), so a tool that reads the file's text (a router reading a
+  route file's exports) finds them, and gives any other global live from the module. Everything
+  else emitted, the modules, their maps and the runtime, is apart in the laid tree's `.jac/`,
+  imported by relative paths. Each module's face is laid there beside its emission, under the
+  name TypeScript pairs with it (`.jac/lib/kinds.d.mts` beside `.jac/lib/kinds.mjs`), its
+  relative specifiers re-based from the face's place: a ported module by its emission beside it
+  (`./kinds.mjs`), a file that stays by its path in the laid tree (`../../lib/shape`). A module
+  with no face of its own gets the declarations of what it gives. No face stands among the
+  tree's own files; a declaration file the tree had (`env.d.ts`) stays. An emitted module imports a file of
   the tree (a stylesheet, a file that stays JavaScript) by its relative path to that file's place
   in the laid tree, not through an alias of neojac's own. The tree's configuration is not
   changed, and its own files are not touched. Where the package's dev space

@@ -201,7 +201,9 @@ each call goes through a shim it compiles.
   it raises passes out through Rust to the Jac that called it.
 - **A panic** is the Jac exception `RustPanic`, of `import from rust { RustPanic }`.
 - **A value whose drop runs code** (rustc's significant drop: a guard, a lock, a collection) is
-  owned and dropped where its scope ends, so it is bound with `own` (E1256;
+  dropped where its `own` owner's scope ends, as Rust drops it. A local or a field with no
+  ownership annotation is a managed place, which shares it and drops it when its last reference
+  goes; an `own` binding takes it only from where it is made, not from such a place (E1637;
   [Ownership](../language/ownership.md#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
 
 ```jac
@@ -838,7 +840,8 @@ graph import {
 | E5141 | A wire into a crate other than names from a Jac module or a C module whole |
 | E5190 | Rust items the program imports natively cannot be read or built; the message says why |
 | E2270 | A Jac file of a crate imports from a dependency that a Jac or Python module is also named |
-| E1256 | A value whose drop runs code is bound without `own` |
+| E1637 | A value whose drop runs code is taken from a managed place into an `own` binding |
+| E1625 | An instance of another crate's generic function that rustc cannot make for its type arguments |
 
 ## Differences from Python and from the reference design
 

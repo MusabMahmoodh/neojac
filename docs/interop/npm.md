@@ -129,11 +129,12 @@ graph import {
   functions, and its globals of a function type, by their faces as JavaScript calls them (below),
   its classes, other globals and types as they are, and nothing of its own (`:priv` names, the
   module's machinery). In a laid tree ([A project's own suites](../toolchain/test.md#a-projects-own-suites))
-  the forwarder of a module ported from TypeScript is the JavaScript file of the source's stem, as
-  TypeScript's own output is (`util.ts` is `util.js`, `.mts` is `.mjs`, `.cts` is `.cjs`), with
-  the module's face, its `.d.ts`, beside it; a value or a class the module never assigns again is
-  declared in the forwarder's own text (`export const LIMIT = $m.LIMIT`), so that a tool reading
-  the text finds it, and any other global is given live from the module. The laid tree's top
+  the forwarder of a ported module has the source's own name and extension (`util.ts`,
+  `main.tsx`, `counter.mts`), a TypeScript module typed by the module's face where the source was
+  TypeScript, and the face is laid with the emission in the laid tree's `.jac/`, not among the
+  tree's files; a value the module never assigns again is declared in the forwarder's own text
+  (`export const LIMIT = $m.LIMIT`), so that a tool reading the text finds it, and any other
+  global is given live from the module. The laid tree's top
   links the project's entries beside the tree, so a path that leaves the tree (`../../.env`)
   reaches the project's own file. In a node space the
   forwarder stands at that place;
@@ -277,13 +278,57 @@ holds what JavaScript sets on it, and a native function takes no attribute of Ja
 On every host the face's `name` is the function's, a nested `def`'s own name among them (`add`,
 where a lambda's is empty), and its `length` is the count of its positional parameters before
 `*args`, `self` not counted where JavaScript gives it as `this`, as mocha reads `length` to tell
-a test that takes `done`: `def add(x: int, y: int = 1, *rest: any)` has `length` 2.
+a test that takes `done`: `def add(x: int, y: int = 1, *rest: any)` has `length` 2. On a
+JavaScript host the face is written with the function's own parameter list, so its `toString()`
+reads it as declared, as a test runner that reads a hook's parameters does:
+`def add(x: int, y: int = 1, *rest: any)` is `function (x, y, ...rest)`, with no default's text
+(a Jac default is Jac's to evaluate).
 
 **JavaScript's arguments are bound by the function's parameters**, on every host: its positional
 parameters by position, its `*args` the arguments past them, a parameter left out its default
-(None where it has none, as `undefined` is), and its `**kwargs` none. Arguments past what it names
-are dropped where it has no `*args`, as JavaScript drops them, so a callback that `array.map`
-gives three arguments may name one. What the function gives back to JavaScript crosses as an
+(None where it has none, as `undefined` is). Arguments past what it names are dropped where it
+has no `*args`, as JavaScript drops them, so a callback that `array.map` gives three arguments
+may name one.
+
+**Keyword-only parameters are one object to JavaScript**, its last argument, taken by
+JavaScript's own pattern: `def opened(x: int, *, page: str, n: int = 2)` is, to JavaScript,
+`function (x, { page, n })`, and its `**kwargs` is the pattern's rest (`{ a, b, ...more }`). A
+name the object lacks, or holds as `undefined`, takes its default, None where it has none, as
+JavaScript's pattern gives `undefined`; a name it holds that the function does not take goes to
+`**kwargs`, or nowhere. Where none of them is required the pattern defaults to `{}`
+(`function ({ a, b } = {})`), so a call with no object takes every default; where one is, a call
+with no object throws JavaScript's `TypeError`, as the pattern does. The object counts in `length`
+where one is required. A function with `*args` takes no such object (JavaScript has no parameter
+after a rest), and its keyword-only parameters take their defaults.
+
+```jac
+import from "node:vm" { runInThisContext }
+
+def opened(x: int, *, page: str, n: int = 2) -> str {
+    return f"{x} {page} {n}";
+}
+
+def summed(*, a: int = 1, b: int = 2, **more: any) -> int {
+    return a + b + len(more);
+}
+
+with entry {
+    calls = runInThisContext(
+        "(f, g) => [f.length, g.length, f(1, { page: 'p' }), f(2, { page: 'q', n: 5, more: 0 }), g(), g({ b: 5, c: 1 })].join(' / ')",
+    );
+    print(calls(opened, summed));
+}
+```
+
+```output
+2 / 0 / 1 p 2 / 2 q 5 / 3 / 7
+```
+
+**A Jac call of a JavaScript function with keyword arguments** gives them, on a JavaScript host,
+as one object, its last argument, which the function takes by its own pattern: `take("x", a="a")`
+of `(x, { a, b = 'b' }) => x + a + b` is `"xab"`. Natively such a call raises `TypeError`
+(`JsObject.__call__() got an unexpected keyword argument 'a'`): pass the object as a dict,
+`take("x", {"a": "a"})`. What the function gives back to JavaScript crosses as an
 argument does: a function as its face, a list as a new array, a dict as an object, and of a
 coroutine a promise of that.
 

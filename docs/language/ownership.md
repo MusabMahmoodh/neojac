@@ -112,6 +112,9 @@ A struct is a value its place holds, not a reference, so `own`, `lin` and
   with no state, appended to a managed container, stored in a managed field or local. From there
   it is counted, as any managed value is, and it is dropped, its `__del__` run, when its last
   reference goes.
+- **A value whose drop runs code is not taken back out of a managed place** into an `own` local
+  or an `own` or `lin` parameter (E1637): the owner would end it while the place still refers to
+  it ([below](#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
 
 ```jac
 obj Guard {
@@ -306,14 +309,21 @@ is dropped where its scope ends, as Rust and C++ drop it, not at its last use:
 - not at all once it is moved: `b = a`, an `own` parameter and a Rust parameter taken by value
   empty it, as Rust's drop flags do.
 
-A local of a scoped class is bound with `own` (E1256): it has one owner, which drops it there.
-A field is one of two places:
+A local and a field are each one of two places:
 
+- **A local declared `own`** (`seen: own HashSet[u32] = ...`) is the value's one owner, which
+  drops it where its scope ends.
 - **A field declared `own`** (`has s: own HashSet[u32];`) owns its value: the object holding it
   drops it with itself, and makes its own class scoped.
-- **A field with no ownership annotation is a managed place**, as a managed container's item is:
-  an owner stored there is handed over and counted, and is dropped when its last reference goes,
-  with the object or before it. A field of a scoped class need not be `own`.
+- **A local, a parameter or a field with no ownership annotation is a managed place**, as a
+  managed container's item is: it shares its value, which is counted, and is dropped when its
+  last reference goes, wherever that is. An owner stored there is handed over. A local of a
+  scoped class need not be `own`: `s = HashSet[u32].new()` shares the set with a field it is
+  stored in, and the set outlives the local.
+
+An `own` binding takes a value of a scoped class only from where it is made (the call that
+makes it) or from another owner. One taken from a managed place is E1637: the
+place still refers to the value, which the owner would end at its scope's end.
 
 `del o.f` ends a field's value where it is written: its drop runs at once where the field held the
 only reference, and reading the field before it is assigned again raises `AttributeError`.
@@ -356,7 +366,20 @@ second
 import from std.collections { HashSet }
 
 obj Seen {
+    has s: HashSet[u32];
+}
+
+obj Kept {
     has s: own HashSet[u32];
+}
+
+def shared -> Seen {
+    s = HashSet[u32].new();
+    s.insert(u32(4));
+    k = Seen(s=s);
+    s.insert(u32(5));
+    print(k.s.len(), s.len());
+    return k;
 }
 
 def distinct(xs: list[int]) -> int {
@@ -368,28 +391,35 @@ def distinct(xs: list[int]) -> int {
 }
 
 with entry {
+    print(shared().s.len());
     print(distinct([3, 1, 3, 2, 1]));
-    k = Seen(s=HashSet[u32].new());
+    k = Kept(s=HashSet[u32].new());
     print(k.s.is_empty());
 }
 ```
 
 ```output
+2 2
+2
 3
 True
 ```
+
+`shared`'s local and the field share one set, which outlives the local; `distinct`'s owner drops
+its set where the function's scope ends.
 
 See [Rust modules](../interop/rust-modules.md) for the Rust types a program uses.
 
 ## What is rejected
 
 ```jac
-# expect: E1256
+# expect: E1637
 import from std.collections { HashSet }
 
-def held -> bool {
+def taken -> bool {
     s = HashSet[u32].new();
-    return s.is_empty();
+    t: own HashSet[u32] = s;
+    return t.is_empty();
 }
 ```
 
@@ -435,7 +465,7 @@ def frozen_param(b: Buffer) {
 | E1309 | A field is written through an `imm` binding. |
 | E1311 | `imm` of a value that may be aliased, such as a parameter. |
 | E1507 | A struct binding is marked `own`, `lin` or `imm`. |
-| E1256 | A local of a scoped class is bound without `own`. |
+| E1637 | A value of a scoped class is taken from a managed place into an owner. |
 
 The errors of borrows and owned places (E1302 to E1304, E1306, E1315 to
 E1323, E1328, E1330) are on

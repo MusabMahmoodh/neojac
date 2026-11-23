@@ -908,7 +908,7 @@
               "page": "reference/diagnostics/e12-2.md"
             },
             {
-              "title": "E1229-E1256: specialization, fields, tensors, reflection, calls from C and drops",
+              "title": "E1229-E1255: specialization, fields, tensors, reflection, C data, calls from C and defaults",
               "page": "reference/diagnostics/e12-3.md"
             },
             {
@@ -948,7 +948,7 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
-              "title": "E1615 to E1620: type parameter packs, and C++ member templates",
+              "title": "E1615 to E1637: type parameter packs, wide text, C++ and Rust templates, C++ constructors, objects lent to C, sizeof, and managed places",
               "page": "reference/diagnostics/e16.md"
             },
             {

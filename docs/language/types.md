@@ -273,6 +273,10 @@ AttributeError: 'NoneType' object has no attribute 'val'
 AttributeError: 'NoneType' object has no attribute 'val' and no __dict__ for setting new attributes
 ```
 
+A call of a value that may be `None` (a field typed `Callable[[int], int] | None`), where nothing
+narrowed it, raises `TypeError` (`'NoneType' object is not callable`) when it holds `None`, as
+Python's call of `None` does, on every host.
+
 A local narrowed by `is not None`, or by a guard that returns where it `is None`, is not tested
 again where its members are used.
 

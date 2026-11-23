@@ -235,7 +235,9 @@ parentheses and typed, and its body is a block.
   `Callable[[], Scope | None]`) a longer body may end without a `return`, and gives `None`.
 - A lambda with no parameters has no parentheses (W3005 for `lambda ()`): `lambda { print("hi") }`,
   `lambda -> int { return 7; }`.
-- A lambda takes every parameter kind a `def` does, defaults included.
+- A lambda takes every parameter kind a `def` does, defaults and the `/` and `*` markers
+  included: `lambda (a: int, /, *, b: int = 2) -> int { a * b }` takes `a` by position alone and
+  `b` by keyword alone.
 
 ```jac
 with entry {

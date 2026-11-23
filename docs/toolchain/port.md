@@ -218,16 +218,16 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   and is never ported: `--check` says so of it.
 - **A ported npm tree's own tools see what they saw.** Its tests, its scripts and its build run
   on what its space emits, laid out as a tree of the source's shape: at each ported source's
-  place a forwarder that gives the module (a TypeScript source's is the JavaScript file of its
-  stem, its face beside it), and what the space emits apart in the laid tree's `.jac/`. `neojac test`, `neojac npm run build` and `neojac npx vite build`
-  run there, with the tree's configuration as it is ([A project's own
-  suites](test.md#a-projects-own-suites)). The laid top stands for the project's top: a path
-  that leaves the tree (`../../.env`) reaches the project's own file, as it did from the source
-  tree.
-  A TypeScript file that stays and imports a source by its TypeScript extension
-  (`import { bump } from "./counter.mts"`) would find no file at that name once the source is
-  Jac: the source stays until that file ports in the same run, or imports the JavaScript that
-  will stand there, `./counter.mjs` (E4014).
+  place a forwarder of the source's own name and extension that gives the module (`main.tsx`,
+  `auth.setup.ts`, `counter.mts`), a TypeScript module where the source was one, and what the
+  space emits apart in the laid tree's `.jac/`, each module's face beside its emission. No face
+  stands among the tree's own files. `neojac test`, `neojac npm run build` and `neojac npx vite
+  build` run there, with the tree's configuration as it is, so a tool that matches a file by the
+  source's name (a test runner's pattern, an `index.html`'s script) finds its forwarder ([A
+  project's own suites](test.md#a-projects-own-suites)). A file that stays and imports a source
+  by its TypeScript extension (`import { bump } from "./counter.mts"`) reaches its forwarder. The
+  laid top stands for the project's top: a path that leaves the tree (`../../.env`) reaches the
+  project's own file, as it did from the source tree.
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.
@@ -328,7 +328,6 @@ gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the 
 | E4010 | A file a unity build compiles only inside a source not ported with it |
 | E4011 | In a project, a path into a C module its table says is another project's code (`vendored = true`) |
 | E4012 | A module that imports one the run does not port, held back with it |
-| E4014 | A TypeScript source a staying file imports by its TypeScript extension (`./counter.mts`): it stays until that file ports with it or imports the JavaScript that stands there |
 | E4015 | A C file only another platform compiles, whose Jac fails that platform's check: it stays C |
 | E4016 | A Python source importing a module neojac cannot find |
 | E4017 | A Python module only a system neojac builds for no target of loads: it stays Python |

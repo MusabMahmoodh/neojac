@@ -668,11 +668,12 @@ plus the seed, and `run` is `-1` once `end` has deleted the object.
 ### C++ values whose destructor runs code
 
 A C++ class whose destructor is not trivial (`std::string`, `std::vector`, a class of the module
-that frees what it holds) is an [owned value](../language/ownership.md): a local holding one is
-declared `own`, and the C++ object is destroyed where its owner's scope ends, as C++ destroys it
-(E1256 without `own`). A field with no ownership annotation is a managed place: it holds one
-counted, and destroys it when its last reference goes, or at `del o.f`. A Jac class deriving such
-a class is one too.
+that frees what it holds) is a scoped [owned value](../language/ownership.md): a local declared
+`own` holds it as its one owner, and the C++ object is destroyed where that owner's scope ends, as
+C++ destroys it. A local or a field with no ownership annotation is a managed place: it holds one
+counted, and destroys it when its last reference goes, or at `del o.f`. An `own` binding takes
+one only from where it is made, not from a managed place (E1637). A Jac class deriving such a
+class is one too.
 
 - **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
   interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
@@ -1022,7 +1023,7 @@ with entry {
 | E5158 | A key of a C module's table in `jac.toml` of the wrong kind |
 | E1001 | A C record given where another module's record of its tag, with other fields, is expected |
 | E1237 | C data a Jac module gives C of a type C cannot read |
-| E1256 | A C++ value whose destructor runs code, bound without `own` |
+| E1637 | A C++ value whose destructor runs code, taken from a managed place into an `own` binding |
 | E5090 | A C module in a build for `wasm32-wasi` |
 
 `neojac docs E5133` prints any of these with its message.
