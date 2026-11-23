@@ -12,6 +12,11 @@ keeps bytes, and knows nothing of what they are for.
   written.
 - **A file is written in pieces, and is no file until it is finished.** Each
   piece says where in the file it goes, so one sent twice is written once.
+- **A plugin says how many bytes a piece is** (`piece`), and the runtime
+  holds every sender to it: a piece goes at a multiple of that many bytes,
+  and has at least one byte and at most that many. So every piece of a file
+  but its last is exactly that size, and a shorter one ends the file: what
+  a store that takes a file as numbered parts needs.
 - **What is finished is whole,** and stays as it is until it is dropped."""
 
 import from common.contract { Host }
@@ -40,6 +45,11 @@ obj Files {
     it kept: a directory's path, a bucket's address."""
     def kept_as -> str abst;
 
+    """How many bytes a piece of a file is: at least one, and the same each
+    time it is asked. Every piece it is given but a file's last has exactly
+    this many, and the last no more. Asked once it is open."""
+    def piece -> int abst;
+
     """Begin the file `id`, of the type `ctype`, with no bytes yet: one being
     written. ValueError for an id it already has."""
     def begin(id: str, ctype: str) abst;
@@ -48,7 +58,8 @@ obj Files {
     `offset`, when that is how many bytes it has: how many it has after.
     For any other `offset` it writes nothing and gives how many it has, so a
     piece sent again is no harm, and what sends pieces learns where to go on
-    from. LookupError for an id that names no file being written."""
+    from. `offset` is a multiple of `piece()`, and `piece` has from one byte
+    to that many. LookupError for an id that names no file being written."""
     def append(id: str, offset: int, piece: bytes) -> int abst;
 
     """Finish the file `id`: it is whole from now on, and is written no

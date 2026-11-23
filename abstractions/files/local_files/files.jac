@@ -23,6 +23,10 @@ glob FILES_TABLES: list[str] = [
 
 glob COLUMNS: str = "id, size, type, made, whole";
 
+"""How many bytes a piece of a file is: 4 MiB, what a request holds with
+ease. A directory takes a piece of any size."""
+glob PIECE: int = 4194304;
+
 """The file a result's line holds."""
 def kept_of(r: any) -> Kept {
     return Kept(
@@ -75,6 +79,10 @@ obj LocalFiles(Files) {
             return kept_of(r);
         }
         return None;
+    }
+
+    def piece -> int {
+        return PIECE;
     }
 
     def begin(id: str, ctype: str) {

@@ -1,0 +1,12 @@
+# accountbook: accounts of a username and a password, their sessions, and
+# signing in through GitHub, over a book that keeps them. A library: an
+# `auth` plugin that keeps accounts somewhere declares it in its own
+# [packages] and gives the book, as neojac's `accounts` does with a SQLite
+# file.
+[project]
+name = "accountbook"
+kind = "library"
+archwire = false
+
+[check.lint]
+select = []

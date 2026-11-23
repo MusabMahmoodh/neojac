@@ -112,10 +112,11 @@ numpy = ">=2"
   [Plugins](../apps/plugins.md#binding-a-plugin)).
 - **A plugin's modules import its abstraction's contract, `common.contract`, the libraries it
   declares and the standard library,** and nothing else of neojac's: no module of stdjac, and no
-  other abstraction's contract (E2233). A library a plugin declares is held to the same, with
-  `common.contract` the one contract it imports
-  ([Plugins](../apps/plugins.md#what-a-plugin-imports)). neojac's own library `sqlfile`, which its
-  `sqlite` and `accounts` plugins declare by its place in neojac's tree, is such a library.
+  other abstraction's contract (E2233). A library a plugin declares is held to the same: it
+  imports `common.contract` and the contract of the abstraction that plugin fills
+  ([Plugins](../apps/plugins.md#what-a-plugin-imports)). neojac's own libraries are such
+  libraries, each declared by its place in neojac's tree: `sqlfile`, which its `sqlite` and
+  `accounts` plugins declare, and `accountbook`, which `accounts` does.
 - **No package declares an abstraction** (E2217). The abstractions are neojac's own, each a directory
   of its `abstractions/` ([Plugins](../apps/plugins.md#the-abstractions)).
 - **`[libraries]` and `[plugins]` are no tables of a `jac.toml`** (E2226): a package's packages

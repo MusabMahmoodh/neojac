@@ -119,3 +119,9 @@ password database. The terminal is the process's controlling one, `/dev/tty`; wi
 password is read from standard input with its echo off, and where that is not a terminal
 either, as it comes, after CPython's warning line on the stream. The `GetPassWarning` CPython
 issues then is not issued, as no module issues warnings.
+
+On Windows the password is read from the console a character at a time, whatever standard input
+is, as CPython reads it there: Backspace takes the last character back and Ctrl-C raises
+`KeyboardInterrupt`. A program that put another stream in `sys.stdin`'s place reads a line from
+that instead, after the warning line. `getuser()` has no password database to fall back on, and
+raises `OSError` when none of the four variables is set.

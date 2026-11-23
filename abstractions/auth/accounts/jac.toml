@@ -9,8 +9,10 @@ fills = "auth"
 interface_ver = 1
 class = "accounts.auth.Accounts"
 
-# What opens its file at a layout, and upgrades an older one.
+# What the accounts are, over the file that keeps them; and what opens that
+# file at a layout, and upgrades an older one.
 [packages]
+accountbook = { path = "../../../libraries/accountbook" }
 sqlfile = { path = "../../../libraries/sqlfile" }
 
 [check.lint]

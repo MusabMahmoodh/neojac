@@ -836,6 +836,10 @@
           "page": "toolchain/arch.md"
         },
         {
+          "title": "launch",
+          "page": "toolchain/launch.md"
+        },
+        {
           "title": "docs and skills",
           "page": "toolchain/docs.md"
         }
