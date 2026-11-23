@@ -358,6 +358,41 @@ Exits with status 1 when a check fails, when --verify finds a file to fix, or wh
 
 Its guide: [toolchain/lint](../toolchain/lint.md) (`neojac docs toolchain/lint`).
 
+### `neojac launch`
+
+Launch an app on the hosting platform, and look after it there.
+
+```sh
+neojac launch login <address> [--new]
+neojac launch deploy <app> [--as <name>]
+neojac launch secrets [set <KEY>[=<value>] | unset <KEY>] [--as <name>]
+neojac launch logs [--lines <n>] [--as <name>]
+neojac launch domains [add <domain> | remove <domain>] [--as <name>]
+```
+
+| Option | What it does |
+|---|---|
+| `--new` | Make an account on the platform, and sign in to it |
+| `--as <name>` | The app's name on the platform, which begins its address (default: the project's name) |
+| `--lines <n>` | How many of each instance's last lines logs prints (default: 200) |
+
+login signs in to the platform at an address and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
+
+The platform builds from source: the project's own directory is sent, without what a build or an install made in it, so its packages are ones jac.toml and jac.lock name by a version or a repository.
+
+An app is launched under one name, which is its address's first word. Every other command is about that app: its secrets are variables of its environment, which the app starts again with when one changes; its logs are what its running instances said; its domains are other names it answers at.
+
+| Example | What it does |
+|---|---|
+| `neojac launch login https://launch.example` | Sign in |
+| `neojac launch deploy web` | Launch the project's app `web` |
+| `neojac launch deploy web --as shop` | Under a name of its own |
+| `neojac launch secrets set ANTHROPIC_API_KEY` | Set a secret, asked for and not echoed |
+| `neojac launch logs --lines 50` | What its instances said last |
+| `neojac launch domains add shop.example` | Another name for it |
+
+Its guide: [toolchain/launch](../toolchain/launch.md) (`neojac docs toolchain/launch`).
+
 ## Packages
 
 ### `neojac install`

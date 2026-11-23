@@ -18,6 +18,7 @@ work, with nothing else to install.
 | A browser it drives | Open the page it just built, read it, click through it: `neojac browse` |
 | The architecture, drawn and enforced | A project's layers and what each may import, as a picture and as a check: `neojac arch` |
 | Checks | Types, lint rules, tests and one layout for source: `neojac check`, `neojac test`, `neojac fmt` |
+| Hosting | An app sent to the hosting platform, built there from its source, and looked after: `neojac launch` |
 
 ## Get the binary
 
