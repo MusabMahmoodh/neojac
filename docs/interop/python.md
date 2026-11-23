@@ -177,9 +177,12 @@ pytest = "~=9.0"                # the project's own list, beside it
   and such a project is asked again by every `neojac install` that is not `--frozen`.
 - **A dependency on another Python project of the repository** (a workspace's member) is that
   project, and is asked of no index.
-- **The project itself is not installed**: its modules are the repository's source.
-- **Its dependency groups and its extras are installed where its tests name them**:
-  `[test.pypi."<directory>"]`'s `groups` and `extras`
+- **The project itself is not installed**: its modules are the repository's source. A project
+  `neojac absorb --record` recorded is asked for its requirements by its `[wheel]` table's
+  metadata, and install builds nothing of it.
+- **Its dependency groups and its extras are installed where `jac.toml` names them**:
+  `[install.pypi."<directory>"]`'s `groups` and `extras`, which `absorb` writes from what uv
+  installs by default for a project uv describes, then `[test.pypi."<directory>"]`'s
   ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)), a group with the
   groups it includes. No other group or extra is installed. What a project's tools need that no
   group lists is added with `neojac install --pypi <package>`.

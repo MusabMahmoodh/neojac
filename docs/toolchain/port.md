@@ -165,7 +165,8 @@ back, E4043 for the source held back).
 the plan: each module after the modules of the project it imports, so that each step leaves a
 project that builds, and modules that import each other as one group that ports together.
 `--json` prints the same as data. A check leaves the project as it found it: what it tries in
-place (a crate's manifest, `jac.toml`, `archwire.jac`) is put back with its text and its times of
+place (`jac.toml`, `archwire.jac`, and every manifest written from `jac.toml`: a crate's
+`Cargo.toml`, a C module's `cmodule.toml`, a tree's `package.json` or `pyproject.toml`) is put back with its text and its times of
 change, so a build or another check after it finds nothing changed, and a second check of a
 crate takes cargo's plan of it from the build cache.
 
@@ -207,7 +208,7 @@ together.
   names what they take of a Jac module; a C source leaves its module's table in `jac.toml`;
 - and makes all of it only if the project then checks. Otherwise nothing of that step is
   written (E4008, at its first source, after the errors the check found): its sources stay, and
-  `archwire.jac` and `jac.toml` are as they were for it.
+  `archwire.jac`, `jac.toml` and every manifest written from it are as they were for it.
 
 ```text
 $ neojac port shop/use.py
@@ -338,7 +339,9 @@ architecture, its variant file in place of the module's file: the Windows varian
 with Windows' system headers. So a C record a system header declares with other fields on
 another target (`struct stat`) is that target's record in that target's check, and meets no
 other declaration of it ([one record across the program](../interop/c-libraries.md#one-record-across-the-program)). A module only another platform's C table holds (a Linux source, from macOS) is checked under
-that platform, with its C module's interface read for it. Where that check fails, the file stays C,
+that platform, with its C module's interface read for it. A C or C++ source read for several
+targets is one module: its Jac file and its target variant files, which share the module's wires,
+and the C module's `jac` names the module's own file; each variant is checked for its target. Where that check fails, the file stays C,
 which its C module builds there as it is, with that check's errors shown (E4015).
 
 ## What is refused

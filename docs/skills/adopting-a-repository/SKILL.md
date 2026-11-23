@@ -68,7 +68,7 @@ with a `workspace:` link, which npm is given as a range. If a step fails, every 
 
 | Diagnostic | Usually means |
 |---|---|
-| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is: an extension module a build makes. `neojac absorb --record` finds which crate it is linked from and writes `[extensions."pkg/_ext"]`; for one it does not take, write the table (`neojac docs toolchain/packages`, "Extension modules") and absorb again |
+| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is, in a project with a `[wheel]` table: an extension module a build makes that no table names. Before the project is recorded such an import is no error: absorb exits 0, and the project's `build` item stands for it. `neojac absorb --record` finds which crate it is linked from and writes `[extensions."pkg/_ext"]`; for one it does not take, write the table (`neojac docs toolchain/packages`, "Extension modules") and absorb again |
 | E2224 | Two files of one name and two languages in one directory |
 | E1575, E1147 | A wire and a source that disagree: `neojac fmt --fix archwire.jac` |
 
@@ -96,11 +96,15 @@ groups = ["test"]                  # the [dependency-groups] the command needs
 script = "test"
 
 [test.cargo."."]                   # a crate: neojac cargo test
+
+[install.pypi."."]                 # what install adds beyond the dependencies, tested or not
+groups = ["dev"]                   # absorb writes uv's default groups where a uv.lock describes it
+extras = ["blobfile"]
 ```
 
 ```sh
 neojac absorb --record             # every Python project: what its wheel holds, [wheel]
-neojac install                     # its dependencies, and the groups and extras the table names
+neojac install                     # its dependencies, and the groups and extras the tables name
 neojac test                        # builds the project from the tables, then runs the command
 ```
 

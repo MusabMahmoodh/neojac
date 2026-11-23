@@ -148,6 +148,25 @@ groups = ["dev"]
 |---|---|
 | E5158 | `test.pypi` is not a table of projects, an entry has no `command`, has a key of another type or another key, or names a group or an extra the `pyproject.toml` has none of |
 
+### [install.pypi."\<directory\>"]
+
+What `neojac install` installs of a Python project the repository holds, `[pypi."<directory>"]`, beyond what it depends on: dependency groups and extras its own tools need, whether or not a test names them ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)). It is read for every Python project, one that ships no wheel included. The groups and extras of the project's `[test.pypi."<directory>"]` are installed after these. `neojac absorb` writes `groups` for a project uv describes (a `uv.lock` beside it or at its workspace's root), as uv installs it by default: the project's `[tool.uv] default-groups`, every group where that is `"all"`, and `["dev"]` where it is unset and the project has a `dev` group. A table already there is kept.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `install.pypi."<directory>".groups` | list of strings | Dependency groups of the project's `pyproject.toml` (`[dependency-groups]`), each with the groups it includes |
+| `install.pypi."<directory>".extras` | list of strings | Extras of the project (`[project.optional-dependencies]`, or what its build states) |
+
+```toml
+[install.pypi."."]
+groups = ["dev"]
+extras = ["blobfile"]
+```
+
+| Code | Cause |
+|---|---|
+| E5158 | `install` or `install.pypi` is not a table of projects, an entry is not a table, has a key other than `groups` and `extras` or one that is not a list of strings, or names a group or an extra the `pyproject.toml` has none of |
+
 ### [test.npm."\<directory\>"] and [test.cargo."\<directory\>"]
 
 The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says. `neojac absorb` writes `script = "test"` for an npm tree whose `package.json` has a `test` script.
@@ -234,7 +253,7 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 | E5157 | The table is written inline or with dotted keys where neojac has it to rewrite, or a manifest's text cannot be moved under a table's name as it is |
 | E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
 
-`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are installed where [`[test.pypi."<directory>"]`](#testpypidirectory) names them.
+`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are installed where [`[install.pypi."<directory>"]`](#installpypidirectory) and [`[test.pypi."<directory>"]`](#testpypidirectory) name them, and no others. A project `absorb --record` recorded is asked for its requirements by its `[wheel."<directory>".metadata]`, and nothing of it is built; one not recorded is asked through pip, which may run its build backend.
 
 ## [extensions."\<path\>"]
 

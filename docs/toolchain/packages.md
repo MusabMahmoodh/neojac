@@ -497,8 +497,11 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   extension modules are recorded for other platforms is refused there (E5172): what its build
   compiles on this one is not known until it is recorded on it
   ([A record is of one platform](#a-record-is-of-one-platform)).
-- **It is a module of the project.** A file that imports it is wired from it, and until the table
-  is there the import names nothing: `neojac absorb` reports it (E1145).
+- **It is a module of the project.** A file that imports it is wired from it. Until the table is
+  there, an import of a name the package does not give, in a Python project that builds and has
+  no `[wheel]` table, is the module the build makes, with no wire and no error: a plain `neojac
+  absorb` of such a tree exits 0, with the tree's build as its open item
+  ([Open items](#open-items)), and `neojac absorb --record` writes the table and the wire.
 - **`neojac absorb --record` writes the table**, for a module linked from a crate or from C,
   from what the repository's own build does ([Recording a build](#recording-a-build)).
 - **neojac builds it** with the Python project it is a module of
@@ -647,7 +650,8 @@ pyproject.toml: pytest tests --import-mode=append
 - **`[test.pypi."<directory>"]` is the project's own suite**: `command`, run by `neojac test`
   after the Jac tests, in the project's directory, with `.jac/venv` first on `PATH`. It names the
   `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
-  `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
+  `pyproject.toml` that the command needs, which `neojac install` installs with the rest, after
+  those `[install.pypi."<directory>"]` names (below).
   `absorb` writes it for a project that configures pytest, or holds pytest's `conftest.py` in its
   directory or one directory down, and has no test command of its own:
   `command = ["pytest", "--import-mode=append"]`, with `groups = ["test"]` where `test` is the
@@ -656,6 +660,19 @@ pyproject.toml: pytest tests --import-mode=append
   (below). Where
   the tree's tests are Jac, it runs over what its spaces emit
   ([Testing](test.md#a-projects-own-suites)).
+- **`[install.pypi."<directory>"]` is what `neojac install` installs of the project beyond its
+  dependencies**, whether or not a test needs it: its `groups` and its `extras`, for every Python
+  project, one that ships no wheel included (a workspace's root, whose scripts import what its
+  `dev` group installs). `absorb` writes `groups` for a project uv describes (a `uv.lock` beside it
+  or at its workspace's root) as uv installs it by default: `[tool.uv] default-groups`, every
+  group where that is `"all"`, and `["dev"]` where it is unset and the project has a `dev` group
+  ([jac.toml](../reference/jac-toml.md#installpypidirectory)).
+
+  ```toml
+  [install.pypi."."]
+  groups = ["dev"]
+  extras = ["blobfile"]
+  ```
 - **A module of the tree has the name Python gives it**: a module under the wheel's `root` is
   named from there (`src/fastlib/api.jac` is `fastlib.api` where `root = "src"`), and one outside
   it, a test, from the tree's directory (the template's `backend/app/models.jac` is
