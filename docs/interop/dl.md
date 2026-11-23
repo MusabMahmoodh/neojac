@@ -57,14 +57,50 @@ that type. Calling it calls the C function there with the platform's C ABI.
 
 - The parameters and the result are the C types an `import from` declaration takes: sized
   integers and `int`, `f32` and `f64`, `str` as `const char *`, `ptr` and `ptr[T]`
-  ([the table](c-libraries.md#types-in-a-declaration)).
-- A signature naming what a C function pointer cannot pass is refused (E5090): a list, a C
-  record by value. So is one that leaves its parameters unstated, `Callable[..., R]`. A
-  parameter may be a callback, passed as its C address
+  ([the table](c-libraries.md#types-in-a-declaration)), and a C record an `import from c` block
+  declares, taken and given by value as C's calling convention passes it (below).
+- A signature naming what a C function pointer cannot pass is refused (E5090): a list, a Jac
+  object. So is one that leaves its parameters unstated, `Callable[..., R]`. A parameter may be
+  a callback, passed as its C address
   ([Callbacks](c-libraries.md#a-callback-that-takes-a-callback)).
 - The argument is a pointer (E1053).
 - Calling it allocates nothing.
 - One made from a null address raises `TypeError` when called, as calling `None` does.
+
+C's `div` gives a record by value, `div_t`, which the program declares as C lays it out:
+
+```jac
+import dl;
+import sys;
+
+import from c {
+    obj div_t {
+        has quot: i32,
+            rem: i32;
+    }
+}
+
+def libc -> str {
+    if sys.platform == "darwin" {
+        return "/usr/lib/libSystem.B.dylib";
+    }
+    if sys.platform == "win32" {
+        return "ucrtbase.dll";
+    }
+    return "libc.so.6";
+}
+
+with entry {
+    lib = dl.open(libc());
+    div = Callable[[i32, i32], div_t](lib.symbol("div"));
+    d = div(i32(17), i32(5));
+    print(d.quot, d.rem);
+}
+```
+
+```output
+3 2
+```
 
 The result is a function value like any other. A field, global or parameter of its `Callable`
 type takes it or a Jac function alike, so code can fall back to its own implementation where the
@@ -131,20 +167,12 @@ TypeError: 'NoneType' object is not callable
 ```
 
 ```jac
-# expect: E1053, E5090 x3
-import from c {
-    obj Pair {
-        has a: i32,
-            b: i32;
-    }
-}
-
+# expect: E1053, E5090 x2
 with entry {
     p = ptr();
     f = Callable[[f64], f64](3);
     g = Callable[[list[int]], int](p);
     k = Callable[..., int](p);
-    r = Callable[[Pair], int](p);
 }
 ```
 
