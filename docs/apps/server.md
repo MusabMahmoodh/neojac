@@ -447,9 +447,35 @@ def:pub post(text: str) -> str {
 ```
 
 - A signed-in caller's calls are counted for them, and a caller no one knows by the address they
-  call from.
+  call from ([below](#the-address-a-caller-calls-from)).
 - The program's own calls, and those of the deployment's other apps, are not counted.
 - A function's route (`@restspec`) is counted with its endpoint.
+
+### The address a caller calls from
+
+A request's client is the address its connection came from. Behind a gateway that is the
+gateway's, for every caller, and what is counted by client is then counted for everyone together:
+the sign-in attempts of the `accounts` plugin, and a `@limit` for a caller no one knows.
+
+The `http` transport is told the gateway in front of it by the one header that gateway writes each
+request's client into, in `[transport.http]`:
+
+```toml
+[transport.http]
+client_header = "x-envoy-external-address"
+```
+
+or `JAC_TRANSPORT_CLIENT_HEADER` where the program runs. A request's client is then the address
+that header holds. A request that carries none, or more than one address under it, is its
+connection's: the probe of whatever runs the program is such a request.
+
+- **Name a header only the gateway can set:** one it writes over whatever a caller sent under that
+  name. An Envoy that takes a connection's address for its client
+  (`use_remote_address`) writes `x-envoy-external-address` so. `X-Forwarded-For` and `Forwarded`
+  are not such headers: a caller writes what they like at their head, and each proxy on the way
+  adds to them.
+- **Name one only where nothing but the gateway reaches the server.** Whoever else reaches it says
+  what client they like.
 
 `consume_limit(scope, actor, limit, seconds)` counts something that is no endpoint's caller: it
 returns 0 while `actor` is within `limit` uses of `scope` in `seconds`, else the seconds to wait.

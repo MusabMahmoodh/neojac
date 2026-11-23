@@ -11,7 +11,8 @@ import json;
 import from common.contract { Host }
 
 """A request as what answers it sees it. `client` is the address it came from:
-"" for one made in this process."""
+its connection's, or the one a gateway the transport is told of says it
+carried the request for; "" for one made in this process."""
 obj Request {
     has method: str,
         path: str,
