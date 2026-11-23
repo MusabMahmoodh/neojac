@@ -96,6 +96,10 @@ record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cm
 no C address (a closure that captures) raises `TypeError` there. A function pointer C may give
 as `NULL` is `Callable[...] | None`, `None` where C's is null: test it before calling it.
 `ptr[u16]("text")` and `ptr[u32]("text")` are C's `u"text"` and `U"text"`, of a literal only.
+A C++ library's pointer to a function of C++ types (`int (*f)(Counter &, int)`) takes a def of
+the calling module by its name, of exactly its Jac form (`def bump_by(c: Counter, step: i32) ->
+i32`); a lambda, a bound method or another signature is E1639. C++ must call it on the thread
+that called into C++: from a thread of the library's own the program ends, naming the function.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
@@ -211,6 +215,7 @@ with entry {
 | E1053 `expects i32, found int` | An `int` to a Jac function's `i32` parameter: only C's parameters and fields narrow one | Declare the parameter `int`, which narrows where it reaches C, or pass `i32(n)` |
 | E1053 `expects ptr[float], found list[float]` | A list passed as a C array | Copy into `calloc`'d memory, pass the pointer |
 | E1195 | A lambda or bound method as a callback | A named `def` |
+| E1639 | A lambda, a bound method or another signature for a C++ library's function pointer | A `def` of the module, of the pointer's exact signature |
 | E5090 `... as a C type` | A list, dict or Jac object in a declaration | Use the C types (`neojac docs C library`) |
 | E1021 `cannot iterate PtrView` | A view in a `for` | `for i in range(len(v))` |
 | E1145 | The header or crate has no such name | Check spelling; for Rust, `pub` and `#[unsafe(no_mangle)]` |

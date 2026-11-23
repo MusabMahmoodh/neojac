@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, std_vector_iterator, std_atomic, headers per target
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, std_vector_iterator, std_atomic, headers per target, std_to_string, std_pair, default argument, C++ function pointer, callback from C++
 ---
 # C modules
 
@@ -355,6 +355,7 @@ Nothing needs to be `extern "C"`.
 | A method that hides a base's method of its Jac name, with other parameters | Named by its parameters, as an overload is, so that the base's stays reachable: `Rect`'s copy assignment, which hides `Figure`'s, is `r.op_assign_Rect(other)` beside the inherited `op_assign`; one of no parameters is named `_none` |
 | An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)`. Jac's own `a == b` or `a != b` of two values of C++ classes is E1624: it would compare the Jac objects |
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
+| A parameter whose default is a constant | Optional to a Jac caller, the default C++'s: `s.find_i8_uword(c)` is `s.find(c)`. Only a trailing run of such parameters; a default that is no constant leaves its parameter, and those before it, required |
 | A result by value | Owned by Jac; a result by reference is borrowed |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
@@ -789,8 +790,20 @@ module's function gives is the string another's takes.
   `operator=` has more overloads, the copy's name among them (`op_assign_std_string`), and
   `a = std::move(b)` is `a.op_assign_move(b)`, which leaves `b` as C++ leaves a moved-from value
   (a string empty).
-- A name that is no class of the standard library, or a type argument its template does not
-  take, does not compile in libcxx: E5200.
+- **A free function, a constant or an enumerator of `std` is named `std_` and its C++ name too**,
+  looked up in `std` as C++ looks it up: `std_to_string` is `std::to_string`, an overload set a
+  program imports by that name and calls by its member's, named by its parameters as every C++
+  overload set is (`std_to_string_i32(i32(420))`); `std_memory_order_relaxed` is the enumerator
+  `std::memory_order_relaxed`, an `int` (`u32(std_memory_order_relaxed)` where a member takes the
+  enum).
+- **A parameter whose C++ default is a constant may be left out**, as in C++: `s.find_i8_uword(c)`
+  is `s.find(c)`, from position 0.
+- **A class's public number and `bool` fields are properties**, read and, unless `const`, written
+  as Jac's: a `std_pair[i32, i32]`'s `p.first` and `p.second`. A field of any other type is not
+  bound, and the interface says why.
+- A name `std` does not have, or a member of an overload set imported by its own name
+  (`std_to_string_i32`), is E1145 of the import. A type argument a template does not take does not
+  compile in libcxx: E5200.
 
 ```jac
 import from libcxx { std_lock_guard, std_mutex, std_string, std_vector }
@@ -845,11 +858,48 @@ with entry {
 4 0
 ```
 
+```jac
+import from libcxx {
+    std_memory_order_relaxed,
+    std_pair,
+    std_string,
+    std_to_string,
+    std_vector,
+    std_vector_reverse_iterator,
+}
+
+with entry {
+    duos: own std_vector[std_pair[i32, i32]] = std_vector[std_pair[i32, i32]]();
+    duos.resize_uword(u64(1));
+    duo = duos.op_index(u64(0));
+    duo.first = i32(4);
+    duo.second = i32(5);
+    ups: own std_vector[u32] = std_vector[u32]();
+    ups.push_back(u32(7));
+    ups.push_back(u32(8));
+    back: std_vector_reverse_iterator[u32] = ups.rbegin();
+    told: own std_string = std_to_string_i32(i32(420));
+    other: own std_string = std_string.make_ptr_i8("421");
+    print(duo.first + duo.second, back.op_deref(), told.size(), told.find_i8_uword(i8(50)));
+    print(told.compare_std_string(other) < 0, std_memory_order_relaxed);
+}
+```
+
+```output
+9 8 3 1
+True 0
+```
+
+`duo` is the pair the vector holds, so what the program writes to its fields the vector keeps.
+`compare` is an overload set, so a string is compared with another by the member that takes one,
+`compare_std_string`.
+
 **A container's iterator is a class the library keeps to itself** (`std::__wrap_iter`,
 `std::__hash_map_iterator`), and a program has it under the public name its container gives it:
 the container's name, `_`, and the member type, with the container's arguments.
 `std::vector<int>::iterator` is `std_vector_iterator[i32]`, `std::vector<int>::const_iterator`
-`std_vector_const_iterator[i32]`, `std::unordered_map<int, int>::iterator`
+`std_vector_const_iterator[i32]`, `std::vector<int>::reverse_iterator`
+`std_vector_reverse_iterator[i32]`, `std::unordered_map<int, int>::iterator`
 `std_unordered_map_iterator[i32, i32]`, each imported from `libcxx`.
 
 - **A member that gives an iterator is bound where the program names its type**: `begin()`,
@@ -863,8 +913,9 @@ the container's name, `_`, and the member type, with the container's arguments.
 - **An overload set is named as any member's**: `std::unordered_map`'s `begin()` and `end()` have
   a bucket's overload beside them, so the container's are `begin_()` and `end_()`.
 - **`std::atomic<T>` is `std_atomic[T]`**, its members C++'s: `store`, `load`, `fetch_add` and the
-  rest. A program passes every argument, the memory order among them, as the number
-  `std::memory_order` gives it (`u32(5)` is `memory_order_seq_cst`).
+  rest. The memory order may be left out, as in C++ (`memory_order_seq_cst`), or given as the
+  `u32` of its enumerator: `u32(std_memory_order_relaxed)`, or the number `std::memory_order`
+  gives it (`u32(5)` is `memory_order_seq_cst`).
 
 ```jac
 import from libcxx {
