@@ -448,7 +448,8 @@ no `this`, as a JavaScript arrow function takes none.
 ## JavaScript's own operators: the `js` module
 
 Jac's operators mean what Jac says of Jac's types. Where a program needs what JavaScript does
-with values of any type (code `neojac port` made of untyped JavaScript), the runtime's `js`
+with values of any type (code `neojac port` made of untyped JavaScript, or of TypeScript where a
+value TypeScript took on trust reaches it), the runtime's `js`
 module gives JavaScript's own operations, each a function. On a JavaScript host each is the
 operator it names; natively each runs in the program's Node.
 

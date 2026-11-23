@@ -104,6 +104,15 @@ with entry {
 
 - **What the source leaves undefined may become defined.** A signed overflow is undefined in C,
   and the Jac raises `OverflowError`.
+- **A port checks at run time no more than its source does.** TypeScript's types are erased, so
+  JavaScript holds a TypeScript program to none of them. A place a port writes (a parameter, a
+  variable, a field, a property, a return, an element) keeps the type TypeScript gives it only
+  where every value that reaches it has that type with no conversion from `any`. A value TypeScript
+  took on trust (an `any`, a cast that is no upcast such as `v as string` of an `unknown`, `v!` of
+  what may be null) is `any`, and so is every place it reaches, through every file of the run; no
+  run-time check is written that the source did not write as a test. What TypeScript did check is
+  kept, so typed code stays typed where its types are true. A Python annotation is carried as the
+  Python object it names, which Jac reads as `any` ([Porting Python](../interop/port-python.md)).
 - **What has no such Jac is refused.** A Python comprehension has one variable, which a
   function made in it closes over, where Jac's comprehension has a variable for each pass, so
   such a comprehension is refused (E4005).
