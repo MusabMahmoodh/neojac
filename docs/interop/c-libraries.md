@@ -316,8 +316,8 @@ sign-extended for a signed type; writing one writes its bits and keeps the rest 
 truncating the value as C does. Only a C record has bit-fields (E2262): a Jac struct's layout is
 not C's.
 
-A field of type `array[T, N]`, `T` a number, a pointer or an array of them, is a C array in the
-record, laid out as C lays it out: C's `const char *names[3];` is `names: array[ptr[i8], 3]`. `r.name` is the array in place, so `r.name[0] = v` writes the record's
+A field of type `array[T, N]`, `T` a number, a pointer, a C record or an array of them, is a C
+array in the record, laid out as C lays it out: C's `const char *names[3];` is `names: array[ptr[i8], 3]`. `r.name` is the array in place, so `r.name[0] = v` writes the record's
 memory, and assigning the field copies a whole array in.
 
 ```jac
@@ -373,6 +373,38 @@ with entry {
 
 ```output
 False True 1
+```
+
+An array of C records holds each record in place, laid out as C lays it out, its item's size and
+alignment the record's. An item is the record where it lies, as a nested record field is:
+`ps.items[2].weight = 4.0` writes the item in the outer record, and `held = ps.items[1]` holds
+that item, so writing `held.key` writes it there. A record declared opaque has no size, and an
+array of one is refused.
+
+```jac
+import from c {
+    obj Pair {
+        has key: i32,
+            weight: f64;
+    }
+
+    obj Pairs {
+        has count: i16,
+            items: array[Pair, 3];
+    }
+}
+
+with entry {
+    ps = Pairs(count=i16(2), items=array[Pair, 3]());
+    ps.items[2].weight = 4.0;
+    held = ps.items[1];
+    held.key = i32(7);
+    print(ps.items[2].weight, ps.items[1].key, ps.items[0].key);
+}
+```
+
+```output
+4.0 7 0
 ```
 
 A C `union` is a Jac `union` ([Structs](../language/structs.md#unions)), declared in an import

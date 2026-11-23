@@ -62,9 +62,12 @@ The same functions run in the kernel and in ordinary code.
 
 `array[T, N]`:
 
-- `T` is a number type, a pointer (`ptr[T]`), a struct of plain data, or another
-  array (`E1420`). A pointer is a machine word, as C's array of pointers holds
-  it, and an array made with no values holds null pointers.
+- `T` is a number type, a pointer (`ptr[T]`), a struct of plain data, a C
+  record an `import from c` block declares with its fields, or another array
+  (`E1420`). A pointer is a machine word, as C's array of pointers holds it,
+  and an array made with no values holds null pointers; an item that is a C
+  record is that record where it lies
+  ([C libraries](../interop/c-libraries.md#bit-fields-and-arrays)).
 - `N` is a compile-time int above 0 (`E1421`): a literal, a `comptime` name, or
   arithmetic on them, as a tensor's dimension is. A run-time value is `E0033`.
 

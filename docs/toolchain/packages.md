@@ -542,7 +542,9 @@ recorded = ["linux-aarch64", "macos-aarch64"]
     repr would show its `:priv` fields. A Jac module Python imports keeps Jac's repr.
   - **A Jac exception crosses as itself**: one the program raises reaches Python holding the Jac
     object, with its `args` and its fields (`e.code`), and is that object again where it comes
-    back into Jac; Python makes one (`_eggs.Fault(5)`) by the class's `init`.
+    back into Jac; Python makes one (`_eggs.Fault(5)`) by the class's `init`. One that derives
+    only from `BaseException` (`obj Halt(BaseException) {}`) crosses as itself too, as Python's
+    `BaseException` subclasses do, and the next call into the module runs as before.
   - **An `obj` that defines `__buffer__` and `__release_buffer__` exports its memory** to Python,
     as PEP 688 says: `memoryview(obj)` and `bytes(obj)` read it. A Jac `memoryview` reaching
     Python is Python's view of the same memory, with its format, item size, shape, strides and
@@ -555,7 +557,9 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   `neojac port` writes such a module from a crate's PyO3 bindings
   ([Porting Rust](../interop/port-rust.md)): `#[pyclass]` with its `#[pymethods]` is an `obj`
   holding the crate's value in a `:priv` field, with `__module__` `builtins` as PyO3 gives it,
-  and a `#[pyclass]` with no `#[new]` an `obj` whose `init` is `:priv`.
+  and a `#[pyclass]` with no `#[new]` an `obj` whose `init` is `:priv`. A Rust panic that ends a
+  method reaches Python as PyO3's `pyo3_runtime.PanicException`, a `BaseException`, holding the
+  panic's message, as PyO3 catches each call; Rust's own line on stderr is not written.
   The extension is built from that module once its `[extensions]` row names it by `jac`
   (`jac = "src/py.jac"`) in place of the crate's `cargo`. Port writes that row where the crate
   ports whole, the port of the file that holds `#[pymodule]`, and drops the crate's
