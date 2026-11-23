@@ -323,7 +323,11 @@ A local and a field are each one of two places:
 
 An `own` binding takes a value of a scoped class only from where it is made (the call that
 makes it) or from another owner. One taken from a managed place is E1637: the
-place still refers to the value, which the owner would end at its scope's end.
+place still refers to the value, which the owner would end at its scope's end. A call is such a
+place where the function's result may be a managed place's value: where a `return` gives a field,
+a global, a parameter with no ownership annotation, `self`, or a local that took one of those
+(`def kept(k: Seen) -> HashSet[u32] { return k.s; }`). A constructor, a function declared
+`-> own T`, and one whose `return`s give only what it made give a value an owner may take.
 
 `del o.f` ends a field's value where it is written: its drop runs at once where the field held the
 only reference, and reading the field before it is assigned again raises `AttributeError`.

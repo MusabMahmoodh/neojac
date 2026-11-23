@@ -316,7 +316,9 @@ function is:
   a native program and a `cpython` space do.
 - **A module the importing module also imports at its top** starts as a top-level import starts
   it, before the importing module's code; the import in the body binds its names there. Only a
-  module that no top-level import names starts where a body's import runs.
+  module that no top-level import names starts where a body's import runs. In module code,
+  `import os;` or `import os.path;` again, where the top already has `import os;`, binds the
+  module the top's import binds: it is no second binding of `os`, on every host.
 - **On a `cpython` host** it may also name a Python module, which Python loads where the import
   runs (its names are `any` to the checker). A module of Python's that the native library does
   not have is refused in a native program (E5090), and so is, in a `cpython` space, an import in

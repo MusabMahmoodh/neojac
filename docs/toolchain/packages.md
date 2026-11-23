@@ -634,8 +634,10 @@ pyproject.toml: pytest tests --import-mode=append
   `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
   `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
   `absorb` writes it for a project that configures pytest and has no test command of its own:
-  `command = ["pytest"]`, with `groups = ["test"]` where `test` is the one dependency group that
-  names pytest ([jac.toml](../reference/jac-toml.md#testpypidirectory)). Where
+  `command = ["pytest", "--import-mode=append"]`, with `groups = ["test"]` where `test` is the
+  one dependency group that names pytest ([jac.toml](../reference/jac-toml.md#testpypidirectory)):
+  the import mode keeps the package's directory beside the tests off the front of Python's path
+  (below). Where
   the tree's tests are Jac, it runs over what its spaces emit
   ([Testing](test.md#a-projects-own-suites)).
 - **A module of the tree has the name Python gives it**: a module under the wheel's `root` is
@@ -766,7 +768,7 @@ item**. `absorb` lists each at its file, and does not guess:
 
 | Kind | Reported for | What closes it |
 |---|---|---|
-| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, and an npm tree's addon linked from C |
+| `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); any other Python project that builds a wheel and has no `[wheel]` table yet, whose build backend says what the wheel holds, so that no space holds its Python until a record does; a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, what its wheel holds and the space that holds its Python, and an npm tree's addon linked from C |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` ([A lock another tool wrote](#a-lock-another-tool-wrote)) |
 | `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
 | `tests` | A Python project with no test command of its own that does not configure pytest; one that configures pytest where several dependency groups name pytest, or none does | `[test.pypi."<directory>"]`, the command that runs its tests, or its `groups` ([Building and testing a Python project](#building-and-testing-a-python-project)) |

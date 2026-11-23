@@ -74,7 +74,7 @@ Mechanically, top to bottom: braces and `;`, `class` to `class` with `has` field
 | Attributes added to an object at run time | Declare every field with `has` |
 | Integers past 64 bits | `i128`/`u128` when they fit, else `decimal` through CPython |
 | `namedtuple`, `type(...)` making classes | A declared `obj` (or a `struct`) |
-| A generator | Declare it `-> Iterator[T]` |
+| A generator | Declare it `-> Iterator[T]`, or `-> Generator[Y, S, R]` where it is sent values (`x = yield v`) or returns one |
 | Monkey-patching, `exec`, `eval` (W2001: there are none) | Restructure: code is all compiled ahead of time |
 
 ### 5. Check, build and compare

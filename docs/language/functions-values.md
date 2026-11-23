@@ -119,7 +119,7 @@ their type. Arguments that do not bind raise `TypeError` with Python's wording:
 | A parameter given twice | `<lambda>() got multiple values for argument 'x'` |
 | An argument of the wrong type | `expected int, found str` |
 | A method called on an `any` (`w.ok(1, 2)`), or read off its object and held in one (`m: any = d.ok`, then `m(1, 2)`) | Counts `self`, and names `Class.method`: `Defaults.ok() takes 2 positional arguments but 3 were given` |
-| A nested function or a lambda | Named by its qualified name, as Python names it: `outer.<locals>.inner() takes 1 positional argument but 2 were given`, natively, in a cpython space and on a JavaScript host alike |
+| A nested function or a lambda | Named by its qualified name, as Python names it: `outer.<locals>.inner() takes 1 positional argument but 2 were given`, and a lambda, a block lambda (`lambda (x: int) -> int { ... }`) among them, `outer.<locals>.<lambda>()`, natively, in a cpython space and on a JavaScript host alike; a traceback names it so too |
 
 A missing argument is reported before any default is computed.
 

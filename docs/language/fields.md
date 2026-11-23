@@ -1,6 +1,6 @@
 ---
 description: Declaring an archetype's fields with has (types, defaults, static fields, postinit fields), the init and postinit constructors, and properties with getters and setters.
-keywords: has, static has, init, postinit, getter, setter, deleter, property, properties, field, fields, default value, static field
+keywords: has, static has, init, postinit, getter, setter, deleter, property, properties, field, fields, default value, static field, hasattr of a property, Self property
 grammar: has_stmt, has_var, accessor
 ---
 # Fields
@@ -307,7 +307,38 @@ refused: below absolute zero
 - An accessor written with `;` in place of its block is declared here and
   implemented by `impl Temp.celsius.getter { ... }`; see [Impl blocks](impl.md).
 
-`hasattr(x, "celsius")` is true and `getattr(x, "celsius")` calls the getter.
+`getattr(x, "celsius")` calls the getter, and so does `hasattr(x, "celsius")`, which is `True`
+where the getter gives a value and `False` where it raises `AttributeError`, as Python's is.
+
+A property's type may be `Self`, as a method's result may
+([Methods](methods.md)): the class of the object it is read through, a subclass where the
+subclass inherits the property.
+
+```jac
+obj Node {
+    has up: Node | None = None,
+        _label: str = "";
+
+    has parent: Self {
+        getter {
+            if self.up is None {
+                raise AttributeError("a root has no parent");
+            }
+            return self.up;
+        }
+    }
+}
+
+with entry {
+    top = Node(_label="top");
+    kid = Node(up=top, _label="kid");
+    print(kid.parent._label, hasattr(kid, "parent"), hasattr(top, "parent"));
+}
+```
+
+```output
+top True False
+```
 
 ## Fields and inheritance
 

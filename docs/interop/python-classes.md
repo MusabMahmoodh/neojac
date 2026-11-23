@@ -291,9 +291,34 @@ with entry {
 abc short False
 ```
 
-A class there that reads a name of the body it is in (a parameter, a local) is not made yet
-(E5177): Python would close over the name, and neojac does not check a class's methods as
-closures of the body.
+A class there may read the names of the body it is in, a parameter or a local, as Python's
+closure does: each read sees the name's binding when the read runs, so a name the body binds again
+after the class statement is read with its new value.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import reprlib;
+
+def made(n: int) -> any {
+    class Shown(reprlib.Repr) {
+        def repr_int(x: any, level: any) -> str {
+            return str(x + n);
+        }
+    }
+    n = n * 10;
+    return Shown;
+}
+
+with entry {
+    print(made(2)().repr(1));
+}
+```
+
+```text
+21
+```
+
+On a JavaScript host, which makes a class in a code body too, such a class is refused (E5177).
 
 ### In a space of another host
 
@@ -669,5 +694,5 @@ and a module that finds its files beside itself (`os.path.dirname(__file__)`) fi
 | E5175 | Outside a cpython space: an `if` among a class's members that is not `comptime` |
 | E5220 | Outside a cpython space: a `try` among a class's members |
 | E5176 | Outside a cpython space: a class in a code body |
-| E5177 | A class in a code body that reads a name of that body |
+| E5177 | On a JavaScript host: a class in a code body that reads a name of that body |
 | E0077 | A member declared in two arms of a class body's `if` or `try`, but a static of one annotation |

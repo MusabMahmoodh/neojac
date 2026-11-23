@@ -104,8 +104,9 @@ with entry {
 
 - **What the source leaves undefined may become defined.** A signed overflow is undefined in C,
   and the Jac raises `OverflowError`.
-- **What has no such Jac is refused.** The value of a Python `yield` is what `send` gave the
-  generator, and a Jac generator has no `send`, so port writes no Jac for it yet (E4005).
+- **What has no such Jac is refused.** A Python comprehension has one variable, which a
+  function made in it closes over, where Jac's comprehension has a variable for each pass, so
+  such a comprehension is refused (E4005).
 
 ## What a path names
 

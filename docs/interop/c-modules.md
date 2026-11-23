@@ -338,7 +338,7 @@ Nothing needs to be `extern "C"`.
 | C++ | Jac |
 |---|---|
 | A class | An `obj`, its methods called as Jac's: `r.area()`, `Figure.alive()` for a static one |
-| A constructor | `C.make(args)`; a class that declares none has `make()`. `C()` is the default constructor, where the class has one the interface binds; a call of the class with arguments, or of one with no default constructor, is E1621 |
+| A constructor | `C.make(args)`; a class that declares none has `make()`. A class with a static method `make` of its own keeps that name for the method, and names its constructors by their parameters, always: `make_()` for the default one, `make_i32(n)` for `C(int)`. `C()` is the default constructor, where the class has one the interface binds; a call of the class with arguments, or of one with no default constructor, is E1621 |
 | A constructor template | Each instance the program's C++ or its port names, a constructor named by its parameters as any other: `std::string s(p)` is `std_string.make_ptr_i8(p)` |
 | A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
@@ -621,6 +621,10 @@ C++ constructs the base before any of `init` runs, each argument of `super.init`
 - **An object C++ made is C++'s until C++ deletes it** (`delete` in `Keeper<T>::end()`): the
   delete runs its `destroy`, ends its C++ part and lets the Jac object go. An object Jac made
   ends where its owner drops it, as any other.
+- **An object the program makes for C++ to keep** is lent to C as any Jac object is
+  ([Pointers](pointers-and-native-memory.md)): `k: Kid = held[Kid](hold(Kid(4)));` is held until
+  `release(held_at(k));`, which is how a port writes C++'s `new Kid(4)` and its `delete k`. Given
+  where the base is taken (`base: Keeper[Kid] = k;`), it is the object itself.
 
 <!-- example: not checked: needs the C module whose tally.h declares Keeper -->
 ```jac

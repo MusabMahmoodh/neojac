@@ -111,6 +111,10 @@ Some first bindings give no type, and need an annotation (W1051):
 - `d = {};` Write `d: dict[str, int] = {};`. Annotate an empty `[]` the same way.
 - `xs = list();` and a bare `list`, `dict` or `set` used as a value.
 
+An empty `[]` or `{}` among a tuple display's items needs no annotation where nothing gives that
+item a type: it is a `list[any]` or a `dict[any, any]`, so `value not in (0, 0.0, [], None, "", {})`
+checks. Where the tuple's type is known (`t: tuple[list[int], int] = ([], 0);`), the item takes it.
+
 ```jac
 # expect: W1051 x2
 with entry {

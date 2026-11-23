@@ -237,7 +237,8 @@ with entry {
   storage, from where it is counted, as any managed value is, and dropped when
   its last reference goes. So is a value whose drop runs code (a Rust
   `HashSet`, a C++ `std::vector`): such a field or local need not be `own`,
-  and an `own` binding does not take it back out of one (E1637). `del o.f`
+  and an `own` binding does not take it back out of one, nor out of a call
+  that may give one's value (E1637). `del o.f`
   ends the field's value at once ([Ownership](ownership.md#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
 - A [packed list](packed-lists.md) of structs or narrow numbers owns its
   elements by holding them, so `list[own P]` is E1521.
