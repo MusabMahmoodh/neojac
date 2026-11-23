@@ -23,6 +23,9 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `virtual ~Shape() { ... }` of a class with virtual functions | `def destroy { ... }`, which ends with `super.destroy();` where the base declares a destructor: C++'s destructor, run where `delete` runs it |
 | `Shape *s = new Square(2.0);` of a class with virtual functions, or of one the run makes with `new` anywhere; `int *xs = new int[n];` | `s: Shape = Square(2.0);`: the object, which Jac counts and frees when nothing holds it; `xs: ptr[i32] = ptr[i32](op_new_array(u64.wrap(n) * u64(4)));`: C++'s own `operator new[]`, from `libcxx`, for an array of numbers or pointers |
 | `delete s;`, `delete[] xs;` | `s.destroy();` where the class or a base declares a destructor, and nothing where none does; `op_delete_array(ptr(xs));`, C++'s own `operator delete[]` |
+| `struct Slot { int tag; Inner *inner; };`, in memory C allocates, holding a pointer to an object of a class port writes as an `obj`: `s->inner = new Inner(5);`, `Inner *in = s->inner;`, `s->inner = NULL;` | `has inner: ptr = ptr();`: the address C holds the object at. `s[0].inner = held_at(held[Inner](hold(Inner(5))));`, `in: Inner \| None = held[Inner](s[0].inner) if not s[0].inner.is_null() else None;` (`held[Inner](s[0].inner)` where it is never null), `s[0].inner = ptr();`. The class is held from its `new` to its `delete` |
+| `reinterpret_cast<Vt *>(this)` and `reinterpret_cast<Tab *>(vt)` of a class whose first member is a C record (`class Tab { Vt base; int n; };`) | `addressof(self.base)`: the member's own address, the record kept in the object; `held[Tab](base=vt)`: the `Tab` C holds whose member `base` is at `vt` (TypeError where C holds none). The class is held from its `new` to its `delete`. Only where the reading lays the member at offset 0; any other conversion between an object's pointer and a record's is refused |
+| `Kid *k = new Kid(4); k->twice(); delete k;` of a class whose base is a library class (`class Kid : public tally::Keeper<Kid>`) | `k: Kid = held[Kid](hold(Kid(4)));`: the object, held for C++ from its `new` until its `delete`, which is `release(held_at(k));`: the C++ part ends there, and `destroy` runs with it; a pointer to it converted to its library base is the object (`base: Keeper[Kid] = k;`) |
 | `C c(1);`, `C c;`, `C d = c;`, `c.get()`, `this->n`, `true` | `c: C = C.make(1);`, `c: C = C();`, `d: C = c;`, `c.get()`, `self.n`, `True` |
 | `C(1, 2)` as a value | `C.make_i32_i32(1, 2)`: the constructor a library class's interface binds, or a ported class's `make` |
 | `::operator new[](n * sizeof(T))`, `::operator delete[](p)`, `::operator new(n)`, `::operator delete(p)` | `op_new_array(n * u64(8))`, `op_delete_array(p)`, `op_new(n)`, `op_delete(p)`: C++'s replaceable allocation functions, from `libcxx`, so that memory a file that stays C++ allocates is freed by the port as C++ frees it, and the reverse; where C++ would throw `std::bad_alloc` they raise `MemoryError` |
@@ -190,7 +193,8 @@ standard library class the library keeps to itself (`std::__wrap_iter`), operato
 and conversions of the file's own classes, a non-member operator, `std::move` but as a
 library class's `T&&` argument, the destructor of a class
 port does not write as an `obj`, references but a library class's as a parameter, an `obj`'s
-and a struct's place, lambdas, range `for`, exceptions, `new` into storage the program gives, `new[]` and
+and a struct's place, lambdas, range `for`, exceptions, a placement `new` (into storage the
+program gives) and an explicit destructor call (no Jac form keeps an object in raw memory), `new[]` and
 `delete[]` of anything but numbers and pointers, a static data member another file defines, a member
 of a library class its interface does not bind (a member template's instance whose arguments
 are no class or number type among them), a member of a library class with no default
