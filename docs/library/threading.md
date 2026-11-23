@@ -126,7 +126,7 @@ As the program ends, the threads that are not daemons are waited for, then the f
 | `local` | An object whose attributes each thread has its own of |
 | `current_thread`, `main_thread`, `enumerate`, `active_count`, `get_ident`, `get_native_id` | The threads running |
 | `excepthook`, `ExceptHookArgs`, `stack_size`, `TIMEOUT_MAX`, `ThreadError` | As CPython's |
-| `serialize_iterator`, `synchronized_iterator`, `concurrent_tee` | Python 3.15's iterators shared between threads |
+| `serialize_iterator`, `synchronized_iterator`, `concurrent_tee` | Python 3.15's iterators shared between threads; a `serialize_iterator`'s `send`, `throw` and `close` reach the generator it wraps, one thread at a time |
 
 The messages are CPython's: starting a thread twice raises
 `RuntimeError: threads can only be started once`, releasing a lock that is not held
@@ -252,8 +252,6 @@ Empty
   `ThreadPoolExecutor` or [`flow`](../language/async.md#tasks-flow-and-wait) for calls that
   wait, `flow for` for work on the processors, or [subprocess](subprocess.md) for another
   program.
-- **`threading.serialize_iterator` has no `send`** (E5142): iterate it with `next()` or a `for`
-  loop. Its `throw` and `close` reach the generator it wraps, one thread at a time.
 - **A `ThreadPoolExecutor` dropped without `shutdown()` keeps its threads until the program
   ends**, when they are stopped and joined; CPython's end when the executor is collected. Use
   `with`, or call `shutdown()`.

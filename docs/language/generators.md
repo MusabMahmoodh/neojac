@@ -162,7 +162,9 @@ A `yield` is also an expression: `got = yield total;` pauses the generator, and 
   as its `value`.
 - **The type of a `yield` is `S`** in a generator declared `-> Generator[Y, S, R]`: `got: int =
   yield 0;` checks, and a sent value of another type raises `TypeError` where the `yield` gives it
-  (`expected int, found str`), as a value of type `any` does wherever a typed place takes it. In a
+  (`expected int, found str`), as a value of type `any` does wherever a typed place takes it. A
+  union is checked so too, on every host: a generator declared `-> Generator[int, int | None, str]`
+  sent a `str` raises `TypeError: expected int | None, found str` at its `yield`. In a
   generator declared `-> Iterator[Y]` a `yield` is of type `any`, since nothing declares what it
   may be sent.
 - **`send` of an iterator that is no generator** (`iter(xs)`, a `map`) raises `AttributeError`.
@@ -214,8 +216,10 @@ defines it:
 - **What is thrown into it is thrown into `inner`**, at the `yield` where `inner` is paused, and
   **`close()` closes `inner`** before the outer generator ends.
 - **`r` is what `inner` returned**, of type `any`; `None` where it returned nothing.
-- Over an iterator that is no generator, a `send` of a value raises `AttributeError`, and an
-  exception thrown in is raised where the `yield from` stands.
+- Over an iterator that is no generator, a `send` of a value raises `AttributeError` naming the
+  iterable's own class (`'list' object has no attribute 'send'`, `'range'`, `'dict_keys'`), and an
+  exception thrown in is raised where the `yield from` stands. A `yield from` over a list, a range
+  or a dict's view is the direct loop over it.
 
 This holds on every host: natively, on a JavaScript host and in a cpython space.
 
@@ -513,3 +517,5 @@ def words -> Iterator[str] {
 - A generator returns a value only where it is declared `-> Generator[Y, S, R]`, and the value a
   `yield` gives is checked against `S` there.
 - `str(g)` names neither the function nor an address.
+- A `send` through `yield from [1, 2, 3]` names the list in its `AttributeError` (`'list' object
+  has no attribute 'send'`), where CPython, which folds the literal into a tuple, names `'tuple'`.
