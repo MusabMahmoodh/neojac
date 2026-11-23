@@ -896,7 +896,7 @@ neojac writes these from jac.toml and jac.lock now, and git still tracks them
 | File | Moved by | What stands where it was |
 |---|---|---|
 | A manifest `jac.toml` holds, and its ecosystem's own lock that `jac.lock` holds (`package-lock.json`, `Cargo.lock`) | The absorb that first takes it, as it stood | The one neojac writes, which `.gitignore` lists |
-| A build's own files: `setup.py`, `MANIFEST.in`, `binding.gyp` and every other gyp file gyp loaded (`deps/common.gypi`, `deps/sqlite3.gyp`) | An `absorb --record` whose record says all the build made | Nothing |
+| A build's own files: `setup.py`, `MANIFEST.in`, `binding.gyp` and every other gyp file gyp loaded (a `.gypi` it includes, a vendored library's `.gyp`) | An `absorb --record` whose record says all the build made | Nothing |
 | Another tool's lock: `uv.lock`, `pnpm-lock.yaml`, `bun.lock` | An absorb, once each of its pins is reproduced or accepted | Nothing |
 
 - **A manifest is kept as it stood, and neojac's stands in its place.** neojac writes the file
