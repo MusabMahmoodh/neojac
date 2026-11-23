@@ -93,7 +93,9 @@ The calls a server answers at once work on one graph in memory. It is written:
 - **When an endpoint returns, a stream ends or is closed because its client has gone, or a
   scheduled function ends.** What is in memory is compared with what was read, and what changed is written: each node and edge whose fields
   changed, and each made since that a kept node leads to. The write is of everything in memory, so
-  it takes with it what a call still running has changed so far.
+  it takes with it what a call still running has changed so far. If that call is then run again
+  ([below](#several-instances-on-one-store)), what was written of it is in what it starts on, and
+  that much of its work is done twice; if it fails instead, that much of it is kept.
 - **Where the program calls `commit()`**, from `stdjac`: the same write, now. It is for a
   call that runs long, or a stream, whose work so far should be kept whatever happens next.
 - **What is taken out of what is kept:** an edge the program deleted, and a node with no edge into
@@ -102,7 +104,7 @@ The calls a server answers at once work on one graph in memory. It is written:
   from nodes another walk still reaches. `sweep()` takes those out, and with them the files no
   kept row holds any longer ([Files](files.md#when-a-file-goes)).
 - An endpoint that raises, and a stream that raises, writes nothing of its own; what it changed
-  in memory is written with the next write.
+  in memory is written with the next write, or put back if a write is refused first.
 
 ## Several instances on one store
 
@@ -111,15 +113,30 @@ all reach, as the standard one's file is for the programs of one machine.
 
 - **A call starts on what the others have written.** As it starts, what other instances wrote
   since this one last looked is taken in: a node in memory is given its new fields, and gains and
-  loses the edges it gained and lost.
+  loses the edges it gained and lost. A node or edge that a call still running has changed is left
+  as that call has it: its write meets the other's.
 - **A write that another's write got ahead of is not made.** Every kept node and edge has a
   version, and a write expects each one it changes to be as it was read. When one is not, nothing
-  of the write is kept, what the call changed in memory is put back, and **the call runs again**,
-  on what the other wrote. So an endpoint's body may run more than once: what it does outside the
-  graph (a request it sends, a file it writes) is done each time.
+  of the write is kept. The calls an instance answers at once share its graph in memory, so every
+  call it has in flight may have worked on what the other wrote, and **each of them runs again**:
+  - a call that would start meanwhile waits;
+  - each call in flight runs to its end. One that returns writes nothing and waits; one that
+    raises answers as it does. A stream ends at its next item, with an `error` event whose
+    `"kind"` is `"conflict"`;
+  - once none of them runs, what is in memory is put back as it was read, and the calls that
+    waited go on, each on what the other wrote.
+
+  So an endpoint's body may run more than once: what it does outside the graph (a request it
+  sends, a file it writes) is done each time.
+- **What it costs.** A call that would start waits until the calls in flight when the write was
+  refused have ended, so a call that waits long holds the others long, and a call that calls its
+  own server over HTTP meanwhile waits for its request's timeout. The loop
+  ([Calls at once](server.md#calls-at-once)) never waits: a scheduled function due meanwhile runs
+  at its next turn, and a call of the instance's that a node space makes, which runs on the loop
+  too, fails with the conflict.
 - **After 4 tries the call fails:** its caller gets `409` with `"kind": "conflict"`. `commit()`
-  called by the program raises `StoreConflict` (from `stdjac`) instead, since what a stream has
-  sent cannot be run again.
+  called by the program raises `StoreConflict` (from `stdjac`) instead, there and while the
+  instance puts a refused write back, since what a stream has sent cannot be run again.
 
 ```jac
 import from stdjac { commit }

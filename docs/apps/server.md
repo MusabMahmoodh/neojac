@@ -284,10 +284,17 @@ def:pub sell -> bool {
 
 - **The graph's store and the accounts file are used by one thread at a time.** A program needs no
   lock of its own for them.
+- **A write that another instance's got ahead of stops the calls that would start** until every
+  call in flight has ended, and then runs those in flight again, each on what the other wrote
+  ([Several instances on one store](data.md#several-instances-on-one-store)). A call that waits
+  long holds them long; a call that calls its own server over HTTP meanwhile waits for its
+  request's timeout. A call made from within a call (through a space the app runs in its process,
+  or by a thread the call started) is part of that call, and never waits for it.
 - **The loop** is the thread the program started on. It takes connections, reads each request and
   hands it to its call's thread, and runs [scheduled functions](#scheduled-functions-schedule) between
   requests. While a scheduled function runs, the calls already being answered go on, and no new
-  request is read.
+  request is read. It never waits for a refused write to be put back: a scheduled function due
+  meanwhile runs at its next turn.
 
 ## Signing in
 
