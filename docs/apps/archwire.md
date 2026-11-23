@@ -193,16 +193,15 @@ name exactly. By host, it also starts from:
 
 | Host | Also a root |
 |---|---|
-| `native` | Each module directly in the directory of a `pkg.*` pattern |
+| `native` | Every module its patterns hold, at any depth: each is checked and built, and its module code runs where it is first imported |
 | `cpython` | Every module its patterns name, at any depth: Python finds a module by its name as it runs (a test runner's collection, a module imported by a string), so each is emitted, and starts where Python first imports it |
 | `node`, `browser` | Every module its patterns hold, at any depth, whether or not anything imports it: a JavaScript tool finds a module by its path (a bundler, a test runner, a page of the project's, [Pages](pages.md)), so each is checked in the space and emitted |
 | `wasm` | Nothing more: its module is the first one its patterns name |
 
-Everything those modules import comes with them. So on a JavaScript or a cpython host a module
-under a pattern is the space's and is checked there for that host though nothing imports it: a
-file of the tree that is no module of the program (an example a site shows as text) belongs under
-`[project] exclude` in `jac.toml`. On a native host a module nothing reaches is not built. On
-every host a module that only another target's [`comptime if`
+Everything those modules import comes with them. So on every host but wasm a module under a
+pattern is the space's and is checked there for that host though nothing imports it: a file of
+the tree that is no module of the program (an example a site shows as text) belongs under
+`[project] exclude` in `jac.toml`. On every host a module that only another target's [`comptime if`
 branch](../language/compile-time.md#among-declarations-and-members) imports is not loaded for this
 target, though a pattern names it.
 

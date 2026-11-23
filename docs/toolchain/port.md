@@ -138,7 +138,10 @@ TypeScript in its `tsconfig.json`'s program (its libraries, its module resolutio
 with: those of the `[extensions]` row whose `cargo` is the crate, else its defaults (two rows
 naming it with different features refuse it). rustc reads a crate whole, so its files are one
 group of the plan: each is its own source, ported to its own module, read through the crate's
-root, and they port together or not at all. A C file a unity build compiles only through another
+root, and they port together or not at all. A crate that ports whole leaves `jac.toml` and
+`jac.lock`: its `[cargo."<directory>"]` table goes, and each `[extensions]` row built from it
+names the Jac instead, `jac = "src/py.jac"`, the port of the file that holds its `#[pymodule]`,
+its features dropped ([Extension modules](packages.md#extension-modules)). A C file a unity build compiles only through another
 source's `#include` is read in that source's translation unit, and ports with it: the source and
 the files it includes port together or not at all (E4010 for such a file ported alone or held
 back, E4043 for the source held back).
@@ -281,7 +284,9 @@ host builds it, then each target's variant, under that target's operating system
 architecture, its variant file in place of the module's file: the Windows variant is checked
 with Windows' system headers. So a C record a system header declares with other fields on
 another target (`struct stat`) is that target's record in that target's check, and meets no
-other declaration of it ([one record across the program](../interop/c-libraries.md#one-record-across-the-program)).
+other declaration of it ([one record across the program](../interop/c-libraries.md#one-record-across-the-program)). A module only another platform's C table holds (a Linux source, from macOS) is checked under
+that platform, with its C module's interface read for it, and what fails there is reported as
+that platform's check found it.
 
 ## What is refused
 

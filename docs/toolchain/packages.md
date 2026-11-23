@@ -549,7 +549,9 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   ([Porting Rust](../interop/port-rust.md)): `#[pyclass]` with its `#[pymethods]` is an `obj`
   holding the crate's value in a `:priv` field, with `__module__` `builtins` as PyO3 gives it.
   The extension is built from that module once its `[extensions]` row names it by `jac`
-  (`jac = "src/py.jac"`) in place of the crate's `cargo`; port leaves the row as it is.
+  (`jac = "src/py.jac"`) in place of the crate's `cargo`. Port writes that row where the crate
+  ports whole, the port of the file that holds `#[pymodule]`, and drops the crate's
+  `[cargo."<directory>"]` table ([port](port.md)).
 
 - **The C modules it links are linked with it.** A wire from a file of one C module to a file
   of the extension's says so: that module's objects are made a library and given to the link,
@@ -998,7 +1000,9 @@ recorded
   tree with its packages installed (`neojac install` first). Each addon it links
   (`build/Release/<name>.node`) is traced as a Python project's module is. Node's headers, which
   node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`). node-gyp
-  runs `make`, which the system has to have.
+  runs `make`, which the system has to have. A tree some of whose files `neojac port` made Jac
+  is built in its laid tree ([A project's own suites](test.md#a-projects-own-suites)), where its
+  scripts find what they found, and what the build made there is recorded as one run in the tree.
 - **An addon is where the build put it.** On Linux node-gyp links `build/Release/obj.target/<name>.node`
   and copies it to `build/Release/<name>.node`: the module is the copy nearest the tree's root,
   found by its bytes, so it has one path on every system.
