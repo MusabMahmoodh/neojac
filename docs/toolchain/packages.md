@@ -692,7 +692,9 @@ source distribution) is built with neojac's own compilers, not with whatever the
   `neojac c++` and `neojac ar` of the neojac that is running, each left as it is where the
   environment already names one. `neojac install`, `neojac npm` and `neojac npx` all do.
 - **neojac's cargo is first on `PATH`**, with the rest of what `neojac cargo` gives a build,
-  where the toolchain has Rust.
+  where the toolchain has Rust. PyO3's build script among them is given neojac's own CPython,
+  the one `neojac python` runs, by `PYO3_PYTHON`: a Python package built from a crate's source
+  distribution is built for the interpreter it is installed for, with no Python on `PATH`.
 - **What a build needs besides is the machine's**: `make` for `node-gyp`, and on macOS the
   `libtool` that node-gyp makes a static library with.
 
