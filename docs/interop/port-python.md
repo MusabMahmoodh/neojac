@@ -46,7 +46,7 @@ held in a variable made where the `def` runs.
 | `lambda x, y=1: x + y` | `lambda (x: any, y: any = 1) -> any { x + y }` |
 | `f(*xs, **kw)`, `[*xs, y]`, `{**d, k: v}` | The same |
 | `(x := v)` | `(x := v)` |
-| `yield v`, `yield from xs` as statements | `yield v;`, `yield from xs;`, in a function that returns `Generator[any, any, any]` |
+| `yield v`, `x = yield v`, `yield from xs` | `yield v;`, `x = (yield v);`, `yield from xs;`, in a function that returns `Generator[any, any, any]`: a `yield` gives what `send` sent |
 | `async def`, `await`, `async with`, `async for` | The same |
 | `del x, xs[i], d[k]`; `del o.a` | `del x, xs[i], d[k];`; `delattr(o, "a");` |
 | An int, a float, a str, bytes, `True`, `False`, `None`, `...` | The same literal |
@@ -71,7 +71,6 @@ construct in the table whose Jac would mean something else (E4005):
   one variable, and Jac's a variable for each pass.
 - **`global x` in a function inside one whose local `x` is.** Assigning `x` in Jac assigns the
   enclosing function's local.
-- **The value of a `yield`.** A Jac generator's `yield` gives None, and it has no `send`.
 - **A member declared in two arms of a class body's `if` whose test only the running program
   knows.** A Jac class declares each member once.
 - **A module-level function, class or import that the module's code binds again.** Its Jac
