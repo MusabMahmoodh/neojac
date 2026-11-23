@@ -750,7 +750,7 @@ neojac npx tsc --version
 - Node exports Node-API, Node's C++ API, V8's and libuv's (what their headers mark for export), as
   Node's own Windows build does. So the native addons packages ship load as they do on Node:
   Node-API addons, and V8 addons built against the same C++ library, libc++. Their headers are in
-  `lib/node/include/`; build one with [`neojac cc`](c-and-cpp.md) (`-shared -fPIC` on Linux,
+  `lib/node/include/node/`; build one with [`neojac cc`](c-and-cpp.md) (`-shared -fPIC` on Linux,
   `-bundle -undefined dynamic_lookup` on macOS). An addon of Node's C++ API and V8's (`node.h`,
   `v8.h`) builds with `neojac c++` as node-gyp builds one: in C++20, with the module's name
   defined.
@@ -760,10 +760,15 @@ neojac npx tsc --version
   code that the C module holds and no npm tree's space takes, and the addon is then built from
   that Jac with the C that stays, exporting Node-API's entry points
   ([port](../toolchain/port.md#in-a-project)).
+- A C library a package vendors (`deps/sqlite3`, a C module of its own) is linked into the addon
+  by the addon's row, `links = ["deps/sqlite3"]`, which the record writes, and never left to
+  Node: Node exports libuv's functions, and an addon that left a vendored copy of one of them
+  undefined would run on Node's. A build that leaves such a symbol undefined is refused (E5270)
+  ([Extension modules](../toolchain/packages.md#extension-modules)).
 
 ```sh
 neojac c++ -std=c++20 -DNODE_GYP_MODULE_NAME=hello -bundle -undefined dynamic_lookup \
-    -I <toolchain>/lib/node/include hello.cc -o hello.node
+    -I <toolchain>/lib/node/include/node hello.cc -o hello.node
 neojac node -e 'console.log(require("./hello.node").hello(14))'
 ```
 

@@ -270,7 +270,10 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
 - `vendored = true` says the module is another project's code kept in this repository (a
   library's amalgamation, a dependency's sources): it is built as it is, and
   [`neojac port`](../toolchain/port.md#in-a-project) reads none of it (a path into it is E4011).
-  No tool can tell that from the files, so `absorb` never writes it: the project says it.
+  No tool can tell that from the files, so `absorb` never writes it: the project says it. An
+  extension module or an addon that uses it links it by its row's `links`
+  ([Extension modules](../toolchain/packages.md#extension-modules)), and never takes its
+  functions from the process that loads it (E5270).
 - `jac` lists the Jac modules the module's own sources were ported to, by paths from its
   directory: [`neojac port`](../toolchain/port.md#in-a-project) takes a source off `sources` and
   lists its Jac here. They are the module's code as its C was, never a space's: a program, an

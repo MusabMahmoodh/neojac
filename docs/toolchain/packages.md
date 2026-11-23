@@ -584,10 +584,22 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   `[cargo."<directory>"]` table only its package and the dependencies its Jac imports
   ([port](port.md)).
 
-- **The C modules it links are linked with it.** A wire from a file of one C module to a file
-  of the extension's says so: that module's objects are made a library and given to the link,
-  as a build system gives a static library. What each exports is what its sources and its flags
-  say, with nothing hidden on neojac's account.
+- **It links its own C module and the C modules its `links` names, and no others.** A row
+  built from a C module may list the other C modules of the project its link takes, each by the
+  directory of its table: `links = ["deps/sqlite3"]` (`neojac absorb --record` writes it from the
+  link it recorded). Each one's objects are made a library and given to the link, as a build
+  system gives a static library, whether the extension is built from the C module's C and C++ or
+  from their Jac. What each exports is what its sources and its flags say, with nothing hidden on
+  neojac's account. The archwire's flows say which names move between files, not what is linked.
+  An extension that leaves undefined a symbol one of the project's C modules defines is refused
+  after its link and removed (E5270): the process that loads it would resolve the symbol from its
+  own copy, as Node gives libuv's.
+
+  ```toml
+  [extensions."build/Release/kvstore"]
+  c = "src"
+  links = ["deps/sqlite3"]
+  ```
 
 ## Building and testing a Python project
 
@@ -1059,8 +1071,9 @@ recorded
 
 - **An npm tree with a `binding.gyp` is recorded by its node-gyp build**, npm's own, run in the
   tree with its packages installed (`neojac install` first). Each addon it links
-  (`build/Release/<name>.node`) is traced as a Python project's module is. Node's headers, which
-  node-gyp fetches for the build, are named as the toolchain's (`{lib}/node/include`). node-gyp
+  (`build/Release/<name>.node`) is traced as a Python project's module is. node-gyp builds
+  against the toolchain's Node, whose headers are in `{lib}/node/include/node`, and fetches
+  nothing for them; they are named as the toolchain's. node-gyp
   runs `make`, which the system has to have. A tree some of whose files `neojac port` made Jac
   is built in its laid tree ([A project's own suites](test.md#a-projects-own-suites)), where its
   scripts find what they found, and what the build made there is recorded as one run in the tree.
@@ -1072,7 +1085,9 @@ recorded
   found by its bytes, so it has one path on every system.
 - **A static library the link took is a C module of its own.** Each of its members is the object
   a recorded run compiled, found by its bytes, so whichever archiver made the library need not
-  be neojac's (on macOS node-gyp uses the machine's `libtool`).
+  be neojac's (on macOS node-gyp uses the machine's `libtool`). The extension's row lists each
+  such module in `links`, in the order of the link; recording again on another platform keeps the
+  modules the row listed already, first.
 - **A C module's `headers` are the headers of its directory its build read**, written for each
   recorded platform under its `[target.<os>]` table, so that the module's interface on each
   platform is what that platform's build compiled against (`arch/osx/init.h` on macOS, never
@@ -1095,12 +1110,13 @@ recorded
   ([C modules](../interop/c-modules.md#the-manifest)). What only says which system the build is
   for (`-arch`, `-mmacosx-version-min`), where it writes its dependency files (`-MMD`, `-MF`),
   and where it put its own output (`-L./Release`, a directory a recorded run made a file in) is
-  not recorded.
+  not recorded, nor is an include directory that does not exist and from which the compile read
+  nothing.
 
   ```toml
   [c.src]
   sources = ["kvstore.cpp"]
-  include = ["{lib}/node/include", "../node_modules/node-addon-api", "../deps/sqlite3"]
+  include = ["{lib}/node/include/node", "../node_modules/node-addon-api", "../deps/sqlite3"]
   cxxflags = ["-O3", "-fvisibility=hidden", "-flto", "-std=c++20"]
   ldflags = ["-Wl,-search_paths_first", "-Wl,-dead_strip"]
 
@@ -1110,6 +1126,7 @@ recorded
 
   [extensions."build/Release/kvstore"]
   c = "src"
+  links = ["deps/sqlite3"]
   recorded = ["macos-aarch64"]
   ```
 
