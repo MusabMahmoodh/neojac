@@ -204,9 +204,9 @@ That is `py/main.py` for the `main.jac` above.
 | `__main.mjs` | A node space's entry, which `neojac node` runs |
 | `@jac/` | The JavaScript runtime the modules import (stdjac's files, and the runtime file of the space's `ui` plugin where it names one), and `bundle.json`, what the space's bundler is told |
 
-`neojac node --enable-source-maps` reports an exception's frames at the lines of the `.jac` files. A source map is version 3: its `sources` are the Jac files' paths from the project's root, and its `sourceRoot` leads from the map back to the project's root (`"../../"` for `out-js/lib/greet.mjs.map`).
+`neojac node --enable-source-maps` reports an exception's frames at the lines of the `.jac` files. A source map is version 3: its `sources` are the Jac files' paths from the project's root, and its `sourceRoot` leads from the map back to the project's root (`"../"` for `out-js/jsmain.mjs.map` above, `"../../"` for a module `lib.greet`).
 
-`emit-js --laid` writes the maps for a laid npm tree ([A project's own suites](test.md#a-projects-own-suites)), which holds each Jac source at its project path inside `<dir>`: each map's `sourceRoot` leads to `<dir>` itself (`"../"` for `out-js/lib/greet.mjs.map`), so a tool that reports a location names the source where it stands in that tree. `neojac test`, `neojac npm` and `neojac npx` write a laid tree's emission this way themselves.
+`emit-js --laid` writes the maps for a laid npm tree ([A project's own suites](test.md#a-projects-own-suites)), which holds each Jac source at its project path inside `<dir>`: each map's `sourceRoot` leads to `<dir>` itself (`"./"` for `out-js/jsmain.mjs.map`, `"../"` for `lib.greet`'s), so a tool that reports a location names the source where it stands in that tree. `neojac test`, `neojac npm` and `neojac npx` write a laid tree's emission this way themselves.
 
 - A Jac name that JavaScript reserves is written with a `$` after it: a function `undefined` is `undefined$`, and so are `catch`, `throw`, `debugger`, `globalThis`, `arguments` and `eval`. Every other name is kept as written, `Set`, `Error`, `Array` and `print` among them.
 - In a `.jsx` module, another module's functions are read through its namespace: `import * as $m0 from "./helper.jsx"`.
