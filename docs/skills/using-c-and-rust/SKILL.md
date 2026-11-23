@@ -84,11 +84,13 @@ x=42
 
 Buffers and pointers, as above: a `bytearray` argument lets C write in place; `&mut x` lends a
 variable's address for one call; memory from `calloc` is a `ptr[T]`, indexed unchecked, freed by
-C's `free`; `p.view(n)` is a bounds-checked view, indexed (never iterated) with
+C's `free`, its size `sizeof(T)` (`import from jaclang.comptime { sizeof }`); `p.view(n)` is a bounds-checked view, indexed (never iterated) with
 `range(len(v))`. A Jac `list` is not a C array: copy into C memory. Where C keeps an address
 after the call, use `pin(x)` (`neojac docs pin`); to give C a Jac object as a callback's user
 data, `hold(obj)`, taken back in the callback by `held[T](p)` and given up by `release(p)`.
-Only a named function is a callback.
+Only a named function is a callback as it is; a function value (a variable, a parameter, a
+record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cmp)`, and one with
+no C address (a closure that captures) raises `TypeError` there.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
