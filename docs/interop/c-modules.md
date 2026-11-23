@@ -359,7 +359,8 @@ Nothing needs to be `extern "C"`.
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
-| A record C could declare (a C struct, or a record of an `extern "C"` block), by value, by const or rvalue reference, or by pointer | The C record, one type across the program by its tag and members, given and taken by value as C passes it, and `ptr[R]` by pointer. By non-const reference it is not bound: Jac would copy it, where C++ writes through. A C++ class by value is no C type, so a C function pointer whose signature names one is skipped, with why |
+| A record C could declare (a C struct, or a record of an `extern "C"` block), by value, by const or rvalue reference, or by pointer | The C record, one type across the program by its tag and members, given and taken by value as C passes it, and `ptr[R]` by pointer. By non-const reference it is not bound: Jac would copy it, where C++ writes through |
+| A pointer to a function of C++ types (`int (*f)(Counter &, int)`) | Its Jac form, `Callable[[Counter, i32], i32]`, given a def of the calling module by its name ([below](#a-jac-function-c-calls-back)) |
 | `std::initializer_list<E>`, by value or `const &` | A Jac list, `list[E]`, its items made into `E`s one by one as braces make them: `total(std::initializer_list<int>)` is `total([i32(1), i32(2)])`. Where `E` has exactly one constructor from one class or C record, the list holds those (`list[R]`); an `explicit` one raises `ValueError` when the call runs. The overload is named `list` among its set's (`define_ptr_i8_list_ptr`). A `const std::vector<E> &` stays `&std_vector[E]` |
 | A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
@@ -684,6 +685,70 @@ constructor.
 - C++ making the object for a class template a C++ source module's header declares, rather than a
   header library: such an instance is made in `libcxx`'s unit, and has no constructor for `init`
   yet.
+
+### A Jac function C++ calls back
+
+A C++ library that keeps a function and calls it later takes a pointer to a function of C++
+types: `void on_bump(int (*f)(Counter &, int))`. A Jac function of the calling module is given
+there by its name, as a C callback is ([Callbacks](c-libraries.md#callbacks)), and C++ calls it
+through a function the interface writes for that pointer type and that Jac function.
+
+- **The parameter is the pointer's Jac form**, `Callable[[Counter, i32], i32]` for the member
+  above, and the function given must have exactly that signature. A class the pointer takes,
+  by reference or by value, is the library's class in the Jac signature
+  (`def bump_by(c: Counter, step: i32) -> i32`): one taken by reference is the object C++ holds,
+  lent to the call, so what the function does to it C++ sees; one taken by value is a copy the
+  function owns. A class the function gives back by value is given to C++ as a copy.
+- **Only a def of the calling module, given by its name**: a lambda, a bound method, a function
+  with captures, or a def of another signature is E1639. A static method, or a def another
+  module gives, is not given yet (E5090).
+- **An exception the function raises unwinds C++'s frames** as a C++ exception, running their
+  destructors, and is raised again in the Jac code that called the outer C++ function, as the
+  same object (`e is` what was raised).
+- **It is called on the thread that called into C++.** Jac never runs beside the thread running
+  Jac, so a library that calls the function from a thread of its own ends the program there,
+  printing the function and the rule the call breaks: `neojac: the Jac function bump_by was
+  called from C++ on a thread other than the one that started the program, while the program
+  runs Jac on that one thread alone`, or, where the program has started threads of its own, `on
+  a thread whose state the Jac runtime never set up`.
+
+<!-- example: not checked: needs the C++ header library whose Hooks keeps a function pointer -->
+```jac
+def bump_by(c: Counter, step: i32) -> i32 {
+    return c.bump(step * i32(2));
+}
+
+def remade_by(c: Counter, step: i32) -> Counter {
+    c.bump(step);
+    return Counter.make(c.value() * i32(10));
+}
+
+def bump_refused(c: Counter, step: i32) -> i32 {
+    raise ValueError(f"no bump by {step}");
+}
+
+with entry {
+    h = Hooks.make(i32(1));
+    before = h.bumped(i32(3));
+    h.on_bump(bump_by);
+    h.on_made(remade_by);
+    print(before, h.bumped(i32(3)), h.value(), h.remade(i32(2), i32(5)));
+    h.on_bump(bump_refused);
+    try {
+        h.bumped(i32(4));
+    } except ValueError as e {
+        print(e, h.value());
+    }
+}
+```
+
+```text
+-1 7 7 70
+no bump by 4 7
+```
+
+`Hooks` keeps the counter it was made with, calls the kept `bump` with it by reference and `made`
+with a `Counter` by value, and gives `-1` while it keeps none.
 
 ### C++ values whose destructor runs code
 
@@ -1119,6 +1184,7 @@ with entry {
 | E1001 | A C record given where another module's record of its tag, with other fields, is expected |
 | E1237 | C data a Jac module gives C of a type C cannot read |
 | E1637 | A C++ value whose destructor runs code, taken from a managed place into an `own` binding |
+| E1639 | What is given for a C++ pointer to a function is no def of exactly its signature, given by its name: a lambda, a bound method, another signature |
 | E5090 | A C module in a build for `wasm32-wasi` |
 
 `neojac docs E5133` prints any of these with its message.
