@@ -95,8 +95,11 @@ ENOENT
      into a `dict`. `str(arr)` is JavaScript's `String()`, `1,2,3`.
    - `undefined` is `None`; `null` is `JsNull` from `import from js { JsNull }`.
    - An `int` past 2**53 sent to JavaScript is `OverflowError`.
-   - A JavaScript callback may get more arguments than it names: give the Jac function
-     `*rest: any`.
+   - A Jac function JavaScript calls binds JavaScript's arguments by its parameters, on every
+     host: one left out is its default (None where it has none), and arguments past what it
+     names are dropped, as JavaScript drops them, or are its `*rest`.
+   - A Jac function JavaScript holds is the function itself (its face): on a JavaScript host a
+     property either side sets is the other's, and `new f()` constructs with `f.prototype`.
    - JavaScript's `TypeError` and `RangeError` arrive as `TypeError` and `ValueError`, anything
      else as `RuntimeError`; `js_error(e)` is what was thrown, with its `.code` and `.name`.
    - Where a value's type is not known and JavaScript's own meaning is wanted, `js` has each
@@ -109,7 +112,10 @@ ENOENT
      `js_method(o, "join", ", ")`, `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
      for `import.meta`, `js_new_target()` for `new.target`, `js_prototype(f)` for
      `f.prototype`, `js_as_method(f, "m")` for an object literal's method `m` (`f` takes the
-     object first), `js_global(name)` (`neojac docs js_add`).
+     object first), `js_global(name)`, `js_async_generator(g)` for a Jac async generator as
+     JavaScript's own (`neojac docs js_add`).
+   - On a JavaScript host a Jac async generator crosses as JavaScript's async generator, and
+     `async for` takes JavaScript's async iterables (`Symbol.asyncIterator`, a stream).
    - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
      JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
      it uses `self` (`neojac docs E2252`).

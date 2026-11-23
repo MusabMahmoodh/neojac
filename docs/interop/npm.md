@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -203,19 +203,82 @@ objects with the same properties are not equal. `copy.copy` of one is that same 
 | `bytes`, `bytearray` | a new `Buffer` of its bytes |
 | `list`, `tuple` | a new array of what its items become |
 | `dict` | a new plain object when its keys are all strs (each an own data property, `__proto__` among them), else a new `Map` |
-| a function or lambda | a JavaScript function that calls it with the arguments JavaScript passes (below) |
+| a function or lambda | the function itself, as JavaScript calls it (below) |
 | any other Jac object | a JavaScript object wrapping it |
 | a `JsObject` | what it holds |
 
 A Jac function or object stays one JavaScript value for as long as JavaScript holds it, and comes
-back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` added. Natively a
-JavaScript caller's arguments are the function's as JavaScript passes them, so a callback that
-may be given more than it names (`array.map` passes three) takes `*rest`. On a JavaScript host
-(a node or browser space) a function with a `*` or `**` parameter takes them by its parameters:
-its positional parameters by position, its `*args` the arguments past them, a parameter left out
-its default (None where it has none), its `**kwargs` none. What the function gives back to
-JavaScript crosses as an argument does: a function as its JavaScript function, a list as a new
-array, a dict as an object, and of a coroutine a promise of that.
+back to Jac as itself: `ee.off("x", cb)` removes the listener `ee.on("x", cb)` added.
+
+**A Jac function is one function to both sides.** What JavaScript holds of it, its face, is the
+function itself as JavaScript calls it, and its `prototype.constructor` is the face. On a
+JavaScript host a property either side sets on it is the other's (JavaScript's `f.tag = "x"`,
+Jac's `setattr(f as any, "tag", "x")`), and it is constructible where the function is, as in
+JavaScript: `new f(...)` constructs an object of `f.prototype`, `self` the new object, and a
+subclass's `super(...)` reaches it, where an async function or a generator function is not
+constructible. A module's `default` that is a function crosses as its face, as a CommonJS
+module's exports do. Natively the face holds what JavaScript sets on it, and a native function
+takes no attribute of Jac's.
+
+**JavaScript's arguments are bound by the function's parameters**, on every host: its positional
+parameters by position, its `*args` the arguments past them, a parameter left out its default
+(None where it has none, as `undefined` is), and its `**kwargs` none. Arguments past what it names
+are dropped where it has no `*args`, as JavaScript drops them, so a callback that `array.map`
+gives three arguments may name one. What the function gives back to JavaScript crosses as an
+argument does: a function as its face, a list as a new array, a dict as an object, and of a
+coroutine a promise of that.
+
+**An async generator crosses as JavaScript's own** on a JavaScript host: where a Jac async
+generator reaches JavaScript (an argument, a result), JavaScript's `for await` drives it, its
+`next(v)`, `return(v)` and `throw(e)` answer as an async generator's do (`{ value, done }`, a call
+made before the last one settles waits its turn), and it is an `[object AsyncGenerator]`.
+`js_async_generator(g)` of `js` gives that face in Jac: `js_method(js_async_generator(g), "next")`
+is JavaScript's `g.next()`. A Jac `async for` takes JavaScript's async iterables, anything with a
+`Symbol.asyncIterator` (an async generator, a stream). Natively neither crosses yet: a Jac async
+generator handed to JavaScript is a `TypeError`, and `async for` over a JavaScript value an
+`AttributeError`.
+
+<!-- example: not checked: runs in a node space -->
+```jac
+import from "node:vm" { runInThisContext }
+import from js { js_async_generator, js_method }
+
+async def count(n: int) -> AsyncIterator[int] {
+    for i in range(n) {
+        yield i;
+    }
+}
+
+async def total(it: any) -> int {
+    t = 0;
+    async for v in it {
+        t += v;
+    }
+    return t;
+}
+
+async def main {
+    js_gen = runInThisContext("(async function* () { yield 1; yield 2; yield 3; })");
+    print(await total(js_gen()));
+    sum = runInThisContext(
+        "(async (g) => { let t = 0; for await (const v of g) t += v; return t + ' ' + Object.prototype.toString.call(g); })",
+    );
+    print(await sum(count(4)));
+    g = js_async_generator(count(2));
+    first = await js_method(g, "next");
+    print(first.value, first.done);
+}
+
+with entry {
+    await main();
+}
+```
+
+```text
+6
+6 [object AsyncGenerator]
+0 False
+```
 
 ```jac
 import from js { JsNull }
@@ -292,6 +355,7 @@ operator it names; natively each runs in the program's Node.
 | `js_global(name)` | The global `name` read where the call is written |
 | `js_as_method(f, key)` | An object literal's method of `key` made of `f`, which takes the object, JavaScript's `this`, as its first parameter: `{ m(x) { ... } }` is `("m", js_as_method(m, "m"))` among `Object.fromEntries`' entries. Its `name` is the key's, JavaScript cannot construct it (`new o.m()` is a `TypeError`), and of a generator function it is a generator method |
 | `js_prototype(f)` | `f.prototype`: of a Jac function, that of the face JavaScript calls with `new` (JavaScript's `f.prototype.m = ...` is `js_prototype(f).m = ...`); on a JS host only, a `RuntimeError` natively |
+| `js_async_generator(g)` | A Jac async generator as JavaScript's own async generator, which JavaScript's `next`, `return` and `throw` drive ([above](#jacs-values-in-javascript)); anything else as it is |
 | `js_error(e)` | What JavaScript threw that the Jac exception `e` is |
 | `JsNull` | `null` |
 

@@ -91,7 +91,7 @@ modules on this page are such modules.
 | `import from util { twice, Tone as Pitch }` | `twice` and `Pitch`. No `;` follows the braces. |
 | `import from .sibling { name }` | `name`, from a module found relative to this file |
 | `import from . { sibling }` | `sibling`, the module beside this file, whole |
-| `include util;` | Every name `util` declares, as if written here |
+| `include util;` | Every name `util` declares or imports, as if written here |
 | `include from util { pad, trim as strip }` | `pad` and `strip`, as names of this module's own |
 
 - **`import` takes modules; `import from` takes names out of one.** Python's
@@ -241,7 +241,9 @@ with entry {
 ### `include` and a re-export
 
 `include` makes another module's names this module's own, as if they were written here: a module
-that imports this one takes them from it. `include util;` takes every name `util` declares;
+that imports this one takes them from it. `include util;` takes every name `util` declares, and
+every name it imports (`import from .word { loud as shouted }` in `util` makes `shouted` this
+module's too);
 `include from util { twice, counter as count }` takes those named, under the names given. A
 relative path takes no items for all of it: `include from .util`, with no `;`.
 
