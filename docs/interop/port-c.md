@@ -20,7 +20,7 @@ the module `geom`.
 | C | Jac |
 |---|---|
 | `int`, `unsigned`, `long long`, `int64_t`, `signed char`, `unsigned char`, `short`, `double`, `float`, `_Bool` | `i32`, `u32`, `int`, `int`, `i8`, `u8`, `i16`, `float`, `f32`, `bool`: an integer by its width on each target, and a signed 64-bit one is `int`, as a C module's interface declares it |
-| `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32]`, `array[i8, 16]` |
+| `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `long long (*)()` (a function of no prototype, as `FARPROC`), `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32] \| None`, `ptr` (converted to a prototype before each call, as C does), `array[i8, 16]` |
 | `char`, whose sign is the target's: `int n = c;`, `c == 'a'` | `i8` on every target. Its value as a number is the target's: `n = i32(c);`, and `n = i32(u8.wrap(c));` where `char` is unsigned (Linux arm64), the two under `comptime if` where the targets differ |
 | `int f(int a, double b) { }`, `void g(void) { }` | `def f(a: i32, b: float) -> i32 { }`, `def g { }` |
 | `CFSTR("name")` (CoreFoundation's `__builtin___CFStringMakeConstantString`) | `__CFStringMakeConstantString(ptr[i8]("name"))`, the function CoreFoundation's header names for it where the compiler has no builtin, declared in `import from c` |
@@ -36,7 +36,7 @@ the module `geom`.
 | `if (c) { } else if (d) { } else { }`, `while (c) { }` | `if c { } elif d { } else { }`, `while c { }`; a condition that is a number is `c != 0` |
 | GNU's statement expression, `if (({ int t = f(x); t > 2; })) { }`, glibc's `CPU_SET` and `CPU_ISSET` | Its statements written before the statement whose evaluation it begins (an expression statement, an `if`'s condition, a `return`'s value, a declaration's value), then its last expression: `t = f(x);` then `if t > 2 { }`; anywhere else it is refused |
 | `for (int i = 0; i < n; i++) { }`, `for (p = head; p; p = p->next) { }` | `for i = i32(0) while i < n with i += 1 { }`, `for p = head while p != ptr[link](ptr()) with p = p[0].next { }` |
-| `do { } while (c);`, with no `continue` of its own | `while True { ... if not c { break; } }` |
+| `do { } while (c);`; one with a `continue` of its own | `while True { ... if not c { break; } }`; `was_1: bool = True; while was_1 or c { was_1 = False; ... }`, where `continue` goes to the condition as C's does |
 | `return v;`, `break;`, `continue;` | The same |
 | `goto error;` forward, to a label at the top level of the function or of a loop's body, from anywhere before the label: a nested loop, a `switch`, an earlier label's code | `goto_to = 2; break;`: the code before the first label is in a `while True { ... break; }` that a `goto` leaves, with `if goto_to != 0 { break; }` after each loop or `switch` it leaves on the way |
 | `error: free(buf); return NULL;` that a forward `goto` reaches, or that none does; its code may return, go to a later label, or leave its loop | `if goto_to <= 2 { goto_to = 0; ... }`, the k-th label's code, run when the code before falls into it or a `goto` names it; in a loop's body a `continue` or `break` before the label is a `goto` past the body's end; a label no `goto` names is its statement |
@@ -44,18 +44,19 @@ the module `geom`.
 | `a + b`, `a - b`, `a * b`, `a << k` of unsigned integers | `a +% b`, `a -% b`, `a *% b`, `wrapping_shl(a, k)`: they wrap, as C defines |
 | `a / b`, `a % b` of signed integers | `(a // b + 1) if (a % b != 0 and (a < 0) != (b < 0)) else (a // b)`, and the like for `%`: C rounds toward zero and Jac toward negative infinity |
 | `a / b`, `a % b` of unsigned integers | `a // b`, `a % b` |
-| `a / b` of floats | `a / b` where `b` is a literal other than 0; else `(a / b) if b != 0.0 else a * math.copysign(float("inf"), b)`, since Jac raises where C gives an infinity |
+| `a / b` of floats; `x = f() / g();`, whose operands have side effects, where the division is the first thing its statement evaluates | `a / b` where `b` is a literal other than 0; else `(a / b) if b != 0.0 else a * math.copysign(float("inf"), b)`, since Jac raises where C gives an infinity; `was_1: float = f(); was_2: float = g();` before the statement, which divides those: each operand once, in C's order |
 | `a < b`, `<=`, `>`, `>=`, `==`, `!=`, `a && b`, `a \\|\\| b`, `!a` | The same comparisons, `a and b`, `a or b`, `not a`; where C takes the result as a number, `i32(a < b)` |
 | `a & b`, `a \\| b`, `a ^ b`, `~a`, `a >> k`, `-a`, `c ? a : b` | `a & b`, `a \\| b`, `a ^ b`, `~a`, `a >> k`, `-a` (`-%a` of an unsigned), `a if c else b` |
 | `x = v;`, `x += v;` and the other compound assignments, `x++;`, `x--;` as statements | `x = v;`, `x += v;` (`x +%= v;` of an unsigned), `x += 1;`, `x -= 1;` |
 | `5`, `5u`, `'a'`, `1.5`, `1.5f` | `5` where its type is given by what takes it, else `i32(5)`, `u32(5)`, `i32(97)`; `1.5`, `f32(1.5)` |
 | `#define SHELF 12` and `SHELF` where a value is taken, a macro whose expansion is one integer | `comptime SHELF: i32 = 12;` and `SHELF`; any other macro is written as what it expands to |
+| `L"text"`, `u"text"`, `U"text"`: a wide string literal | `ptr[u32]("text")` (`ptr[i32](ptr[u32]("text"))` where `wchar_t` is signed), and `ptr[u16]("text")` where `wchar_t` is 16 bits (Windows); `ptr[u16]("text")`, `ptr[u32]("text")`: static NUL-ended data of its code units, as wide as the target's |
 | `p->x`, `*p`, `p[i]`, `&a[i]`, `&p->x`, `p + n`, `p - q`, `NULL`, `if (p)`, `!p` | `p[0].x`, `p[0]`, `p[i]`, `a + i`, `ptr[T](ptr[u8](p) + 8)` (the field's offset), `p + n`, `p - q` (an `int`), `ptr[T]()`, `if not p.is_null()`, `p.is_null()` |
 | `switch (x) { case 1: case 2: f(); break; default: g(); }` | `switch x { case 1: case 2: f(); break; default: g(); }`: Jac's `switch` falls through as C's does |
 | A conversion, written `(long long)x` or made by C: to a type that holds every value | `int(x)`, `float(x)` |
 | A conversion to an integer type that does not hold every value; of a float to an integer | `u8.wrap(x)`, and `int(i64.wrap(x))` to a signed 64-bit integer: it keeps the low bits, as Clang defines; `i32(x)`: toward zero |
 | `(char *)p`, `(void *)p`, `(intptr_t)p`, `(int *)n`, a string literal where its address is taken | `ptr[i8](p)`, `ptr(p)`, `int(p)`, `ptr[i32](int(n))`, `ptr[i8]("...")` |
-| `(void *)f` of a function pointer a variable holds, `(release_fn)-1`, `f == g` of function pointers, a function given to C's `...` | `ptr(f)`, `Callable[[ptr], None](ptr(int(-1)))`, `ptr(f) == ptr(g)`, `ptr(f)`: the C address the value holds; a function's value gives its C trampoline |
+| `(void *)f` of a function pointer a variable holds, `(release_fn)-1`, `f == g` of function pointers, a function given to C's `...`; `f = NULL`, `if (f)`, `!f`, `f == NULL` of a function pointer | `ptr(f)`, `Callable[[ptr], None](ptr(int(-1)))`, `ptr(f) == ptr(g)`, `ptr(f)`: the C address the value holds; a function's value gives its C trampoline; `f = None`, `if f is not None`, `f is None`, `f is None`: a null C address is `None`, and `ptr(f)` of `None` is the null address |
 | `f(a, b)`; `printf("%d\n", n)` of the C library | `f(a, b)`; `printf("%d\n", n)`, with `import from c { def printf(format: str, *args: any) -> i32; }` |
 | `__builtin___strcpy_chk(d, s, n)`, `__builtin___snprintf_chk(b, n, f, k, fmt, ...)`: what `strcpy` and `snprintf` expand to where a header fortifies them | `strcpy(d, s)`, `snprintf(b, n, fmt, ...)`: the C library's function, without the check of a size the compiler would have known |
 | `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
@@ -74,14 +75,16 @@ a record with no name and a bit-field the file declares, a copy of a union a sys
 declares, a `goto` back to a label, into a loop or to a label inside a block other than a loop's
 body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
 argument of a `v` function, a pointer to an array or to a function pointer (the address of an
-array given where C takes another pointer is the address of its first item), a function
-pointer that may be null, a record
+array given where C takes another pointer is the address of its first item), a record
 or a field with an attribute other than packed or aligned, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 
-- **A division of floats whose operands have side effects.** Port tests the divisor, and would
-  evaluate the operands twice. An integer division binds each operand once (`(was_1 := f(x)) %
-  (was_2 := n)`) and tests those.
+- **A division of floats whose operands have side effects, after something else its statement
+  evaluates.** Port tests the divisor, and would evaluate the operands twice. Where the division
+  is the first thing its statement evaluates (`x = f() / g();`, `return f() / g();`), port takes
+  each operand once, in C's order, as a statement before it (`was_1: float = f();`), and divides
+  those. An integer division binds each operand once (`(was_1 := f(x)) % (was_2 := n)`) and
+  tests those, wherever it is.
 - **An assignment, `++` or `--` used for its value where C evaluates it only sometimes** (on
   the right of `&&` or `||`, in an arm of `?:`, in a `for`'s condition or step, in an `else if`'s
   condition), **or whose target has side effects.** Elsewhere port writes it as a statement before
