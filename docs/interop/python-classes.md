@@ -1,6 +1,6 @@
 ---
 description: What a cpython space makes as Python does - a class with a Python base, a Python decorator or a run-time if or a try in its body, and a class in a code body, made where its statement runs; decorators that run as a function is made; annotations Python reads; doc strings; imports in a code body; the names a module's imports bind; generators and raise of any object - and what each is refused as elsewhere.
-keywords: host-made class, class body try, Python base, NamedTuple, dataclass, total_ordering, class decorator, run-time decorator, staticmethod, classmethod, annotations, inspect.signature, __annotations__, Annotated, typing.Any, Python class in Jac, importlib.reload, __spec__
+keywords: host-made class, class body try, Python base, NamedTuple, dataclass, total_ordering, class decorator, run-time decorator, staticmethod, classmethod, annotations, inspect.signature, __annotations__, Annotated, typing.Any, Python class in Jac, importlib.reload, __spec__, spec_from_file_location, module start order, cls static, __qualname__
 grammar: members_try
 ---
 # Classes and decorators in a cpython space
@@ -391,10 +391,15 @@ fields) finds what the source said:
 - `Annotated[T, ...]` is carried with its metadata, and to the checker it is `T`;
 - a `type` alias over Python names is its value: `type SessionDep = Annotated[Session,
   Depends(get_db)];`;
-- `any` is `typing.Any`, a sized number (`i64`, `f32`) is `int` or `float`;
+- a sized number (`i64`, `f32`) is `int` or `float`, and `any` inside a type (`list[any]`) is
+  `typing.Any`;
 - a parameter written with no annotation, `def f(a, b: int)`, has none: `check` reads it as `any`,
   and `__annotations__` holds no entry for it, as Python's own `def f(a, b: int)` holds none. On
-  every other host it is E0052.
+  every other host it is E0052;
+- **a parameter or a result annotated with the bare type `any` has none either**: `any` is Jac's
+  word for what Python leaves unannotated, so `-> any` puts no `return` in `__annotations__`, and
+  a def `neojac port` wrote from an unannotated Python def has the annotations its source had. A
+  `typing.Any` the source wrote stays `typing.Any`.
 
 <!-- example: not checked: runs in a cpython space -->
 ```jac
@@ -413,8 +418,8 @@ with entry {
 
 ```text
 abab 9
-{'y': <class 'int'>, 'return': typing.Any}
-(x, y: int = 2) -> Any
+{'y': <class 'int'>}
+(x, y: int = 2)
 ```
 
 A Python name used as a type (`EmailStr`, `uuid.UUID`, `Literal["a", "b"]`) is `any` to the
@@ -656,9 +661,59 @@ def counted -> int {
 kit.used True 6
 ```
 
+A Jac module starts where Python would start it: in the order of the space's imports, and before
+the code of a Python file that imports it runs, so a Jac module that imports `helper.py` starts
+after the Jac modules `helper.py` imports. Its defs and classes are made where they stand in its
+code, so a reload whose code raises keeps what was made before the raise, as Python's does.
+
+A module loaded by its path under another name (`importlib.util.spec_from_file_location("used",
+path)` of a module the space emitted) is a module of its own, as in Python: its code runs there,
+the names its imports give are bound in it, and `sys.modules` holds it only where the loader puts
+it.
+
 A submodule read through its package (`kit_pkg.drawer`, where `kit_pkg` is a package of the
 space and `drawer` a module in it) is Python's read of the package's attribute, so it is the
 module object itself: `kit_pkg.drawer is drawer`.
+
+## A class's statics through a subclass
+
+A class is Python's own class object in a cpython space, so a static read or written through a
+class's name is Python's attribute of that class: written through a subclass's name or through
+`cls` in a `class def`, it is the subclass's own, and the base keeps its value. A `class def`
+calls another through `cls`, which dispatches on the class `cls` is.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+obj Tallied {
+    static has total: int = 0;
+}
+
+obj Retallied(Tallied) {
+    class def setup -> int {
+        cls.total = cls.base() + 1;
+        return cls.total;
+    }
+
+    class def base -> int {
+        return 10;
+    }
+}
+
+with entry {
+    print(Retallied.setup(), Retallied.total, Tallied.total);
+    Retallied.total = 20;
+    print(Retallied.total, Tallied.total);
+}
+```
+
+```text
+11 11 0
+20 0
+```
+
+Natively a static is one value, the declaring class's, shared by every subclass
+([Fields](../language/fields.md)): `Retallied.total = 20` writes `Tallied.total`, and a write
+or a class-method call through `cls` is E1030.
 
 ## A module's `__file__`
 

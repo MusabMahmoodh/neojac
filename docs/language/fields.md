@@ -116,6 +116,9 @@ with entry {
 - It is read as `Class.name`, or through an instance (`a.made`). It is
   assigned as `Class.name = v`; assigning through an instance is E1030.
 - It is not a constructor argument and is not shown by `repr`.
+- In a cpython space a class is Python's class object, and a static written through a subclass's
+  name, or through `cls`, is that subclass's own attribute, as in Python
+  ([A class's statics through a subclass](../interop/python-classes.md#a-classs-statics-through-a-subclass)).
 - Static fields are initialized when the program starts, with the module's
   `glob`s, in the order they are written, and before its `with entry` code. A
   static's value may read a `glob` or a static declared above it; one declared

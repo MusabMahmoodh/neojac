@@ -114,7 +114,9 @@ HI!
   `neojac emit-py s -o <dir>` writes it there too.
 - **It may import the space's Jac modules.** A Jac module of the space is a Python module of the
   same name at run time, so `helper.py` may `import util` and call `util.twice(2)` for a `util.jac`
-  of the space.
+  of the space. `util` has started by then, as Python starts a module where the import runs: a Jac
+  module that imports `helper.py` starts after `util`
+  ([Classes and decorators in a cpython space](python-classes.md#a-modules-imported-names)).
 
 ## What goes wrong
 
