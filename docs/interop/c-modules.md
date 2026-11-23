@@ -130,7 +130,7 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 
 | C | Jac |
 |---|---|
-| A function | A function; a variadic one takes extra arguments as `*args` does |
+| A function | A function; a variadic one takes extra arguments as `*args` does. One declared without a prototype (`long long count();`) takes no parameters where the module's definition of it takes none, as C reads an empty list in a definition |
 | `int32_t`, `int` | `i32`; `int64_t`, `long long` are `int`, the other integer types their sized type |
 | `double`, `float` | `float`, `f32` |
 | `const char *` parameter | `str \| bytes \| bytearray \| ptr[i8] \| None`: the text, the bytes of a buffer, a pointer passed as it is, or `NULL` |

@@ -31,7 +31,10 @@ In a project (a `jac.toml` above the file, as `neojac absorb` writes one), port 
 - A Python builtin used as a value (`_min=min`, `zip(*rows)`) is `builtins.min`, Python's own; an import of a module that is not installed is E4016 at the module's top only: in a function or a `try` it is Python's `ImportError` where it runs.
 - If `neojac check` or `neojac build` says E4013, a port was killed part-way: run `neojac port --check` on a path of the project, which undoes that change first.
 - A comparison whose value is kept where an operand is a Python object (`kept = a == b`, SQLModel's `User.email == email`) is written as Python's own, `operator.eq(a, b)`, since Jac's `==` on an `any` is a `bool`; one only tested (`if a < b`) stays an operator.
-- A `def` in module code (under `try`, an `if`) is written where it stands, assigning the module's `glob` of its name, as Python binds it.
+- A `def` in module code (under `try`, an `if`) is written where it stands, assigning the module's `glob` of its name, as Python binds it. So is an import in module code (`try: import json` falls back to `json = None`): `import json;` alone, which binds the module's `glob json` where it runs.
+- A parameter the source leaves unannotated stays so (`def f(a, b=1)`): in a `cpython` space it is `any` to `check` and has no entry in `__annotations__`, as in the source. Natively a parameter has a type (E0052): give it one, or `any`.
+- A class Python makes takes its constructor as `init`, which is Python's `__init__`; `super.init(...)` calls the base's.
+- A module that only another platform's `comptime if` branch imports (`_pswindows` on macOS) is not loaded for this platform, so what it uses of that platform alone is not checked here.
 
 Record what the Python does before you change it: run it on inputs that exercise each path and keep the output (`python3 stock.py > py.out`). That file is the port's acceptance test.
 

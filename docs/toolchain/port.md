@@ -45,12 +45,14 @@ if __name__ == "__main__":
     print(gcd(1071, 462))
 ```
 
-`neojac port gcd.py` writes `gcd.jac`:
+`neojac port gcd.py` writes `gcd.jac`, a module of a `cpython` space, whose parameters are as
+the source left them, unannotated:
 
+<!-- example: not checked: a module of a cpython space, where a parameter may have no annotation -->
 ```jac
 """Greatest common divisors."""
 
-def gcd(a: any, b: any) -> any {
+def gcd(a, b) -> any {
     # Euclid's algorithm.
     while b != 0 {
         (a, b) = (b, a % b);
