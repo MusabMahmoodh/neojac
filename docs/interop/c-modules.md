@@ -715,7 +715,11 @@ function the interface writes for that pointer type and that Jac function.
   lambda, a bound method, a function with captures, or a def of another signature is E1639.
 - **An exception the function raises unwinds C++'s frames** as a C++ exception, running their
   destructors, and is raised again in the Jac code that called the outer C++ function, as the
-  same object (`e is` what was raised).
+  same object (`e is` what was raised). Where the module's C++ is built without exceptions
+  (`-fno-exceptions` in its `cxxflags`), nothing can unwind it: the program ends where the
+  function raises, printing the function and the pointer's C++ type (`the Jac function
+  jmain.bump_refused raised an exception through the C++ pointer to a function int
+  (*)(tally::Counter &, int), in C++ built without exceptions`) and the exception's traceback.
 - **It is called on the thread that called into C++.** Jac never runs beside the thread running
   Jac, so a library that calls the function from a thread of its own ends the program there,
   printing the function and the rule the call breaks: `neojac: the Jac function bump_by was
@@ -784,6 +788,10 @@ with entry {
 ```
 
 `with_counter` makes a `Counter` of its second argument and calls the function with it and 2.
+A library's registration has that shape: node-addon-api's `NODE_API_MODULE(name, InitAll)` is a
+call of its `RegisterModule(env, exports, InitAll)`, given the module's own function, and
+[`neojac port`](../toolchain/port.md) writes the addon's Node-API entry points over that call, with
+the ported `InitAll` given by its name.
 
 ### A Jac method C++ calls through a pointer to a member function
 
