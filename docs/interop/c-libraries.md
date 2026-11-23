@@ -191,6 +191,30 @@ with entry {
 8 x=42 2.5
 ```
 
+A string literal is C's static text where a pointer is wanted: `ptr[i8]("text")` is C's
+`"text"`, its UTF-8 bytes NUL-ended, and `ptr[u16]("text")` and `ptr[u32]("text")` are C's
+`u"text"` and `U"text"`, UTF-16 and UTF-32, NUL-ended. Each is data of the program, made where it
+is compiled and never freed. Wide text is made of a literal alone (E1619):
+
+```jac
+import from c {
+    def memcmp(a: bytes, b: ptr[u16], n: u64) -> i32;
+}
+
+with entry {
+    wide = ptr[u16]("héllo");
+    four = ptr[u32]("ok");
+    print(wide[0], wide[1], wide[5], four[0], four[1], four[2]);
+    made = ("abc" + str(3) + "\0").encode("utf-16-le");
+    print(memcmp(made, ptr[u16]("abc3"), u64(10)));
+}
+```
+
+```output
+104 233 0 111 107 0
+0
+```
+
 ### Variadic functions
 
 `*args: any` as the last parameter makes the declaration variadic. Each extra argument is passed
@@ -482,7 +506,7 @@ parameter of a callback receives C's `const char *` as a `str`. A callback's sig
 take `bytes` or a `bytearray` (C passes no length) (E5090). A function pointer's signature may
 take and give a C record by value, passed as C's calling convention passes it: a C function
 called through one ([dl](dl.md#calling-an-address)) gets and gives the record as a direct call
-does. It may take
+does, and so does a Jac function C calls through one. It may take
 another callback: a `Callable` parameter inside a function pointer's signature is passed as its C
 address, and a Jac function C calls through such a pointer takes it as a function value made from
 that address ([below](#a-callback-that-takes-a-callback)). An exception a callback raises does not unwind through C's frames: the callback returns
@@ -576,6 +600,69 @@ with entry {
 True
 handled 15
 ```
+
+### A function pointer that may be null
+
+C's function pointer may be `NULL`, and `Callable[[P], R] | None` says so: a parameter, a result,
+a record's field or a variable of that type holds `None` where C's holds `NULL`. Each place C gives
+one is tested as it crosses: a result C returns as `NULL`, a field that holds it, a parameter C
+passes it to a Jac function as, and `Callable[[P], R](p)` of a null address given to a place of
+the `| None` type, are `None`. `ptr(f)` of an `f` that is `None` is the null address, and a call of one that holds `None` stops
+the program, as a call of `NULL` stops C's: test it first (`if f is not None`). A
+`Callable[[P], R]` place (no `| None`) holds a function value made from the address whatever it
+is; calling one made from the null address is undefined, as in C. This is how `neojac port` writes
+every C function pointer ([Porting C](port-c.md)): `f != NULL` is `f is not None`.
+
+```jac
+import from c {
+    obj Pair {
+        has a: i32,
+            b: i32;
+    }
+
+    obj Op {
+        has run: Callable[[Pair], Pair] | None,
+            total: Callable[[Pair], i32] | None;
+    }
+
+    def signal(sig: i32, handler: Callable[[i32], None] | None) -> Callable[[i32], None] | None;
+}
+
+def swapped(p: Pair) -> Pair {
+    return Pair(a=p.b, b=p.a);
+}
+
+def total(p: Pair) -> i32 {
+    return p.a + p.b;
+}
+
+with entry {
+    op = Op(run=swapped);
+    print(op.total is None);
+    if op.run is not None {
+        s = op.run(Pair(a=i32(1), b=i32(2)));
+        print(s.a, s.b);
+    }
+    t: Callable[[Pair], i32] | None = Callable[[Pair], i32](ptr(total));
+    if t is not None {
+        print(t(Pair(a=i32(3), b=i32(4))));
+    }
+    gone: Callable[[Pair], i32] | None = Callable[[Pair], i32](ptr());
+    print(gone is None, ptr(gone).is_null());
+    print(signal(i32(15), None) is None);
+}
+```
+
+```output
+True
+2 1
+7
+True True
+True
+```
+
+`swapped` and `total` take and give the C record `Pair` by value, as C passes it through a
+function pointer; `signal` gives `None` for the default handler it replaces, C's `SIG_DFL`.
 
 ### Converting a function value
 

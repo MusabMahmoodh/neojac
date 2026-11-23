@@ -343,7 +343,8 @@ Nothing needs to be `extern "C"`.
 | A copy, a destructor | `v.__copy__()`. An object whose destructor runs code is destroyed where its `own` owner's scope ends ([below](#c-values-whose-destructor-runs-code)); any other by `__del__`, when the Jac object is freed |
 | Single inheritance | The Jac classes derive each other: a `Rect` is a `Figure`, and a virtual call runs C++'s final overrider |
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it |
-| An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A non-member operator is not bound |
+| An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)` |
+| A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A result by value | Owned by Jac; a result by reference is borrowed |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
@@ -352,6 +353,7 @@ Nothing needs to be `extern "C"`.
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
 | A member function template | `o.m[A, B](args)`, the instance `m<A, B>`, made for the program ([below](#member-function-templates)) |
+| A function template of a header library | `f_[A, B](args)`, the instance `f<A, B>`, made for the program ([below](#function-templates)) |
 | A class template of the module | `T[A, B]`, the class `T<A, B>` by its template form, made for the program ([below](#class-templates)); a Jac class may derive one made with itself (CRTP, below); the standard library's are `libcxx`'s |
 
 A wire may name an overload set by its C++ name, and binds each member: `tally.tally ++> main {
@@ -412,6 +414,46 @@ with entry {
 ```text
 7.0 7
 9 11
+```
+
+### Function templates
+
+A header library's free function template is called by its instance, named by type arguments in
+brackets as a member template's is: `kept_[Counter](c)` calls `kept<Counter>`.
+
+- **A name that has templates names all its members by their parameters**, as an overload set's
+  are, a template by the types of the parameters that do not name the template's own: beside
+  `template <class T> T kept(T v)`, `int kept(const char *why)` is `kept_ptr_i8`, and the template
+  is `kept_`. A wire names the set by its C++ name (`tally.tally ++> main { kept }`), and binds
+  both.
+- **A non-member operator template** is named `op_` and the operator's word, as a member operator
+  is: `template <class T> Box<T> operator+(const Box<T> &, const T &)` is `op_add`, and `box + 2`
+  is `op_add[i32](box, i32(2))`.
+- **Its type arguments are Jac types**, and **the program's build makes each instance it names**,
+  as a member template's ([above](#member-function-templates)).
+- An instance the template does not take, or whose argument is no class or number type of C++, is
+  E1622.
+
+With `tally/tally.h` holding
+
+```cpp
+template <class T> T kept(T v) { return v; }
+inline int kept(const char *why) { return static_cast<int>(__builtin_strlen(why)); }
+template <class T> Box<T> operator+(const Box<T> &a, const T &b) { return Box<T>(a.get() + b); }
+```
+
+<!-- example: not checked: needs the C module tally, wired tally.tally ++> main { Box, Counter, kept, op_add } -->
+```jac
+with entry {
+    c = Counter.make(i32(13));
+    print(kept_[Counter](c).value(), kept_[float](2.5), kept_ptr_i8("four"));
+    print(op_add[i32](Box[i32].make(i32(1)), i32(2)).get());
+}
+```
+
+```text
+13 2.5 4
+3
 ```
 
 ### Class templates
@@ -572,6 +614,10 @@ module's function gives is the string another's takes.
   end raises `IndexError`, and `v.at_set(i, x)` and `v.op_index_set(i, x)` store as `v.at(i) = x`
   and `v[i] = x` do.
 - **A class whose destructor runs code is bound `own`** (below).
+- **A move assignment is `op_assign_move`**, beside the copy: `a = b` is `a.op_assign(b)`, or, where
+  `operator=` has more overloads, the copy's name among them (`op_assign_std_string`), and
+  `a = std::move(b)` is `a.op_assign_move(b)`, which leaves `b` as C++ leaves a moved-from value
+  (a string empty).
 - A name that is no class of the standard library, or a type argument its template does not
   take, does not compile in libcxx: E5200.
 
@@ -607,6 +653,25 @@ with entry {
 ```output
 2 8 0 1 True
 IndexError
+```
+
+```jac
+import from libcxx { std_string }
+
+with entry {
+    named: own std_string = std_string.make_ptr_i8(ptr[i8]("named"));
+    other: own std_string = std_string.make_ptr_i8(ptr[i8]("other"));
+    gone: own std_string = std_string.make_ptr_i8(ptr[i8]("gone"));
+    named.op_assign_std_string(other);
+    print(named.size(), other.size());
+    named.op_assign_move(gone);
+    print(named.size(), gone.size());
+}
+```
+
+```output
+5 5
+4 0
 ```
 
 `libcxx` also gives C++'s replaceable allocation functions, so that memory C++ allocates is freed
