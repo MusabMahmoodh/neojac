@@ -20,7 +20,8 @@ neojac launch domains add shop.example       # another name it answers at
 ## Signing in
 
 `neojac launch login` asks for a username and a password and signs in to the platform, which is at
-`https://launch.neojac.dev`; an address given after it names another platform. `--new` makes the account first, and asks for an email address as well. The session
+`https://launch.neojac.dev`; an address given after it names another platform. `--new` makes the account first, and asks for an email address as well; a platform that takes
+no new accounts says so (`this app makes no new accounts: ask whoever runs it for one`). The session
 is kept for the commands that follow, on this machine and for this user:
 
 | System | The session's file |
@@ -81,6 +82,21 @@ The platform's build binds a plugin of its own for each of these, in place of th
 choice. The app's data directory still exists, and lasts as long as one instance: nothing an app
 means to keep belongs there.
 
+## What an app is held to
+
+An app shares the platform with others, so what one may take is bounded, and what it may reach is
+its own:
+
+| | An app has |
+|---|---|
+| Instances | As many as its callers need, 5 at most unless the platform is told otherwise, and never more than 10 |
+| An instance | 1 CPU, 512 MiB of memory and 1 GiB of disk at most. Its disk lasts as long as the instance |
+| Jobs | Each in a copy of the app started for it, with 2 CPUs and 4 GiB at most; 20 pods of the app at once in all |
+| Its database | 20 connections between its instances, and 60 seconds for one statement |
+| The network | Requests reach it through the platform's gateway alone. It reaches the internet and its own database, files and shared state, and no other app |
+
+An app's code runs unprivileged, and a job it starts runs the app's own image and nothing else.
+
 ## Secrets
 
 An app's secrets are variables of its environment that are never written in the project: an API's
@@ -105,7 +121,9 @@ says how many. An app with no callers has no instance, and the command says so.
 ## Domains
 
 `neojac launch domains add <domain>` has another name reach the app, `remove` takes one away, and
-`neojac launch domains` lists them. The domain's DNS is its owner's to point at the platform. A
+`neojac launch domains` lists them. A platform that serves everything over HTTPS refuses a domain
+it has no certificate for (`a domain of an app's own is not served yet`), and the platform's own
+names are no app's to map. The domain's DNS is its owner's to point at the platform. A
 domain reaches one app, and is mapped to an app that is live.
 
 ## The app a command is about
