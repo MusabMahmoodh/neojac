@@ -132,8 +132,9 @@ The architecture of shop is at http://127.0.0.1:8090/
 - **A name in the code is what the language server says of it.** Resting on a name shows what it
   is. A click lists, beside the picture, where it is defined, declared and implemented and every
   place it is used, each a link; a click with Ctrl or Cmd held, or a double click, goes to its
-  definition. **Outline** lists what the file declares. Names are colored by what they are, and a
-  diagnostic is underlined where it is. When the code is of another module than the picture's,
+  definition, and from there to its declaration: on a function whose body is in an impl annex, it
+  goes back and forth between the declaration and the impl. **Outline** lists what the file
+  declares. Names are colored by what they are, and a diagnostic is underlined where it is. When the code is of another module than the picture's,
   **Show ... in the picture** opens that module.
 - **The page follows the project.** It asks the server each second whether a file it read has
   changed, and the server reads the project again when one has.
