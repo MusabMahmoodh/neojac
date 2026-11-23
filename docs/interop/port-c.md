@@ -54,6 +54,7 @@ the module `geom`.
 | A conversion, written `(long long)x` or made by C: to a type that holds every value | `int(x)`, `float(x)` |
 | A conversion to an integer type that does not hold every value; of a float to an integer | `u8.wrap(x)`, and `int(i64.wrap(x))` to a signed 64-bit integer: it keeps the low bits, as Clang defines; `i32(x)`: toward zero |
 | `(char *)p`, `(void *)p`, `(intptr_t)p`, `(int *)n`, a string literal where its address is taken | `ptr[i8](p)`, `ptr(p)`, `int(p)`, `ptr[i32](int(n))`, `ptr[i8]("...")` |
+| `(void *)f` of a function pointer a variable holds, `(release_fn)-1`, `f == g` of function pointers, a function given to C's `...` | `ptr(f)`, `Callable[[ptr], None](ptr(int(-1)))`, `ptr(f) == ptr(g)`, `ptr(f)`: the C address the value holds; a function's value gives its C trampoline |
 | `f(a, b)`; `printf("%d\n", n)` of the C library | `f(a, b)`; `printf("%d\n", n)`, with `import from c { def printf(format: str, *args: any) -> i32; }` |
 | `__builtin___strcpy_chk(d, s, n)`, `__builtin___snprintf_chk(b, n, f, k, fmt, ...)`: what `strcpy` and `snprintf` expand to where a header fortifies them | `strcpy(d, s)`, `snprintf(b, n, fmt, ...)`: the C library's function, without the check of a size the compiler would have known |
 | `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
@@ -73,7 +74,7 @@ declares, a `goto` back to a label, into a loop or to a label inside a block oth
 body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
 argument of a `v` function, a pointer to an array or to a function pointer (the address of an
 array given where C takes another pointer is the address of its first item), a function
-pointer that may be null, a conversion of a function pointer a variable holds, a record
+pointer that may be null, a record
 or a field with an attribute other than packed or aligned, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 

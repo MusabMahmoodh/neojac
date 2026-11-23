@@ -13,13 +13,18 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 |---|---|
 | `class C { int n; public: C(int n) : n(n) { } int get() { return n; } };` | `struct C { has n: i32 = 0; static def make(n: i32) -> C { made: C = C(); made.n = n; return made; } def get -> i32 { return self.n; } }`: a C++ object is a value, as a Jac struct is, and a struct is made from its fields |
 | `int C::get() { return n; }`, defined outside its class | `def get -> i32;` in the struct, and `impl C.get -> i32 { return self.n; }` |
+| `Bin::Bin(int n) : room(n) { }`, a constructor defined outside its class | `static def make(n: i32) -> Bin;` in the struct and `impl Bin.make(n: i32) -> Bin { ... }`; of a class written as an `obj`, `def init(n: i32);` and `impl Bin.init(n: i32) { ... }` |
+| `namespace geo { int sides(); }`, a namespace with no name, `using namespace geo;` | `def sides -> i32`: a namespace's declarations are the module's own names, as Clang resolved each use; `using` writes nothing, and two declarations of one name in different namespaces are refused |
+| `struct Totals { struct Line { int count; }; };`, a nested class | `struct Line { ... }` before `struct Totals { ... }`: a record of the module by its own name |
+| `friend class Statement;` | Nothing: a Jac module's classes reach each other's members |
 | `virtual ~Shape() { ... }` of a class with virtual functions | `def destroy { ... }`, which ends with `super.destroy();` where the base declares a destructor: C++'s destructor, run where `delete` runs it |
-| `Shape *s = new Square(2.0);` of a class with virtual functions | `s: Shape = Square(2.0);`: the object, which Jac counts and frees when nothing holds it |
-| `delete s;` | `s.destroy();` where the class or a base declares a destructor, and nothing where none does |
+| `Shape *s = new Square(2.0);` of a class with virtual functions, or of one the run makes with `new` anywhere; `int *xs = new int[n];` | `s: Shape = Square(2.0);`: the object, which Jac counts and frees when nothing holds it; `xs: ptr[i32] = ptr[i32](op_new_array(u64.wrap(n) * u64(4)));`: C++'s own `operator new[]`, from `libcxx`, for an array of numbers or pointers |
+| `delete s;`, `delete[] xs;` | `s.destroy();` where the class or a base declares a destructor, and nothing where none does; `op_delete_array(ptr(xs));`, C++'s own `operator delete[]` |
 | `C c(1);`, `C c;`, `C d = c;`, `c.get()`, `this->n`, `true` | `c: C = C.make(1);`, `c: C = C();`, `d: C = c;`, `c.get()`, `self.n`, `True` |
 | `C(1, 2)` as a value | `C.make_i32_i32(1, 2)`: the constructor a library class's interface binds, or a ported class's `make` |
+| `::operator new[](n * sizeof(T))`, `::operator delete[](p)`, `::operator new(n)`, `::operator delete(p)` | `op_new_array(n * u64(8))`, `op_delete_array(p)`, `op_new(n)`, `op_delete(p)`: C++'s replaceable allocation functions, from `libcxx`, so that memory a file that stays C++ allocates is freed by the port as C++ frees it, and the reverse; where C++ would throw `std::bad_alloc` they raise `MemoryError` |
 | `a == b`, `v[i]`, `s += t` on a class a library gives | `a.op_eq(b)`, `v.op_index(i)`, `s.op_iadd(t)`: the member its interface binds for the operator, `op_` and the operator's name, a conversion `op_to_` and its type |
-| `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference, of a function pointer a variable holds or of a pointer to an object of a class with virtual functions is refused |
+| `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference or of a pointer to an object of a class with virtual functions is refused |
 
 ## Overloads
 
@@ -66,7 +71,11 @@ build makes each instance it names.
 
 An instance of a header library's class template is named by its template form, its arguments
 Jac types: `Napi::Reference<Napi::String>` is `Reference[String]`, `tally::Box<int>` is
-`Box[i32]`; the program's build makes each instance the library does not. A free function of
+`Box[i32]`, and a member template's argument may be one (`v.As<Napi::Buffer<char>>()` is
+`v.As[Buffer[i8]]()`); the program's build makes each instance the library does not. As a
+template's argument `i8` is plain `char` (`Napi::Buffer<char>` is `Buffer[i8]`), and an
+instance made with `signed char` is refused; a pointer is `ptr[T]` (`std::vector<napi_value>`
+is `std_vector[ptr[napi_value__]]`). A free function of
 the library is named as its interface names it (an overload set's member by its parameters,
 `twice_i32`), wherever in the library's directory it is defined, and the wire names the set by
 its C++ name (`tally.tally ++> app.use { twice }`).
@@ -79,9 +88,11 @@ included, E4043 for the source that includes it), since one without the other is
 In a unity build a function or a variable one file declares `static` is still every file's, so
 the module of the file that defines it gives it to the others.
 
-## Classes with virtual functions
+## Classes written as an `obj`
 
-A class of the file with virtual functions is an `obj`, held by reference as C++ holds it by
+A class with virtual functions is an `obj`, and so is a class the run makes with `new` anywhere
+(`new Addon(env)` in one file makes `Addon` an `obj` in every file of the run), if its base is
+one too. Such a class is held by reference as C++ holds it by
 pointer: `Shape *`, `Shape &` and `const Shape &` are all `Shape`, and a call of a virtual
 function dispatches as C++'s does. Its one base, if it has one, is its base in Jac, from another
 file's module where that file declares it. Its constructor is its `init`, a base class
@@ -100,7 +111,9 @@ reference goes.
 
 A local of such a class made by a constructor, `TempConverter conv(this);`, is
 `conv: TempConverter = TempConverter(self);` where no class of it declares a destructor, so
-nothing runs where its scope ends, and `&conv` is `conv`.
+nothing runs where its scope ends, and `&conv` is `conv`. Every copy of such an object (a copy
+or move constructor, a copy assignment, a parameter, a result or a field by value) is refused,
+so the local is the one object, and the Jac reference names it.
 
 An object of such a class held by value where its destructor would run, copied, a pointer to
 one that may be null, a call
@@ -110,12 +123,12 @@ class being made), an overloaded virtual function, more than one base or constru
 
 ## What is refused
 
-Anything not in the table or in C's is refused with E4001: inheritance from a class without
-virtual functions, the file's own templates, a header library's function template, a
+Anything not in the table or in C's is refused with E4001: inheritance from a class port does
+not write as an `obj`, the file's own templates, a header library's function template, a
 standard library class the library keeps to itself (`std::__wrap_iter`), operators
 and conversions of the file's own classes, a non-member operator, the destructor of a class
-without virtual functions, references but a library class's as a parameter and a class's with
-virtual functions, lambdas, range `for`, exceptions, `new` and `delete` of anything but one
-object of a class with virtual functions, a static data member another file defines, a member
+port does not write as an `obj`, references but a library class's as a parameter and an
+`obj`'s, lambdas, range `for`, exceptions, `new` into storage the program gives, `new[]` and
+`delete[]` of anything but numbers and pointers, a static data member another file defines, a member
 of a library class its interface does not bind (a member template's instance whose arguments
 are no class or number type among them), and a field of a record a system header declares.

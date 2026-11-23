@@ -44,6 +44,7 @@ else its defaults.
 | `x as i64`, `x as f64` (a type that holds every value); `x as u8` | `i64(x)`, `float(x)`; `u8.wrap(x)`: it keeps the low bits |
 | `f(a, b)` | `f(a, b)` |
 | `\|x\| x + 1`, given to another crate's method that calls it before it returns | `lambda (x: i32) -> i32 { return x + 1; }` |
+| `fn f(t: &[u32])`, `t[i]`, `t.len()`, `for &x in t`; `f(&v)`, `&v[a..b]`, `&v[a..]`, `&t[..b]` of a `Vec` or a slice of numbers | `def f(t: Slice[u32])`, `t[i]`, `t.len()`, a walk by index; `f(v.as_slice())`, `v.as_slice().sub(a, b)`, `.sub_from(a)`, `t.sub(u64(0), b)`: `rust.Slice[T]`, the native `&[T]`, which borrows what it is a slice of and panics where Rust panics |
 | `5`, `5u8`, `1.5`, `true` | `5` where its type is given by what takes it, else `i32(5)`, `u8(5)`; `1.5`, `True` |
 | `b"ab"` given as a `&[u8]` | `b"ab"` |
 | `Vec<u32>`, `HashMap<Vec<u8>, u32, FxBuildHasher>`, `v.push(x)`, `Vec::with_capacity(4)`, `v[i]`, `v[i] = x`: another crate's types, the standard library's among them | `Vec[u32]`, `HashMap[Vec[u8], u32, FxBuildHasher]`, each imported by its Rust path (`import from std.vec { Vec }`), `v.push(x)`, `Vec[u32].with_capacity(4)`, `v[i]`, `v[i] = x`: Rust's own items, called natively ([Rust modules](rust-modules.md)) |
@@ -55,6 +56,7 @@ else its defaults.
 | A value of another crate that borrows (`m.get(k)`'s `Option<&Vec<u8>>`, `std::str::from_utf8(b)`'s `Result<&str, Utf8Error>`) in a local | A local of its type (`text: Result[&str, Utf8Error] = from_utf8(b);`), which Jac holds to borrowing what Rust says it borrows; refused in a field, a parameter or a result |
 | `HashSet<&str>`, `Vec<&[u8]>` only built and read: `insert(s)`, `contains(k)`, `len()`, given by `&` to a function of the crate | `HashSet[String]`, `Vec[Vec[u8]]`, each element made a `String` or a `Vec[u8]` before the statement that inserts it: nothing done with the set can tell the two apart |
 | `vec![a, b]`, `let x;`, a `#[should_panic(expected = "m")]` test | `made: Vec[T] = Vec[T].with_capacity(2); made.push(a); made.push(b);` before the statement; `x: T;`; a test that passes when a `RustPanic` or `AssertionError` holding `m` is raised |
+| `for m in re.find_iter(text) { }` over another crate's iterator; `re.find_from_pos(text, at)`, generic over its input; `v.extend(&w)`, `v.extend(f())` of a `Vec` of numbers; `text.as_bytes()` | `steps: Matches[str] = re.find_iter[str](text); while True { got = steps.next(); if got.is_none() { break; } m = got.unwrap(); }`, the native `Iterator::next`; `re.find_from_pos[str](text, at)`, the instance named at the call; the loop that pushes each of `w`'s items; `text.encode()` |
 | `(a, b)`, `t.0`, `t.1 += 1`, `Vec<(usize, u32)>` | `(a, b)`, `t[0]`, `t = (t[0], t[1] + 1)`, `Vec[tuple[u64, u32]]` |
 | `impl Ord for Merge { fn cmp(&self, o: &Self) -> Ordering { } }`, `#[derive(PartialEq, Eq)]`, `BinaryHeap<Merge>` | `struct Merge(Ord, PartialOrd, Eq, PartialEq) { def cmp(other: &Merge) -> Ordering { } }`: the struct conforms to Rust's traits, which Rust's generic code calls |
 | `assert!(c)` outside a test | `if not c { raise RustPanic("assertion failed: c"); }`, `RustPanic` imported from `rust` |
@@ -65,10 +67,11 @@ else its defaults.
 ## What is refused
 
 Anything not in the table is refused with E4001, and nothing is written for the file: among
-them enums whose variants hold fields and their patterns, generics and another crate's
-generic methods (`collect`, `map`, `find_iter::<str>`), a `for` over another iterator (a
-slice's, another crate's), a `?` that converts the error, `Display` impls (`Formatter`), a
-value that borrows kept past a local, `char`, raw pointers and `unsafe`, and a call of another
+them enums whose variants hold fields and their patterns, generics, another crate's methods
+generic over a closure or a trait object (`collect`, `map`, `from_iter`), iterator chains, a
+`for` over an iterator that borrows its source mutably (`drain()`), a slice of other than
+numbers, a `?` that converts the error, a `Display` impl of more than one `write!`, a value
+that borrows kept past a local, `char`, raw pointers and `unsafe`, and a call of another
 crate whose types Jac does not hold or that the import of Rust leaves out (its result
 borrows from other than its receiver and its str or bytes arguments, or it may keep a
 borrow of what it is given).
