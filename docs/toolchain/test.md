@@ -368,6 +368,12 @@ backend/pyproject.toml: pytest tests
   `neojac npm run`, `run-script`, `test` and `start`, and `neojac npx`, run in the same laid
   tree ([Running npm](packages.md#running-npm)), so `neojac npm run build` builds the tree its
   own way on the port.
+- **A laid tree is laid again in place.** Each command lays it anew from what the space emits now,
+  and changes in the laid tree only the files whose bytes (or links whose targets) differ, and
+  removes only what an earlier lay wrote that this one does not. What a tool wrote there, such as
+  a test runner's `test-results/`, stays, as it would in the tree. So a dev server serving the
+  laid tree (`neojac npx vite`) sees a file change only where its source did, while another
+  command runs in the same tree.
 - **The laid top stands for the project's top.** A tree is laid at its own place under a laid
   top: `.jac/test/spaces/<space>/` for an npm tree, and for a Python tree below the project's top
   `.jac/test/trees/<its directory, / written %2F>/`, a laid top of its own, so that no two trees

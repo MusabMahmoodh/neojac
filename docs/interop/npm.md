@@ -171,6 +171,13 @@ graph import {
   as `require.main === module` and `import.meta.main` are of the file Node runs; a module
   started on demand by another's import is not main. A worker that loads the forwarder starts
   the program in its own thread.
+- **Any other member of `js_meta()` is the module's own `import.meta`**, in the text of the
+  module's emission: `js_meta().env.MODE`, `js_meta().hot` and `js_item(js_meta().env,
+  "VITE_API_URL")` are emitted as `import.meta.env.MODE`, `import.meta.hot` and a read of
+  `import.meta.env`, which a bundler such as Vite rewrites in the module where it stands. Port
+  writes a source's `import.meta.env` so, and refuses `import.meta.glob(...)` (E4005): a bundler
+  expands its patterns from the module's own place, which in a port holds the Jac and not the
+  sources the patterns name.
 - **A Jac module's `with entry` code runs once JavaScript first reaches the module**; the space's
   entry module's runs at the end of its loading.
 - A node space carries the file, and every file of the project it imports, beside its own modules,
@@ -279,10 +286,15 @@ On every host the face's `name` is the function's, a nested `def`'s own name amo
 where a lambda's is empty), and its `length` is the count of its positional parameters before
 `*args`, `self` not counted where JavaScript gives it as `this`, as mocha reads `length` to tell
 a test that takes `done`: `def add(x: int, y: int = 1, *rest: any)` has `length` 2. On a
-JavaScript host the face is written with the function's own parameter list, so its `toString()`
-reads it as declared, as a test runner that reads a hook's parameters does:
-`def add(x: int, y: int = 1, *rest: any)` is `function (x, y, ...rest)`, with no default's text
-(a Jac default is Jac's to evaluate).
+JavaScript host a function's text to JavaScript (`String(f)`, `f.toString()`) is its own emitted
+JavaScript where JavaScript's arguments bind to its parameters as they stand (no keyword-only
+parameter, `*args`, `**kwargs`, default or `self`), so a library that sends a function's text to
+run elsewhere, as Playwright's `page.evaluate(() => ...)` sends it to a browser page, sends code
+that runs there: `def twice(x: int) -> int` reads `function twice(x) { ... }`. Elsewhere it is the
+face's, written with the function's own parameter list, as a test runner that reads a hook's
+parameters reads it: `def add(x: int, y: int = 1, *rest: any)` is `function (x, y, ...rest)`,
+with no default's text (a Jac default is Jac's to evaluate). Natively a function's text is
+`function () { [native code] }`.
 
 **JavaScript's arguments are bound by the function's parameters**, on every host: its positional
 parameters by position, its `*args` the arguments past them, a parameter left out its default
@@ -324,11 +336,10 @@ with entry {
 2 / 0 / 1 p 2 / 2 q 5 / 3 / 7
 ```
 
-**A Jac call of a JavaScript function with keyword arguments** gives them, on a JavaScript host,
-as one object, its last argument, which the function takes by its own pattern: `take("x", a="a")`
-of `(x, { a, b = 'b' }) => x + a + b` is `"xab"`. Natively such a call raises `TypeError`
-(`JsObject.__call__() got an unexpected keyword argument 'a'`): pass the object as a dict,
-`take("x", {"a": "a"})`. What the function gives back to JavaScript crosses as an
+**A Jac call of a JavaScript function with keyword arguments** gives them, on every host, as one
+object after the positional arguments, which the function takes by its own pattern:
+`take("x", a="a")` of `(x, { a, b = 'b' }) => x + a + b` is `"xab"`, and a method's call
+`o.m(1, k=3)` gives `m` the arguments `1, { k: 3 }`. What the function gives back to JavaScript crosses as an
 argument does: a function as its face, a list as a new array, a dict as an object, and of a
 coroutine a promise of that.
 
@@ -461,7 +472,7 @@ operator it names; natively each runs in the program's Node.
 | `js_promise(co)` | The promise JavaScript's `await` takes of `co`: of a Jac coroutine, one that runs it at once to its first wait, as JavaScript runs an async function where it is called, its rejection JavaScript's unhandled rejection where nothing handles it; on a JS host, of any other value `Promise.resolve`'s. `await js_promise(f())` waits as JavaScript's `await f()` does, a microtask after the promise settles, where Jac's `await f()` runs the coroutine in place |
 | `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
 | `js_unpack(o, n, rest)` | The array pattern `[a, , c, ...more] = o`: `o` iterated as JavaScript iterates it, a list of its first `n` items (`None` past its end) and, where `rest`, a list of the items after them last. An iterator the pattern leaves unfinished is closed (its `return()`); a `TypeError` where `o` is not iterable. `js_unpack(new Set([10, 20, 30]), 2, True)` is `[10, 20, [30]]` |
-| `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
+| `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main`, the forwarder's place where JavaScript runs the module through one, and every other member the module's own (`js_meta().env`), as a bundler rewrites it ([above](#a-projects-own-javascript)) |
 | `js_new_target()` | `new.target` of the call that reached the function it is written in: the function JavaScript called with `new`, else `None` ([below](#a-class-with-a-javascript-base)) |
 | `js_global(name)` | The global `name` read where the call is written |
 | `js_as_method(f, key)` | An object literal's method of `key` made of `f`, which takes the object, JavaScript's `this`, as its first parameter: `{ m(x) { ... } }` is `("m", js_as_method(m, "m"))` among `Object.fromEntries`' entries. Its `name` is the key's, JavaScript cannot construct it (`new o.m()` is a `TypeError`), and of a generator function it is a generator method |

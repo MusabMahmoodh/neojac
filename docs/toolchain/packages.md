@@ -500,7 +500,10 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   ([Building and testing a Python project](#building-and-testing-a-python-project)): a crate as
   a shared library with those features, a C module's sources linked into one, each linked as an
   extension of neojac's CPython and named with the ending that interpreter loads. On Windows it
-  is refused (E5090).
+  is refused (E5090). A crate's build is given that CPython wherever neojac runs cargo (a
+  build, a record, a port's reading, `neojac cargo`): PyO3's build script finds it by
+  `PYO3_PYTHON`, and a build for another target is given that target's CPython by PyO3's cross
+  variables, so no Python need be on `PATH`.
 - **Under an npm tree it is a Node addon**, built from a C module where the tree's own code looks
   for it, `<path>.node`: `neojac build <directory>/package.json` builds the tree's, and
   `neojac test` builds them before the tree's suite.
