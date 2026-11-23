@@ -103,7 +103,8 @@ signature is E1639. A pointer to a member function of the class a Jac class deri
 (`int (T::*m)(int)`) takes a method by its class (`Drop.plus_size`), E1623 otherwise. C++ must
 call it on the thread that called into C++: from a thread of the library's own the program ends,
 naming the function. A C++ member's `const char *` result (`s.c_str()`) is a `ptr[i8]` into the
-object: keep the object in an `own` local while it is used, and `str(p)` copies its text.
+object, a loan of it: the object is kept while the pointer is used, a member that changes it may
+leave the pointer dangling, and `str(p)` copies its text.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 

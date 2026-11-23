@@ -246,7 +246,7 @@ An `imm` value may be read from a `flow for` body and sent to a `flow` task
 An owned value is dropped right after its owner's last use, not at the end
 of its scope (but for a scoped class's, below), and an owner never read again is dropped as soon as it is
 made. (A name bound in module code, a `with entry` block, is a module
-global, which lives as long as the program.) A borrow of it keeps it alive while the borrow lives. An owner is
+global, which lives as long as the program.) A borrow of it keeps it alive while the borrow lives, and so does a pointer a C++ class's member gives into it ([A pointer into an object](../interop/c-modules.md#a-pointer-into-an-object)). An owner is
 dropped too when an exception leaves its scope, before a handler outside
 it runs. Its `__del__` runs when it is dropped (see [Memory](memory.md)).
 

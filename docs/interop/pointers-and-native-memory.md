@@ -65,6 +65,9 @@ A value of type `ptr[T]` fits where a bare `ptr` is wanted. A bare `ptr` has no 
 is not indexed or viewed (E1040, E1191, E1199): cast it first, `ptr[u8](p)`.
 
 Reading through a null, freed or out-of-range pointer is undefined, as in C. Nothing checks it.
+A pointer a C++ class's member gives into its object (`s.c_str()`) is a loan of the object, which
+is kept while the pointer, a copy of it or a pointer computed from it is used
+([A pointer into an object](c-modules.md#a-pointer-into-an-object)).
 
 ### Records in place
 

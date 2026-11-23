@@ -360,7 +360,7 @@ Nothing needs to be `extern "C"`.
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A parameter whose default is a constant | Optional to a Jac caller, the default C++'s: `s.find_i8_uword(c)` is `s.find(c)` from position 0, and `s.substr(u64(1))` leaves `substr`'s `n = npos` to the member. Only a trailing run of such parameters; a default that is no constant (`int then = seed()`) leaves its parameter, and those before it, required |
 | A result by value | Owned by Jac; a result by reference is borrowed |
-| A member's `const char *` result (`s.c_str()`, `s.data()`) | `ptr[i8]`, the pointer into the object, good while the object lives and is not changed, as in C++. `str(p)` copies its text (`str(s.c_str())`), and `print(p)` prints it ([Pointers](pointers-and-native-memory.md#what-a-pointer-does)). A free function's `const char *` result is `str \| None`, a copy, as a C function's is |
+| A member's `const char *` result (`s.c_str()`, `s.data()`) | `ptr[i8]`, the pointer into the object, a loan of it: the object is kept while the pointer is used ([below](#a-pointer-into-an-object)). `str(p)` copies its text (`str(s.c_str())`), and `print(p)` prints it ([Pointers](pointers-and-native-memory.md#what-a-pointer-does)). A free function's `const char *` result is `str \| None`, a copy, as a C function's is |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
@@ -843,9 +843,49 @@ class is one too.
 
 - **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
   interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
+- **A pointer a member gives is a loan of its receiver** ([below](#a-pointer-into-an-object)).
 - **The C++ standard library's classes are `libcxx`'s** (below): a local holding the string
   `text` returns is declared `sep: own std_string = text(" ");`, with `std_string` imported from
   `libcxx`.
+
+### A pointer into an object
+
+A pointer a C++ class's non-static member gives (`s.c_str()`, `v.data()`, a `ptr[T]` result of
+any member of an imported class) points into the object it was called on, so it is a shared loan
+of that object, as `&s` is ([Borrows](../language/ownership-borrows.md)). The object is kept while
+the pointer is used, and while a copy of it (`q = p`) or a pointer computed from it (`p + 8`) is:
+as C++ keeps a local to the end of its scope, where a managed local would otherwise go at its last
+use.
+
+```jac
+import from libcxx { std_string }
+
+def tail -> str {
+    s = std_string.make_ptr_i8("a string longer than the small buffer holds");
+    rest = s.c_str() + 2;
+    return str(rest);
+}
+
+with entry {
+    print(tail());
+}
+```
+
+```output
+string longer than the small buffer holds
+```
+
+An `own` owner given away while such a pointer is used is E1304, as with any borrow. What the loan
+does not cover is C++'s own contract, as it is in C++, and nothing checks it:
+
+- **a member that changes the object** (`s.append_ptr_i8(...)`, a vector's `push_back` past its
+  capacity) called while the pointer is used may leave it dangling;
+- **a pointer stored in a field or a global, returned, or given to C to keep** outlives the
+  function's loan: the object goes when its owner's scope ends, or with its last reference, and
+  the pointer then dangles.
+
+Keep the object where the pointer goes (a field beside it), or copy what it points to
+(`str(p)`), as C++ asks.
 
 ### The C++ standard library's classes
 
@@ -996,7 +1036,8 @@ the example takes it after the vector has its size.
   `ups.emplace_back[u32](u32(8))` a number.
 - **A member's `const char *` result is a `ptr[i8]`**, the pointer into the string: `told.c_str()`
   and `tail.data()` are the same address. `str(p)` copies its text and `print(p)` prints it; the
-  pointer is good while the string lives and is not changed, as in C++.
+  string is kept while the pointer is used ([A pointer into an object](#a-pointer-into-an-object)),
+  and a member that changes the string may leave the pointer dangling, as in C++.
 - **`compare` is an overload set**, so a string is compared with another by the member that takes
   one, `compare_std_string`. The bare `told.compare(other)` is E5133, whose reason lists the
   overloads by their names.
