@@ -121,7 +121,10 @@ graph import {
 - **A file imports the space's Jac modules** as JavaScript modules: `tone.jac` is the module
   `tone.js` beside it, so `kit/echo.js` writes `import { tone, bump } from "../tone.js";`, which
   the wire `tone --> kit.echo { tone, bump }` declares, and its names are held to the Jac module.
-  A module's [default](../language/modules.md#a-modules-default) is its default export. What it
+  A module's [default](../language/modules.md#a-modules-default) is its default export, and
+  only that: `default def reset` is JavaScript's `default`, not also an export `reset`, as
+  `export default function reset` is in JavaScript (a wire naming `reset` is E1145, and its face
+  need not declare it), while a Jac module still imports it by its name. What it
   imports is the module's forwarder, which gives exactly the module's names: its public
   functions, and its globals of a function type, by their faces as JavaScript calls them (below),
   its classes, other globals and types as they are, and nothing of its own (`:priv` names, the
@@ -161,7 +164,10 @@ graph import {
   `url`, `filename` and `dirname` are the forwarder's place (`lib/util.js`, not the emitted
   `lib/util.mjs`), as a CommonJS module's `__filename` is the file that runs, so a ported
   module's `__filename` and a worker started on it (`new Worker(js_meta().filename)`) find it.
-  A worker that loads the forwarder starts the program in its own thread.
+  Its `js_meta().main` is true where Node ran the forwarder as its entry (`node lib/twice.js`),
+  as `require.main === module` and `import.meta.main` are of the file Node runs; a module
+  started on demand by another's import is not main. A worker that loads the forwarder starts
+  the program in its own thread.
 - **A Jac module's `with entry` code runs once JavaScript first reaches the module**; the space's
   entry module's runs at the end of its loading.
 - A node space carries the file, and every file of the project it imports, beside its own modules,

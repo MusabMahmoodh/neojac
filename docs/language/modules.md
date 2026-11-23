@@ -385,9 +385,11 @@ decorators. A module has at most one (E2250), and `default` marks one declaratio
 
 - **`import from greet { default as hello }`** binds a module's default under a name of the
   importer's, on every host, and so does a wire (`greet ++> page { default as hello }`). The
-  declaration keeps its own name too.
-- **On a JavaScript host** it is the module's default export, which a JavaScript file's
-  `import hello from "./greet.js"` takes, and a CommonJS `require` gives.
+  declaration keeps its own name too, for Jac modules.
+- **On a JavaScript host** it is the module's default export, and only that, as JavaScript's
+  `export default function welcome` is: a JavaScript file's `import hello from "./greet.js"`
+  takes it, and a CommonJS `require` gives it, but `import { welcome } from "./greet.js"` finds
+  no export `welcome`, and a wire naming it to a JavaScript file is E1145.
 
 `greet.jac`:
 

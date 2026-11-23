@@ -205,6 +205,19 @@ What differs from a native space:
 - **An `obj` is a Python class** with the fields, `init`, `postinit`, properties, repr and
   equality a native one has.
 - **The entry module runs as `__main__`.**
+- **A module's declarations are made in file order**, as Python makes them: each `def` and class
+  where its statement stands, among the module's `with entry` code. One that module code above it
+  calls is made just above that code, and one a global's value or another module's code reaches
+  is made with the module. So `importlib.reload` of a module runs its code again as Python does: a
+  `def` below code that raises is left as it was, one above it made anew. Natively and on a
+  JavaScript host every declaration is made before any of the module's code. A module the space's
+  loader makes when it is first imported (`importlib.import_module("kit.drawer")`) reloads; one
+  the program starts with has no `__spec__` yet, so its reload raises `ImportError`.
+- **A module is a value**: a name bound to a module, or a submodule named through its package, is
+  Python's module object, so `getattr(m, "f")`, `vars(m)` and `mock.patch.object(m, "f", ...)`
+  take the module itself, and a dunder the module does not declare (`m.__doc__`, `m.__file__`)
+  is Python's read of it. Natively and on a JavaScript host a module is no value (E5090): a native
+  module has no object holding its globals, and a JavaScript module's namespace is read-only.
 - **A file cannot be imported by path** (E5090).
 
 Walkers, nodes and edges work as they do natively. A cpython space with no `entry` serves exactly

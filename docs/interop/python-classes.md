@@ -39,6 +39,11 @@ A class is made by Python, as its `class` statement runs, when it has any of the
   (`@retry_on_failure()`, [below](#a-class-decorated-by-a-function-of-the-program));
 - **an `if` among its members that is not `comptime`**, whose test is known only as the program
   runs.
+- **a static field whose value reads a global its module's code makes** (`glob POSIX: any;`
+  set in `with entry`, then `static has kinds: any = ["a"] if POSIX else [];`): made where its
+  statement stands, after that code has run, as Python would. Natively, the class's statics are
+  set before the module's code runs, and the read raises `NameError`
+  ([Variables](../language/variables.md)).
 
 Such a class is Python's, from its body:
 

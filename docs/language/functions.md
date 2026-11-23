@@ -280,7 +280,9 @@ function's variables.
 - A `lambda` or a `def` inside a module's `with entry` block reads and assigns that block's
   locals.
 - A closure outlives the call that made it: what it captured lives as long as it does.
-- Nested functions may call each other, including one declared after its caller.
+- Nested functions may call each other, including one declared after its caller, which is
+  called by its parameters as it is written, its defaults and keyword arguments included. Its
+  defaults are made where its `def` stands, as Python makes them.
 
 ```jac
 def make_counter -> Callable[[], int] {
@@ -319,6 +321,26 @@ with entry {
 1 2 1 6
 [0, 1, 2]
 [0, 1, 99] [4, 4, 4]
+```
+
+```jac
+def parity(n: int) -> str {
+    def is_even(k: int) -> bool {
+        return k == 0 or is_odd(k - 1);
+    }
+    def is_odd(k: int, *, seen: int = 0) -> bool {
+        return k != 0 and is_even(k - 1);
+    }
+    return f"{is_even(n)} {is_odd(n)} {is_odd(n, seen=1)}";
+}
+
+with entry {
+    print(parity(4), parity(3));
+}
+```
+
+```output
+True False False False True True
 ```
 
 ## Recursion and `return tail`
