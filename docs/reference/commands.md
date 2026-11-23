@@ -363,33 +363,35 @@ Its guide: [toolchain/lint](../toolchain/lint.md) (`neojac docs toolchain/lint`)
 Launch an app on the hosting platform, and look after it there.
 
 ```sh
-neojac launch login [<address>] [--new]
+neojac launch login [<address>]
 neojac launch deploy <app> [--as <name>]
 neojac launch secrets [set <KEY>[=<value>] | unset <KEY>] [--as <name>]
 neojac launch logs [--lines <n>] [--as <name>]
 neojac launch domains [add <domain> | remove <domain>] [--as <name>]
+neojac launch delete [--as <name>] [--yes]
 ```
 
 | Option | What it does |
 |---|---|
-| `--new` | Make an account on the platform, and sign in to it |
 | `--as <name>` | The app's name on the platform, which begins its address (default: the project's name) |
 | `--lines <n>` | How many of each instance's last lines logs prints (default: 200) |
+| `--yes` | Delete the app without asking for its name |
 
-login signs in to the platform, at https://launch.neojac.dev unless an address is given, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
+login signs in to the platform, at https://launch.neojac.dev unless an address is given: it prints a link and a code, and opens the link where this machine has a screen. Whoever signs in on that page, or makes an account there, and says the program showing the code is theirs has signed it in; login waits for that, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
 
 The platform builds from source: the project's own directory is sent, without what a build or an install made in it, so its packages are ones jac.toml and jac.lock name by a version or a repository.
 
-An app is launched under one name, which is its address's first word. Every other command is about that app: its secrets are variables of its environment, which the app starts again with when one changes; its logs are what its running instances said; its domains are other names it answers at.
+An app is launched under one name, which is its address's first word. Every other command is about that app: its secrets are variables of its environment, which the app starts again with when one changes; its logs are what its instances said; its domains are other names it answers at. A domain is the app's once its owner has shown it is theirs: domains add prints the records to make where the domain's DNS is kept, and domains says how far each has got. delete takes the app away for good, with everything it keeps.
 
 | Example | What it does |
 |---|---|
-| `neojac launch login` | Sign in |
+| `neojac launch login` | Sign in, or make an account, in a browser |
 | `neojac launch deploy web` | Launch the project's app `web` |
 | `neojac launch deploy web --as shop` | Under a name of its own |
 | `neojac launch secrets set ANTHROPIC_API_KEY` | Set a secret, asked for and not echoed |
 | `neojac launch logs --lines 50` | What its instances said last |
 | `neojac launch domains add shop.example` | Another name for it |
+| `neojac launch delete --as shop` | Take an app away for good |
 
 Its guide: [toolchain/launch](../toolchain/launch.md) (`neojac docs toolchain/launch`).
 
