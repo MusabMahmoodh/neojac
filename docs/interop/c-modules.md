@@ -1,6 +1,6 @@
 ---
 description: C and C++ source compiled into a Jac program as a module - the cmodule.toml manifest and its keys, what Jac binds from the headers, wiring C modules together, C calling Jac, inline modules, C++ classes used and derived by Jac, and what goes wrong.
-keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, headers per target
+keywords: C module, cmodule.toml, {lib}, {platform}, {dir}, whole archive, inline C module, C++ module, C interface, calling Jac from C, jac/ header, static inline, C++ class, super.init, CRTP, libcxx, std_vector, header-only library, C data, extern, std_string, std_vector_iterator, std_atomic, headers per target
 ---
 # C modules
 
@@ -769,6 +769,79 @@ with entry {
 ```output
 5 5
 4 0
+```
+
+**A container's iterator is a class the library keeps to itself** (`std::__wrap_iter`,
+`std::__hash_map_iterator`), and a program has it under the public name its container gives it:
+the container's name, `_`, and the member type, with the container's arguments.
+`std::vector<int>::iterator` is `std_vector_iterator[i32]`, `std::vector<int>::const_iterator`
+`std_vector_const_iterator[i32]`, `std::unordered_map<int, int>::iterator`
+`std_unordered_map_iterator[i32, i32]`, each imported from `libcxx`.
+
+- **A member that gives an iterator is bound where the program names its type**: `begin()`,
+  `end()`, `find(k)`. Where the program names it nowhere, a call of the member is refused when the
+  program compiles (E5133), and the reason says the type to write.
+- **An iterator is walked with its own members**, as C++ finds them: `op_ne` and `op_eq` compare
+  two (C++'s `!=` and `==`), `op_deref()` reads the item and `op_deref_set(x)` stores through it,
+  `op_inc()` steps. Jac's own `==` and `!=` on two iterators compare the objects, not the
+  positions: write `pos.op_ne(stop)`.
+- **An overload set is named as any member's**: `std::unordered_map`'s `begin()` and `end()` have
+  a bucket's overload beside them, so the container's are `begin_()` and `end_()`.
+- **`std::atomic<T>` is `std_atomic[T]`**, its members C++'s: `store`, `load`, `fetch_add` and the
+  rest. A program passes every argument, the memory order among them, as the number
+  `std::memory_order` gives it (`u32(5)` is `memory_order_seq_cst`).
+
+```jac
+import from libcxx {
+    std_atomic,
+    std_unordered_map,
+    std_unordered_map_iterator,
+    std_vector,
+    std_vector_const_iterator,
+    std_vector_iterator,
+}
+
+def summed(v: &std_vector[i32]) -> int {
+    total = 0;
+    pos: std_vector_const_iterator[i32] = v.cbegin();
+    while pos.op_ne(v.cend()) {
+        total += int(pos.op_deref());
+        pos.op_inc();
+    }
+    return total;
+}
+
+def main {
+    v: own std_vector[i32] = std_vector[i32]();
+    for n in [3, 4, 5] {
+        v.push_back(i32(n));
+    }
+    pos: std_vector_iterator[i32] = v.begin();
+    stop: std_vector_iterator[i32] = v.end();
+    while pos.op_ne(stop) {
+        pos.op_deref_set(pos.op_deref() * i32(10));
+        pos.op_inc();
+    }
+    print(summed(v), pos.op_eq(stop));
+    ages: own std_unordered_map[i32, i32] = std_unordered_map[i32, i32]();
+    ages.op_index_set(i32(7), i32(70));
+    found: std_unordered_map_iterator[i32, i32] = ages.find(i32(7));
+    print(found.op_ne(ages.end_()), ages.find(i32(8)).op_eq(ages.end_()));
+    hits: own std_atomic[i64] = std_atomic[i64]();
+    seq_cst = u32(5);
+    hits.store(i64(1), seq_cst);
+    print(hits.fetch_add(i64(2), seq_cst), hits.load(seq_cst));
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+120 True
+True True
+1 3
 ```
 
 `libcxx` also gives C++'s replaceable allocation functions, so that memory C++ allocates is freed
