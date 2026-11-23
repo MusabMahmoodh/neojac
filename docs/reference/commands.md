@@ -746,7 +746,7 @@ neojac arch --view spaces [--profile <profile>] [<output>]
 
 Run from inside a project. The picture is drawn from archwire.jac and from nothing else: its layers are the boxes, its wires the arrows, each labelled with the edge rule that admits it.
 
-With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer, a module or an arrow opens it, and the code beside the picture goes to where it is written. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
+With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer, a module or an arrow opens it, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
 
 Every module archwire.jac names is read, whether or not a program loads it, and every target's wires are checked, so what is drawn holds for the whole project.
 

@@ -126,10 +126,9 @@ The architecture of shop is at http://127.0.0.1:8090/
   source writes the import), the names that cross, the rules that admit them, from the outermost
   level in, and the line of `archwire.jac` that holds the wire.
 - **Layers and Spaces** switch the view, and a project with profiles has a list of them.
-- **The code is beside the picture, and goes where the picture is clicked.** A layer opened is
-  shown where `archwire.jac` writes it, the whole of it marked; a module opened is its file; an
-  arrow is its first wire, and each wire in the list, and each error, is a link to its line. **Code**
-  puts the code away and brings it back, and the browser's Back returns to what was shown before.
+- **A module opened shows its code beside the picture.** The module's file is shown under the
+  picture; a layer, an arrow and the spaces show none. **Code** puts the code away and brings it
+  back, and the browser's Back returns to what was shown before.
 - **A name in the code is what the language server says of it.** Resting on a name shows what it
   is. A click lists, beside the picture, where it is defined, declared and implemented and every
   place it is used, each a link; a click with Ctrl or Cmd held, or a double click, goes to its
