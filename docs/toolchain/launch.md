@@ -73,7 +73,7 @@ only as long as it has callers and there may be several at once:
 | Accounts and sessions ([The server](../apps/server.md)) | A file beside it | The same database |
 | Files ([Files](../apps/files.md)) | A directory beside it | Object storage, under the app's own prefix |
 | Rate limits | One process's memory | Counted by every instance together |
-| Scheduled functions | Run by the one process | Each run once a period, by one instance; an app asleep is woken for them |
+| Scheduled functions | Run by the one process | Each run once a period, by one instance; an app asleep is woken for them, so one scheduled every few seconds never sleeps (`JAC_TICKS_OFF`, set as a secret, turns them off) |
 | Jobs | A copy of the program on the same machine | A copy started for the job, which outlives the instance that asked |
 
 The platform's build binds a plugin of its own for each of these, in place of the standard one
