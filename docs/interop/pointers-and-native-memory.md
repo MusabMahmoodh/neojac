@@ -1,6 +1,6 @@
 ---
-description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
-keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
+description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, hold, held and release for Jac objects C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
+keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, hold, held, user data, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
 ---
 # Pointers and native memory
 
@@ -184,6 +184,74 @@ True True
 - The cell lives as long as the program holds it. Keep it in a field or a global for as long as C
   uses the address.
 
+## Objects C keeps: `hold`, `held`, `release`
+
+A C library that calls back often takes a `void *` beside the callback, its user data, and hands
+it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
+
+| Expression | Meaning |
+|---|---|
+| `hold(x)` | A `ptr`: the address of the object `x`, with one reference to it that C holds. The object stays, at that address, until the reference is released, though nothing in Jac holds it |
+| `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where `p` is null or holds an object of no class that is or derives from `T` |
+| `release(p)` | C's reference goes. The object is freed when nothing else holds it |
+
+```jac
+import from c {
+    obj Handler {
+        has run: Callable[[ptr, int], int],
+            data: ptr;
+    }
+
+    def calloc(n: int, size: int) -> ptr[Handler];
+    def free(p: ptr[Handler]) -> None;
+}
+
+obj Tally {
+    has total: int = 0;
+
+    def __del__ {
+        print("tally freed at", self.total);
+    }
+}
+
+def add(data: ptr, n: int) -> int {
+    t = held[Tally](data);
+    t.total += n;
+    return t.total;
+}
+
+def register(h: ptr[Handler]) {
+    h[0].run = add;
+    h[0].data = hold(Tally());
+}
+
+with entry {
+    h = calloc(1, 16);
+    register(h);
+    print(h[0].run(h[0].data, 5), h[0].run(h[0].data, 7));
+    print(held[Tally](h[0].data).total);
+    release(h[0].data);
+    print("released");
+    free(h);
+}
+```
+
+```output
+5 12
+12
+tally freed at 12
+released
+```
+
+- `x` is a counted object: an instance of an `obj`, `node`, `edge` or `walker`. A number, a
+  struct or a C record is refused (E1635), and so is a struct or a C record as `held`'s `T`.
+- Each `hold` is one reference, and each is released once. `held` neither adds one nor takes one
+  away: it may be called on the same address any number of times.
+- While C holds it, the object is a root of the cycle collector: a cycle one of whose objects C
+  holds stays whole until `release`.
+- Only native code has addresses: in a cpython, node, browser or hermes space each of the three is
+  refused (E1540, "native memory").
+
 ## `addressof`
 
 `addressof(x)` is the address of a C global or of a C record value, as a `ptr[T]`. For a C array
@@ -271,7 +339,7 @@ atomic ones are in [Atomic integers](../language/numbers-atomics.md).
 ## What is rejected
 
 ```jac
-# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411
+# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411, E1635 x2
 import from c {
     obj Pair {
         has a: i32,
@@ -303,6 +371,8 @@ with entry {
     print(pairs.load(0, align=4));
     print(ptr[bool](calloc(4, 1)).vector(0, 4));
     print(f.vector(0, 3));
+    lent = hold(5);
+    held[Pair](bare);
 }
 ```
 
@@ -318,6 +388,7 @@ with entry {
 | E1467 | `load` or `store` of a C record or a struct |
 | E1410, E1411 | A vector of something that is no int or float type, or of a length that is not a power of two from 2 to 64 |
 | E1154 | `addressof()` of anything but a C record or a C global |
+| E1635 | `hold()` of what is no counted object, or `held[T]` of a `T` that is none: `hold(5)`, `held[Pair](p)` |
 
 ## Differences from Python and from the reference design
 
