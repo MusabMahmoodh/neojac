@@ -31,7 +31,7 @@ an operand as JavaScript does.
 | `if (c) { } else if (d) { } else { }`, `while (c) { }`, of a boolean | `if c { } elif d { } else { }`, `while c { }` |
 | `switch (s) { case "a": f(); break; default: g(); }`, of string literals, or of number or boolean literals where TypeScript types `s` so | `switch s { case "a": f(); break; default: g(); }`: Jac's falls through as JavaScript's does |
 | `for (let i = 0; i < n; i++) { }` | `for i = 0.0 while i < n with i += 1.0 { }` |
-| `for (const x of xs) { }`, `for (const [k, v] of Object.entries(o)) { }` | `for x in xs { }`; of any other value `for x in js_iter(v) { }`, JavaScript's iterator of it (a Map's entries); a pattern is taken apart first in the body, as a declaration's is |
+| `for (const x of xs) { }`, `for (const [k, v] of Object.entries(o)) { }`, `for await (const x of g) { }` | `for x in xs { }`; of any other value `for x in js_iter(v) { }`, JavaScript's iterator of it (a Map's entries); a pattern is taken apart first in the body, as a declaration's is; `for await` is `async for x in g { }`, which takes a Jac async generator and JavaScript's async iterable |
 | `for (const k in o) { }` | `for k in js_for_in(o) { }`: the keys JavaScript visits, as it visits them |
 | `return v;`, `break;`, `continue;` | The same |
 | `3`, `2.5`, `0xff` | `3.0`, `2.5`, `255.0`: a number is a float |
@@ -41,7 +41,7 @@ an operand as JavaScript does.
 | `catch (e) { use(e); }`; Node's `process`, `Buffer`, `setImmediate`, `setTimeout` | `except BaseException as caught { e: any = js_error(caught); use(e); }`; imported from `node:process`, `node:buffer`, `node:timers` |
 | `true`, `false`, `undefined`, `this` | `True`, `False`, `None`, `self` |
 | `a + b`, `a - b`, `a * b`, `a ** b` of numbers; `s + t` of strings | The same operators |
-| `{ a: 1, "b": 2 }`, of any type, a table's (`Record<string, number>`, an index signature) too; `d[k]`, `d[k] = v;` of a table | `globalThis.Object.fromEntries([("a", 1.0), ("b", 2.0)])`, JavaScript's own object; `js_item(d, k)`, `js_set_item(d, k, v);`, of `js` |
+| `{ a: 1, "b": 2, 3: 4 }`, of any type, a table's (`Record<string, number>`, an index signature) too; `d[k]`, `d[k] = v;` of a table | `globalThis.Object.fromEntries([("a", 1.0), ("b", 2.0), (globalThis.String(3.0), 4.0)])`, JavaScript's own object, a number as a key the string JavaScript makes of it; `js_item(d, k)`, `js_set_item(d, k, v);`, of `js` |
 | An object literal's method: `{ m(x) { return this.n + x; } }`, `*m() { }`, `async m() { }`, `[k]() { }` of a key that reads a name or a property | `def m_1(self: any, x: any) -> any { return self.n + x; }` before the statement and `("m", js_as_method(m_1, "m"))` of `js` in the object's entries: the object is `self`, and JavaScript cannot construct the method; a generator `def`, an `async def`; `(k, js_as_method(method_1, k))` |
 | Any other object literal: `{ a: 1, b, [k]: v, ...o }` | `globalThis.Object.assign(globalThis.Object.fromEntries([("a", 1.0), ("b", b), (k, v)]), o)`: JavaScript's own object |
 | `o.p` where `o`'s type declares `p`; where it declares it optional; where `o` is untyped, and `o.m(a)` | `o.p`; `getattr(o, "p", None)`; `js_item(o, "p")` and `js_method(o, "m", a)`, JavaScript's read and call, a TypeError of `null` |
@@ -65,7 +65,7 @@ an operand as JavaScript does.
 | `` tag`a${x}b` `` of a function the file declares | `tag(["a", "b"], x)`: the parts, then the values |
 | `v as T`, `<T>v`, `v!`, `v satisfies T` | `v`: TypeScript erases them |
 | `await p`; `async function f() { }`; `async () => { }`; `await p` in a module's code | `await p`; `async def f { }`; an `async def` of its own, declared before the statement that makes it; `await p` in `with entry`, which makes the module's code a coroutine run to its end |
-| `function* f() { yield v; yield* xs; }`, a generator's method or function expression | `def f -> Iterator[any] { yield v; yield from xs; }`; a function expression is a `def` of its own, declared before the statement that makes it |
+| `function* f() { yield v; yield* xs; }`, a generator's method or function expression; `async function* f() { yield v; }`, and `g.next(v)`, `g.return(v)`, `g.throw(e)` of an async generator | `def f -> Iterator[any] { yield v; yield from xs; }`; a function expression is a `def` of its own, declared before the statement that makes it; an async generator is `async def f -> AsyncIterator[any] { yield v; }`, which is JavaScript's own async generator where it crosses to JavaScript, and its `next` `js_method(js_async_generator(g), "next", v)` |
 | `throw new TypeError(m);` | `raise new(globalThis.TypeError, m);` |
 | `try { } catch { } finally { }`, and `catch (e)` where the block does not use `e` | `try { } except BaseException { } finally { }` |
 | `/a+/g` | `new(globalThis.RegExp, "a+", "g")` |
@@ -87,8 +87,7 @@ construct in the table whose Jac would mean something else (E4005):
 
 - **A function made in a loop that uses a `let` variable of the loop's body.** Each pass of a
   JavaScript loop has its own, which the pass may change; a Jac function has one.
-- **An async generator.** Jac's async generator is not JavaScript's: it has `__anext__` where
-  JavaScript's has `next`.
+- **`yield*` in an async generator.** Jac's async generator has no `yield from`.
 - **A getter, a setter or `super` in an object literal.**
 - **A variable declared again inside the block of another of its name.** A Jac function has
   one variable of a name. (One a function inside another declares, where the other has a

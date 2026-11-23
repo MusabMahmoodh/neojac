@@ -34,7 +34,7 @@ else its defaults.
 | `let x = 1;`, `let mut x: i64 = 1;`, `let x = x + 1;` in the same block | `x: i32 = 1;`, `x: i64 = 1;`, `x: i32 = x + 1;` |
 | `if c { } else if d { } else { }`; `let x = if c { a } else { b };` | `if c { } elif d { } else { }`; `x: T = a if c else b;` |
 | `while c { }`, `loop { }`, `break`, `continue` | `while c { }`, `while True { }`, `break;`, `continue;` |
-| `for i in a..b { }`, `for _ in 0..n { }` | `for i = a while i < b with i += 1 { }` |
+| `for i in a..b { }`, `for _ in 0..n { }`; `for x in v`, `v.iter()`, `v[a..b].iter()` and their `enumerate()`, over a `Vec` | `for i = a while i < b with i += 1 { }`; a walk by index, `for at = u64(0) while at < u64(v.len()) with at += 1 { x = v[at]; }`, a range checked first by `rust.within` as Rust checks it |
 | `return v;`, `x = v;`, `x += v;` and the other compound assignments | The same |
 | `a + b`, `a - b`, `a * b` of integers and of floats | `a + b`, `a - b`, `a * b`: an overflow is an error in Rust, and Jac raises OverflowError |
 | `a / b`, `a % b` of signed integers | `(a // b + 1) if (a % b != 0 and (a < 0) != (b < 0)) else (a // b)`, and the like for `%`: Rust rounds toward zero and Jac toward negative infinity |
@@ -50,7 +50,11 @@ else its defaults.
 | A value whose drop is significant (`HashSet`, `Regex`): a `let`, a by-value parameter, a struct's field | An `own` binding, dropped where its scope ends as Rust drops it; a struct of the crate holding one is an `obj` with an `own` field |
 | `&str`, a string literal, `s.len()`; `&[u8]`, `b"ab"`, `&piece[a..b]`, `&text[..i]` | `str` (its `len` the UTF-8 length); `bytes`; a range through `rust`'s `slice_bytes`, `slice_str` and their `_from` forms, which panic where Rust panics |
 | `m.get(k)` and `m[k]` of a map by its key's borrowed form, `if let Some(&r) = m.get(k)`, `*m.get(k).unwrap_or(&7)`, `.copied()` | The native call by the borrowed form; an `Option<&N>` of a number is the `Option[N]` its `copied` gives: `is_some()`/`unwrap()`, `m.get(k).unwrap_or(7)` |
-| `if let Some(x) = e { } else { }`, `while let Some(x) = e { }` over another crate's `Option` | `if e.is_some() { x = e.unwrap(); ... } else { }`, and the `while` likewise, `e` evaluated once |
+| `if let Some(x) = e { } else { }`, `while let Some(x) = e { }` over another crate's `Option`; `match e { Some(x) => a, None => b }`, `match r { Ok(x) => a, Err(e) => b }` | `if e.is_some() { x = e.unwrap(); ... } else { }`, and the `while` likewise, `e` evaluated once; a `Result`'s `x = r.ok().unwrap()`, `e = r.err().unwrap()` |
+| `let x = f()?;`, `Ok(a + g()?)` of another crate's `Result` (the function's own error) or `Option` | `tried: Result[T, E] = f(); if tried.is_err() { return Result[U, E].Err(tried.err().unwrap()); } x: T = tried.ok().unwrap();`: the test and the return before the statement, refused where that would evaluate something before what precedes it, or where the operand is evaluated on some paths only |
+| A value of another crate that borrows (`m.get(k)`'s `Option<&Vec<u8>>`, `std::str::from_utf8(b)`'s `Result<&str, Utf8Error>`) in a local | A local of its type (`text: Result[&str, Utf8Error] = from_utf8(b);`), which Jac holds to borrowing what Rust says it borrows; refused in a field, a parameter or a result |
+| `HashSet<&str>`, `Vec<&[u8]>` only built and read: `insert(s)`, `contains(k)`, `len()`, given by `&` to a function of the crate | `HashSet[String]`, `Vec[Vec[u8]]`, each element made a `String` or a `Vec[u8]` before the statement that inserts it: nothing done with the set can tell the two apart |
+| `vec![a, b]`, `let x;`, a `#[should_panic(expected = "m")]` test | `made: Vec[T] = Vec[T].with_capacity(2); made.push(a); made.push(b);` before the statement; `x: T;`; a test that passes when a `RustPanic` or `AssertionError` holding `m` is raised |
 | `(a, b)`, `t.0`, `t.1 += 1`, `Vec<(usize, u32)>` | `(a, b)`, `t[0]`, `t = (t[0], t[1] + 1)`, `Vec[tuple[u64, u32]]` |
 | `impl Ord for Merge { fn cmp(&self, o: &Self) -> Ordering { } }`, `#[derive(PartialEq, Eq)]`, `BinaryHeap<Merge>` | `struct Merge(Ord, PartialOrd, Eq, PartialEq) { def cmp(other: &Merge) -> Ordering { } }`: the struct conforms to Rust's traits, which Rust's generic code calls |
 | `assert!(c)` outside a test | `if not c { raise RustPanic("assertion failed: c"); }`, `RustPanic` imported from `rust` |
@@ -59,10 +63,13 @@ else its defaults.
 ## What is refused
 
 Anything not in the table is refused with E4001, and nothing is written for the file: among
-them enums whose variants hold fields and their patterns, generics, iterator chains
-(`collect`, `map`) and a `for` over another iterator (a slice's, another crate's), `?`, `Display` impls
-(`Formatter`), a value of another crate that borrows (`Option<Match>`, `HashSet<&str>`),
-`char`, raw pointers and `unsafe`, and a call of another crate whose types Jac does not hold.
+them enums whose variants hold fields and their patterns, generics and another crate's
+generic methods (`collect`, `map`, `find_iter::<str>`), a `for` over another iterator (a
+slice's, another crate's), a `?` that converts the error, `Display` impls (`Formatter`), a
+value that borrows kept past a local, `char`, raw pointers and `unsafe`, and a call of another
+crate whose types Jac does not hold or that the import of Rust leaves out (its result
+borrows from other than its receiver and its str or bytes arguments, or it may keep a
+borrow of what it is given).
 So is a construct in the table whose Jac would mean something else (E4005):
 
 - **A float converted to an integer.** Rust stops at the type's ends and Jac raises.

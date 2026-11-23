@@ -34,11 +34,11 @@ the module `geom`.
 | `enum { RED, GREEN = 5 };` | `comptime RED: i32 = 0;`, `comptime GREEN: i32 = 5;` |
 | `typedef struct { } point;`, `typedef int count;` | The record by its typedef's name; any other typedef is the type it names |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }` | `if c { } elif d { } else { }`, `while c { }`; a condition that is a number is `c != 0` |
-| `for (int i = 0; i < n; i++) { }` | `for i = i32(0) while i < n with i += 1 { }` |
+| `for (int i = 0; i < n; i++) { }`, `for (p = head; p; p = p->next) { }` | `for i = i32(0) while i < n with i += 1 { }`, `for p = head while p != ptr[link](ptr()) with p = p[0].next { }` |
 | `do { } while (c);`, with no `continue` of its own | `while True { ... if not c { break; } }` |
 | `return v;`, `break;`, `continue;` | The same |
-| `goto cleanup;` forward, to a label at the function's top level whose code runs to its end | `defer { if goto_cleanup { ... } }` where the function's variables are declared, and `goto_cleanup = True; return v;` at the `goto` |
-| `cleanup: free(buf); return v;` that a forward `goto` reaches, or that none does | The code after it in a `defer`; a label no `goto` names is its statement |
+| `goto error;` forward, to a label at the top level of the function or of a loop's body, from anywhere before the label: a nested loop, a `switch`, an earlier label's code | `goto_to = 2; break;`: the code before the first label is in a `while True { ... break; }` that a `goto` leaves, with `if goto_to != 0 { break; }` after each loop or `switch` it leaves on the way |
+| `error: free(buf); return NULL;` that a forward `goto` reaches, or that none does; its code may return, go to a later label, or leave its loop | `if goto_to <= 2 { goto_to = 0; ... }`, the k-th label's code, run when the code before falls into it or a `goto` names it; in a loop's body a `continue` or `break` before the label is a `goto` past the body's end; a label no `goto` names is its statement |
 | `a + b`, `a - b`, `a * b` of signed integers and of floats | `a + b`, `a - b`, `a * b`: C leaves a signed overflow undefined, and Jac raises OverflowError |
 | `a + b`, `a - b`, `a * b`, `a << k` of unsigned integers | `a +% b`, `a -% b`, `a *% b`, `wrapping_shl(a, k)`: they wrap, as C defines |
 | `a / b`, `a % b` of signed integers | `(a // b + 1) if (a % b != 0 and (a < 0) != (b < 0)) else (a // b)`, and the like for `%`: C rounds toward zero and Jac toward negative infinity |
@@ -56,6 +56,9 @@ the module `geom`.
 | `(char *)p`, `(void *)p`, `(intptr_t)p`, `(int *)n`, a string literal where its address is taken | `ptr[i8](p)`, `ptr(p)`, `int(p)`, `ptr[i32](int(n))`, `ptr[i8]("...")` |
 | `f(a, b)`; `printf("%d\n", n)` of the C library | `f(a, b)`; `printf("%d\n", n)`, with `import from c { def printf(format: str, *args: any) -> i32; }` |
 | `__builtin___strcpy_chk(d, s, n)`, `__builtin___snprintf_chk(b, n, f, k, fmt, ...)`: what `strcpy` and `snprintf` expand to where a header fortifies them | `strcpy(d, s)`, `snprintf(b, n, fmt, ...)`: the C library's function, without the check of a size the compiler would have known |
+| `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
+| `__builtin_constant_p(x)` | `1` or `0`, the answer Clang gives where it compiles the call: 1 for a constant, 0 for an argument with side effects (not run) or that is not a number. One Clang leaves to the optimizer is refused |
+| `const char *names[3];` in a record, `static const char *kinds[3] = {"a", "b"};` | `names: array[ptr[i8], 3]`, `glob kinds: array[ptr[i8], 3] = array[ptr[i8], 3](ptr[i8]("a"), ptr[i8]("b"), ptr[i8]())`: an array of pointers, zeroed as null; `char _f[0]` at a system record's end, padding that holds no bytes, is left out |
 | `sizeof(int)` | Its value on each target, `u64(4)` |
 | `offsetof(struct s, f)` | Its value on each target, `u64(8)` |
 
@@ -63,10 +66,13 @@ the module `geom`.
 
 Anything not in the table is refused with E4001, and nothing is written for the file: a union,
 a record with no name and a bit-field the file declares, a copy of a union a system header
-declares, a `goto` other than the forward one to a function's cleanup the table maps, a
-`va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last argument
-of a `v` function, a pointer to an array or to a function pointer, a function pointer that may
-be null, a conversion of a function pointer a variable holds, a thread-local variable. So is a
+declares, a `goto` back to a label, into a loop or to a label inside a block other than a loop's
+body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
+argument of a `v` function, a pointer to an array or to a function pointer (the address of an
+array given where C takes another pointer is the address of its first item), a function
+pointer that may be null, a conversion of a function pointer a variable holds, a
+`__builtin_constant_p` whose answer Clang leaves to the optimizer, a record declared in a
+function, a packed record, a thread-local variable. So is a
 construct in the table whose Jac would mean something else (E4005):
 
 - **A division of floats whose operands have side effects.** Port tests the divisor, and would
