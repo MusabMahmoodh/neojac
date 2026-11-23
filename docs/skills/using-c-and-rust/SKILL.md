@@ -86,7 +86,9 @@ Buffers and pointers, as above: a `bytearray` argument lets C write in place; `&
 variable's address for one call; memory from `calloc` is a `ptr[T]`, indexed unchecked, freed by
 C's `free`; `p.view(n)` is a bounds-checked view, indexed (never iterated) with
 `range(len(v))`. A Jac `list` is not a C array: copy into C memory. Where C keeps an address
-after the call, use `pin(x)` (`neojac docs pin`). Only a named function is a callback.
+after the call, use `pin(x)` (`neojac docs pin`); to give C a Jac object as a callback's user
+data, `hold(obj)`, taken back in the callback by `held[T](p)` and given up by `release(p)`.
+Only a named function is a callback.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
@@ -146,7 +148,8 @@ drop runs code is bound `own` (E1256). `neojac docs Rust module` has what crosse
    (`jhelp --> shapes.shapes { jhelp_scale }` for the project's own C file), and the C includes
    `jac/jhelp.h`, which neojac writes. Such a function takes and gives integers, floats and
    pointers (E1249). A C++ class is an `obj` Jac uses, and derives with `C.init_base(self, ...)`
-   in its `postinit` (`neojac docs C module`).
+   in its `postinit`; a class template's instance is named by its template form, `Box[i32]`,
+   and a member template's by its type arguments, `c.to[float]()` (`neojac docs C module`).
 
 5. **Bind a project library** you build yourself:
 

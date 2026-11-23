@@ -328,9 +328,15 @@ Nothing needs to be `extern "C"`.
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
 | A member function template | `o.m[A, B](args)`, the instance `m<A, B>`, made for the program ([below](#member-function-templates)) |
-| A class template of the module | Instantiated only by a Jac class deriving it with itself (below); the standard library's are `libcxx`'s |
+| A class template of the module | `T[A, B]`, the class `T<A, B>` by its template form, made for the program ([below](#class-templates)); a Jac class may derive one made with itself (CRTP, below); the standard library's are `libcxx`'s |
 
-A wire may name an overload set by its C++ name, and binds each member.
+A wire may name an overload set by its C++ name, and binds each member: `tally.tally ++> main {
+twice }` binds `twice_i32` and `twice_f64`, which the Jac code calls.
+
+A header library's function is the module's wherever in its directory it is defined: node-addon-api's
+`napi.h` declares functions that `napi-inl.h`, a header only `napi.h` includes, defines. A wire
+names it from the header the module lists (`headers = ["napi.h"]`), and so does a use of it from
+another C++ file of the project.
 
 ### Member function templates
 
@@ -349,7 +355,9 @@ as a call of a Jac generic method may ([Generics](../language/generics.md)): `o.
   module's headers are read again with the instance asked for, and the interface binds it as a
   member of the class. A result of a class type is owned, as any result by value is.
 - An instance the template does not take, or whose argument is no class or number type of C++, is
-  E1620.
+  E1620 where the program names another instance of the template that the build makes. Where it
+  names none, the class has no member of that name, and the call is E1030 (`Counter has no field
+  'to'`).
 
 The header library `tally/tally.h`, a C module of the project with `language = "c++"`:
 
@@ -381,6 +389,49 @@ with entry {
 7.0 7
 9 11
 ```
+
+### Class templates
+
+A class template of the module is named by its template form, as the standard library's are
+([below](#the-c-standard-librarys-classes)): `T[A, B]` is the C++ class `T<A, B>`, its arguments
+Jac types as the interface writes C++ types (a class of the module, a `libcxx` class, a number
+type). It is the module's own class, the same Jac class its functions take and give, with its
+constructors, methods and operators bound as any class's are. The program's build makes each
+instance the program names, whether or not the module's C++ reaches it.
+
+With `tally/tally.h` holding
+
+```cpp
+template <class T> class Box {
+public:
+    explicit Box(const T &v) : held(v) {}
+    T get() const { return held; }
+
+private:
+    T held;
+};
+
+inline Box<int> boxed(int v) { return Box<int>(v); }
+```
+
+<!-- example: not checked: needs the C module tally, wired tally.tally ++> main { Box, Counter, boxed } -->
+```jac
+with entry {
+    bx: Box[i32] = boxed(i32(5));
+    print(bx.get(), Box[i32].make(i32(6)).get());
+    tc = Counter.make(i32(13));
+    made = Box[Counter].make(tc);
+    print(made.get().value());
+}
+```
+
+```text
+5 6
+13
+```
+
+`Box[i32]` is the class `boxed` gives; `Box[Counter]` is an instance nothing in the C++ makes.
+An instance whose argument is no class or number type of C++ is refused by name.
 
 ### A Jac class deriving a C++ class
 
@@ -431,9 +482,9 @@ figure/4/9 4
 `obj Heavy(Counted[Heavy])` is `Counted<H>`, where `H` is Heavy's C++ part, a C++ class the
 program's own C++ unit declares. Its members are Heavy's methods of number and `bool` types, each
 calling the Jac method, so what the template calls on `T` reaches Jac, and its overrides of
-`Counted`'s virtual methods call Heavy's. Only an instance whose arguments name the deriving
-class itself, besides number types, is made; any other instance of the module's own templates is
-refused by name. A program whose C++ instances do not compile (a Jac method's types disagree with the
+`Counted`'s virtual methods call Heavy's. As a base, only an instance whose arguments name
+the deriving class itself, besides number types, is made; a Jac class deriving any other
+instance, or a class template a C++ source rather than a header defines, is refused by name. A program whose C++ instances do not compile (a Jac method's types disagree with the
 template's virtual of that name) is E5200.
 
 <!-- example: not checked: needs the C module whose figures.hpp declares Counted -->
