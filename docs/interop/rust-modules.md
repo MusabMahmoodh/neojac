@@ -323,16 +323,24 @@ panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `h
 
 ### Values that borrow, and how a Rust value prints
 
-- **A Rust value that borrows** (a type with one lifetime: `Option<&Vec<u8>>`, an `Iter<'_, u32>`)
-  is a Jac value that may only be a local, borrowing what rustc says it borrows: the receiver of
-  the `&self` method that gave it. It may not be stored in a field, a global or a container, nor
+- **A Rust value that borrows** (a type with a lifetime: `Option<&Vec<u8>>`, an `Iter<'_, u32>`,
+  `Result<&str, Utf8Error>`) is a Jac value that may only be a local, borrowing what rustc says it
+  borrows: the receiver of the `&self` method that gave it, or the `str` or `bytes` a function was
+  given. Its type is written as rustc writes it, a reference as a type argument:
+  `Result[&str, Utf8Error]`, `Option[&Vec[u8]]`, `&bytes` for `&[u8]`. It may not be stored in a field, a global or a container, nor
   returned (E1315), and while it is used its owner may not be changed, moved or dropped (E1302,
   E1303, E1304), as Rust's borrow checker holds it. A `&T` result is a borrow of the Rust value
   (`got.unwrap()` above is a `&Vec[u8]`), and a `&mut self` method lends its receiver mutably for
   the call.
-- **What is not offered**: a method whose result borrows an argument rather than its receiver
-  (`Regex::find(&self, text)`'s `Match`), and one that may keep a borrow of an argument
-  (`HashSet<&str>::insert`): a Jac `str` or `bytes` is lent to Rust only for the call.
+- **A value lent by a `str` or `bytes` argument keeps it.** `from_utf8(b)` gives a
+  `Result[&str, Utf8Error]` that borrows the bytes made of `b` for the call: the value holds them
+  for as long as it lives, and what it lends on (`decoded.ok()`, `unwrap()`) holds them too. A
+  result that borrows several of its inputs is lent by each.
+- **What is not offered**: a function or method whose result borrows an argument other than its
+  receiver and its `str` and `bytes` arguments (a Rust value it is given by `&`), a reference
+  into the bytes it is given, and one that may keep a borrow of an
+  argument (`HashSet<&str>::insert`): a Jac `str` or `bytes` is otherwise lent to Rust only for
+  the call.
 - **A Rust value prints as Rust shows it**: `repr()` is its `Debug` (`{:?}`), and `str()` and
   `print` its `Display` where it has one, else its `Debug`. A type with neither prints as its Rust
   type, `<adder::Bag>`. Its class is named as the program writes it, `HashSet[u32]`, in messages
@@ -373,6 +381,32 @@ with entry {
 ```
 
 `m.clear()` before the `print` that reads `got` would be E1302: `got` borrows `m`.
+
+A value lent by the bytes it was given, read after those bytes, and much else since, are garbage:
+
+```jac
+import from std.option { Option }
+import from std.result { Result }
+import from std.str { Utf8Error, from_utf8 }
+
+def main {
+    decoded: Result[&str, Utf8Error] = from_utf8(("h\u00e9" * 3).encode());
+    spilled = 0;
+    for k in range(20000) {
+        spilled += len(f"spill {k}".encode());
+    }
+    text: Option[&str] = decoded.ok();
+    print(text.unwrap(), spilled > 0, from_utf8(b"\xff").is_err());
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+héhéhé True True
+```
 
 An item rustc reports that Jac cannot bind is left out with its reason (E5138): a type that
 borrows and is not offered as above, a `Copy` type of another crate. Rust items that cannot be

@@ -331,6 +331,10 @@ obj Rack {
     def pick[T](xs: list[T]) -> T {
         return xs[self.size];
     }
+
+    def pair[K, V](k: K, v: V) -> tuple[K, V] {
+        return (k, v);
+    }
 }
 
 obj TopRack(Rack) {
@@ -354,13 +358,24 @@ with entry {
     racks: list[Rack] = [Rack(size=1), TopRack()];
     print([r.pick([7, 8, 9]) for r in racks], Rack().pick(["a"]));
     print(twice("w"), adder(2)(5), adder(0.5)(1.0));
+    print(Rack().pair("k", 2), Rack().pair[str, float]("k", 2));
 }
 ```
 
 ```output
 [8, 9] a
 ['w', 'w'] 7 1.5
+('k', 2) ('k', 2.0)
 ```
+
+- **A call may write a method's type arguments**, after its name, as a
+  function's call does: `r.pair[str, float]("k", 2)` is the instance
+  `pair[str, float]`, its arguments checked and converted to it. It holds for
+  a method of a generic class, a static method (`Shelf.made[str]("z")`) and an
+  override called virtually, on every host. Too many type arguments is E1164,
+  type arguments for a method that has none E1040, and a call through `super`
+  that writes them E5090. Where the receiver's member is no method with type
+  parameters, `x.m[0](a)` indexes the member and calls the item.
 
 - **A method with unbounded or class-bounded type parameters overrides and
   is overridden as any method is**, and is dispatched on the object's class.
@@ -385,6 +400,7 @@ you want.
 | E1110, E1030, ... | A body uses what its parameters' bounds do not provide |
 | E1284 | The same, in a body bounded by interfaces, reported at the declaration |
 | E2195 | An override with another number of type parameters |
+| E1164, E1040 | A call that writes more type arguments than the method has; one that writes them for a method with none |
 | E1615, E1616 | A type parameter pack where a pack cannot be, and a `*` parameter typed by no pack of its function |
 | E1617, E1618 | A call of a function with a pack that writes type arguments, or spreads a list into the pack |
 | E5090 | A generic function or method as a value; a default for a type parameter; an override among methods compiled for each call |

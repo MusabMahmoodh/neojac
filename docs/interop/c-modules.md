@@ -140,7 +140,7 @@ headers (`<stdio.h>`, `<stdint.h>`) are not part of the module.
 | A pointer to a function | `Callable[[P, ...], R] \| None`, which a named Jac function is passed as, or `None` for `NULL`; a C function of a module is passed as its own address, to a parameter or a record's field: with `int64_t pick(int64_t (*f)(int64_t), int64_t x)` and `twice` of one module wired in, `pick(twice, 21)` is C's `pick(twice, 21)` |
 | A `struct` | A record, constructed by keyword (`point(x=1.0, y=2.0)`, fields left out are zero), passed and returned by value |
 | A `struct` declared but not defined (`typedef struct polygon polygon;`) | An opaque type, held as `ptr[polygon]`; its name is importable |
-| A `struct` holding bit-fields or arrays of numbers | A record with [bit-fields and arrays](c-libraries.md#bit-fields-and-arrays), checked against Clang's layout |
+| A `struct` holding bit-fields, or arrays of numbers or pointers | A record with [bit-fields and arrays](c-libraries.md#bit-fields-and-arrays), checked against Clang's layout |
 | A trailing array of no length (`int32_t data[];`) | Left out of the record, whose size stays C's: it is the memory past the record |
 | A `union`, a `typedef union` | A [union](../language/structs.md#unions), used by address and as a field |
 | A record with no name that is a field's type (`struct { union { ... } amount; }`) | A record named by its record and field (`shape_tagged_amount`), reached through the field |
@@ -161,7 +161,7 @@ A declaration the interface cannot express is left out, and a module that import
 - a function taking or returning a union by value, or a record holding one: the calling
   convention of such a record is not bound;
 - a `static inline` function taking C's `...`, which a shim cannot pass on;
-- a record whose bound fields do not make C's size: an array of anything but numbers, a
+- a record whose bound fields do not make C's size: an array of anything but numbers and pointers, a
   bit-field with no name, a layout that differs from Clang's;
 - a global C array.
 

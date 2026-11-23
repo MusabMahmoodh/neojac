@@ -260,8 +260,8 @@ sign-extended for a signed type; writing one writes its bits and keeps the rest 
 truncating the value as C does. Only a C record has bit-fields (E2262): a Jac struct's layout is
 not C's.
 
-A field of type `array[T, N]`, `T` a number or an array of them, is a C array in the record, laid
-out as C lays it out. `r.name` is the array in place, so `r.name[0] = v` writes the record's
+A field of type `array[T, N]`, `T` a number, a pointer or an array of them, is a C array in the
+record, laid out as C lays it out: C's `const char *names[3];` is `names: array[ptr[i8], 3]`. `r.name` is the array in place, so `r.name[0] = v` writes the record's
 memory, and assigning the field copies a whole array in.
 
 ```jac
@@ -296,6 +296,28 @@ with entry {
 ```
 
 `f.level = i32(9)` keeps 9's low three bits, 1.
+
+An array of pointers holds a machine word for each, as C's does, and one made with no values
+holds null pointers:
+
+```jac
+import from c {
+    obj Names {
+        has names: array[ptr[i8], 3],
+            count: i32;
+    }
+}
+
+with entry {
+    n = Names(names=array[ptr[i8], 3](), count=i32(1));
+    n.names[0] = ptr[i8]("tea");
+    print(n.names[0] == ptr[i8](), n.names[2] == ptr[i8](), n.count);
+}
+```
+
+```output
+False True 1
+```
 
 A C `union` is a Jac `union` ([Structs](../language/structs.md#unions)), declared in an import
 block as a record is, and held by value as one is. A union or a record a system header declares
