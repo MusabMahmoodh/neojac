@@ -85,6 +85,18 @@ obj FileBook(Book) {
         return True;
     }
 
+    def known(provider: str, external_id: str) -> str {
+        with self.turn {
+            for r in self.db.execute(
+                "select user_id from identities where provider = ? and external_id = ?",
+                (provider, external_id),
+            ) {
+                return str(r[0]);
+            }
+        }
+        return "";
+    }
+
     def identity(provider: str, external_id: str, user: str, now: float) -> str {
         with self.turn {
             for r in self.db.execute(
