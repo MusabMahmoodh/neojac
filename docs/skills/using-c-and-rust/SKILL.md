@@ -141,8 +141,10 @@ pub extern "C" fn add(a: i64, b: i64) -> i64 {
 `import from adder { add }` then `print(add(2, 3))` prints `5` after `neojac build`. Rust's own
 API needs no `extern "C"`: `import from std.collections { HashSet }`, and a crate's ordinary
 `pub` items through its wire, are used natively, generics by their arguments
-(`HashSet[u32].new()`), a panic as `RustPanic` (`import from rust { RustPanic }`). A value whose
-drop runs code is bound `own` (E1256). `neojac docs Rust module` has what crosses.
+(`HashSet[u32].new()`), a generic method by its instance at the call (`o.zip[u32](p)`), a
+slice of numbers as `Slice[u32]` (`import from rust { Slice }`, `v.as_slice().sub(a, b)`), an
+iterator stepped by `next()`, a panic as `RustPanic` (`import from rust { RustPanic }`). A value
+whose drop runs code is bound `own` (E1256). `neojac docs Rust module` has what crosses.
 
 4. **Call Jac from C.** A wire gives a C module a Jac function by name
    (`jhelp --> shapes.shapes { jhelp_scale }` for the project's own C file), and the C includes
