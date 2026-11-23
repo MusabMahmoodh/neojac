@@ -280,7 +280,8 @@ panic: called `Option::unwrap()` on a `None` value
   `bytes` (`[u8]`), a `String` key by a `str`, and a key with no `Deref` target by the key
   itself. Jac has no overloading, so this one instance stands for those Rust makes per call.
 - **A map is indexed by the same form**: `ranks[b"ab"]` is Rust's `ranks[&b"ab"[..]]`, through
-  `Index<&Q>`, and panics where the key is missing, as Rust's does.
+  `Index<&Q>`, and panics where the key is missing, as Rust's does. A map keyed by a number is
+  indexed by the number: `decoder[u32(1)]` is Rust's `decoder[&1]`, the item lent by the map.
 - **A shared reference to a number crosses as the number**: `Option<&u32>` is `Option[u32]`, the
   number copied, as Rust's own `.copied()` gives it.
 - **A range of a slice or a `str`** is a function of `rust`: `slice_bytes(b, start, end)` and
@@ -312,6 +313,11 @@ with entry {
     ann.push_str("ann");
     names.insert(ann, u32(3));
     print(names.get("ann").unwrap(), names["ann"]);
+    decoder: own HashMap[u32, Vec[u8]] = HashMap[u32, Vec[u8]].new();
+    word: own Vec[u8] = Vec[u8].new();
+    word.push(u8(122));
+    decoder.insert(u32(1), word);
+    print(decoder[u32(1)].len(), decoder.contains_key(u32(1)));
     print(slice_bytes(b"hello", u64(1), u64(3)), slice_str_from("héllo", u64(3)));
     try {
         slice_str_from("héllo", u64(2));
@@ -324,6 +330,7 @@ with entry {
 ```output
 7 True True 7
 3 3
+1 True
 b'el' llo
 panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `héllo`
 ```
@@ -624,7 +631,10 @@ called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit 
   returned (E1315), and while it is used its owner may not be changed, moved or dropped (E1302,
   E1303, E1304), as Rust's borrow checker holds it. A `&T` result is a borrow of the Rust value
   (`got.unwrap()` above is a `&Vec[u8]`), and a `&mut self` method lends its receiver mutably for
-  the call.
+  the call. A method that takes a borrowing receiver by value (`unwrap` of an
+  `Option[&Vec[u8]]`) gives a result that borrows what the receiver borrowed, not the receiver,
+  as Rust's signature says: an item taken out of a lending iterator's `Option` outlives the
+  `Option`, and holds the iterator's owner.
 - **A value lent by a `str` or `bytes` argument keeps it.** `from_utf8(b)` gives a
   `Result[&str, Utf8Error]` that borrows the bytes made of `b` for the call: the value holds them
   for as long as it lives, and what it lends on (`decoded.ok()`, `unwrap()`) holds them too. A
