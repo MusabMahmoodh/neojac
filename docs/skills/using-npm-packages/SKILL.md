@@ -109,13 +109,14 @@ ENOENT
      `js_dec`, `js_number`, `js_same` for `===`, `js_typeof`, `js_item(o, k)` and
      `js_set_item(o, k, v)` for `o[k]` and `o[k] = v` (whose value is `v`), `js_delete(o, k)`
      for `delete o[k]`, `js_rest(o, ["a", "b"])` for `{ a, b, ...rest } = o`,
-     `js_method(o, "join", ", ")`, `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
+     `js_unpack(o, 2, True)` for `[a, b, ...rest] = o` of any iterable,
+     `js_method(o, "join", ", ")` (a symbol's key too), `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
      for `import.meta`, `js_new_target()` for `new.target`, `js_prototype(f)` for
      `f.prototype`, `js_as_method(f, "m")` for an object literal's method `m` (`f` takes the
      object first), `js_global(name)`, `js_async_generator(g)` for a Jac async generator as
      JavaScript's own (`neojac docs js_add`).
    - A Jac async generator crosses as JavaScript's async generator, and a coroutine as a promise
-     of its result, on every host; on a JavaScript host `async for` takes JavaScript's async
+     of its result, on every host; on every host `async for` takes JavaScript's async
      iterables (`Symbol.asyncIterator`, a stream).
    - A project's JavaScript file that imports a module's `glob` reads it live, but a global of a
      function type and the module's default, which it takes as they stand once the module has
