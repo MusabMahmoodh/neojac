@@ -54,7 +54,10 @@ glob USERNAME: str = "[a-z0-9][a-z0-9._-]{2,31}",
      # How long a caller sent to another service has to come back, and how
      # long that service is waited for, in seconds.
      AWAY_SECONDS: int = 600,
-     SERVICE_SECONDS: float = 20.0;
+     SERVICE_SECONDS: float = 20.0,
+     # What one the app does not know is told where they may not make
+     # themselves an account.
+     CLOSED: str = "this app makes no new accounts: ask whoever runs it for one";
 
 """Where accounts are kept, as `AccountsAuth` asks it. Each method is one
 step, done whole whoever else is at the book: the calls a server answers at
@@ -71,8 +74,10 @@ as `time.time` counts them.
   and its password as it is kept, or None.
 - `add` makes an account with `password` as it is kept, unless its username
   is taken, or its email when it has one: whether it was made.
-- `identity` is the user ID of the one `provider` knows as `external_id`:
-  `user`, from the first time it is asked.
+- `known` is the user ID of the one `provider` knows as `external_id`, or
+  "" for one it was never asked of.
+- `identity` is the same, made where there is none: `user`, from the first
+  time it is asked.
 - `identities` are the IDs `provider` has for the ones it knows, in the
   order each was first asked for.
 - `away_key` signs what a caller carries to another service and back: one
@@ -83,6 +88,7 @@ obj Book {
     def end(key: str) abst;
     def account(name: str) -> tuple[str, str] | None abst;
     def add(username: str, email: str, password: str, now: float) -> bool abst;
+    def known(provider: str, external_id: str) -> str abst;
     def identity(provider: str, external_id: str, user: str, now: float) -> str abst;
     def identities(provider: str) -> list[str] abst;
     def away_key -> bytes abst;
@@ -102,6 +108,11 @@ obj AccountsAuth(Auth) {
         local_users: bool = False,
         # Whether an account is made only with an email address.
         email_required: bool = False,
+        # Whether one the app does not know may make themselves an account:
+        # by registering, or by signing in through another service for the
+        # first time. Where they may not, the accounts are the ones there
+        # are, and whoever runs the app makes any other.
+        registration: bool = True,
         # A GitHub OAuth app's client ID and secret: signing in through
         # GitHub is offered where both are given.
         github_id: Secret = Secret(variable="SSO_GITHUB_CLIENT_ID"),
@@ -227,12 +238,14 @@ obj AccountsAuth(Auth) {
                 actions=[SignInAction(name="local", label="Continue", needs=["name"])],
             );
         }
-        actions = [
-            SignInAction(name="login", label="Sign in", needs=["username", "password"]),
-            SignInAction(
-                name="register", label="Create account", needs=["username", "email", "password"]
-            ),
-        ];
+        actions = [SignInAction(name="login", label="Sign in", needs=["username", "password"])];
+        if self.registration {
+            actions.append(
+                SignInAction(
+                    name="register", label="Create account", needs=["username", "email", "password"]
+                ),
+            );
+        }
         if self.github_offered() {
             actions.append(self.github_action());
         }
@@ -381,8 +394,10 @@ obj AccountsAuth(Auth) {
                     LIMIT_SECONDS,
                 );
             }
-        } elif action == "register" {
+        } elif action == "register" and self.registration {
             retry = self.tried("register", client, REGISTER_PER_CLIENT, LIMIT_SECONDS);
+        } elif action == "register" {
+            raise Rejected(detail=CLOSED);
         } elif action == "github" and self.github_offered() {
             # (Each costs two requests of GitHub.)
             retry = self.tried("github", client, LOGIN_PER_CLIENT, LIMIT_SECONDS);
@@ -474,6 +489,9 @@ obj AccountsAuth(Auth) {
             raise Rejected(
                 detail="an external identity is a provider's name and its ID for the user"
             );
+        }
+        if not self.registration and self.kept().known(provider, external_id) == "" {
+            raise Rejected(detail=CLOSED);
         }
         user = self.kept().identity(
             provider, external_id, provider + ":" + external_id, time.time()
