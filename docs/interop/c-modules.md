@@ -360,7 +360,7 @@ Nothing needs to be `extern "C"`.
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A parameter whose default is a constant | Optional to a Jac caller, the default C++'s: `s.find_i8_uword(c)` is `s.find(c)` from position 0, and `s.substr(u64(1))` leaves `substr`'s `n = npos` to the member. Only a trailing run of such parameters; a default that is no constant (`int then = seed()`) leaves its parameter, and those before it, required |
 | A result by value | Owned by Jac; a result by reference is borrowed |
-| A member's `const char *` result (`s.c_str()`, `s.data()`) | `ptr[i8]`, the pointer into the object, a loan of it: the object is kept while the pointer is used ([below](#a-pointer-into-an-object)). `str(p)` copies its text (`str(s.c_str())`), and `print(p)` prints it ([Pointers](pointers-and-native-memory.md#what-a-pointer-does)). A free function's `const char *` result is `str \| None`, a copy, as a C function's is |
+| A member's `const char *` result (`s.c_str()`, `s.data()`) | `ptr[i8]`, the pointer into the object; where C++ declares it so (`std`'s strings), a loan of it: the object is kept while the pointer is used ([below](#a-pointer-into-an-object)). `str(p)` copies its text (`str(s.c_str())`), and `print(p)` prints it ([Pointers](pointers-and-native-memory.md#what-a-pointer-does)). A free function's `const char *` result is `str \| None`, a copy, as a C function's is |
 | A result that is a reference to a number or a pointer (`int &operator[](size_t)`, `int &at(size_t)`) | The read, and beside it the store through the reference, the member's name and `_set`: `v.op_index_set(i, x)` for `v[i] = x`, `v.at_set(i, x)` for `v.at(i) = x`. None where a member of that name exists, and none for `const char *&` |
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
@@ -565,6 +565,18 @@ figure/4/9 4
   bases call the Jac object's method of that name. A method the Jac class does not override, and
   `super.area()`, run C++'s own definition. A pure virtual method the Jac class does not
   override raises `NotImplementedError` when called.
+- **A virtual method that is not public is forwarded too.** A `protected` one, pure or with a
+  definition of its own (napi's `AsyncWorker::Execute` and `OnOK`), is overridden as a public one
+  is (`override def run`), and C++'s own calls of it reach the Jac method; `super.done(r)` runs
+  C++'s definition. Jac has no `protected`: a program may call such a method on an object of a
+  class that derives the C++ class, and on an object no Jac class derives it raises
+  `RuntimeError`.
+- **A class whose `private` virtual has a definition of its own cannot be derived**: that
+  definition is one only the class itself calls, which no Jac override may take the place of. Nor
+  can a class with no virtual method. An `obj` that names such a class as its base is E5133
+  where it is declared, with the reason (`'Plan.init' of the C module 'tally' cannot be bound: a
+  Jac class cannot derive it: its virtual method step: it is private`); the class itself is
+  bound, and Jac makes and uses it as it is.
 - **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
   whose destructor runs code makes the deriving class an owned value too, bound `own`.
 - **The Jac class's `destroy` is its C++ part's destructor's body.** It runs once, when the part
@@ -688,10 +700,6 @@ constructor.
 **Not done.** These parts of a Jac class deriving a C++ class are not built yet:
 
 - a static of the object's class given by its address;
-- a C++ class whose virtual method is not public (a `protected` or `private` one, as napi's
-  `AsyncWorker::Execute` is): C++'s own calls of it are not forwarded to the Jac class yet. Where
-  it is pure, a Jac class deriving it fails to build, the module's shim not compiling (E5135);
-  where it has a definition, C++ calls that definition, not the Jac override;
 - C++ making the object for a class template a C++ source module's header declares, rather than a
   header library: such an instance is made in `libcxx`'s unit, and has no constructor for `init`
   yet.
@@ -720,12 +728,19 @@ function the interface writes for that pointer type and that Jac function.
   function raises, printing the function and the pointer's C++ type (`the Jac function
   jmain.bump_refused raised an exception through the C++ pointer to a function int
   (*)(tally::Counter &, int), in C++ built without exceptions`) and the exception's traceback.
-- **It is called on the thread that called into C++.** Jac never runs beside the thread running
-  Jac, so a library that calls the function from a thread of its own ends the program there,
-  printing the function and the rule the call breaks: `neojac: the Jac function bump_by was
+- **In a program, it is called on the thread that called into C++.** Jac never runs beside the
+  thread running Jac, so a library that calls the function from a thread of its own ends the
+  program there, printing the function and the rule the call breaks: `neojac: the Jac function bump_by was
   called from C++ on a thread other than the one that started the program, while the program
   runs Jac on that one thread alone`, or, where the program has started threads of its own, `on
   a thread whose state the Jac runtime never set up`.
+- **In an extension module or a Node addon, a thread of the process that loads it enters the
+  Jac through the module's C entries**: an export the process calls, and every Jac function C
+  calls. Such a thread is made known to the Jac runtime the first time it enters, and holds the
+  Jac lock while it runs Jac, giving it up when it leaves, so the Jac runs on one thread at a
+  time: an addon called from Node's main thread and from a worker's, whose C++ calls a Jac
+  function back on the thread that called it, runs on both. In a program, a thread nothing made
+  known (one a C++ library starts) still ends it, as above.
 
 <!-- example: not checked: needs the C++ header library whose Hooks keeps a function pointer -->
 ```jac
@@ -851,19 +866,22 @@ class is one too.
 
 - **A C++ function's class parameters are borrows** (`def described(f: &Figure)` in the
   interface): an owner is lent for the call, and C++ copies a by-value parameter itself.
-- **A pointer a member gives is a loan of its receiver** ([below](#a-pointer-into-an-object)).
+- **A pointer a member gives is a loan of its receiver where C++ declares it so**
+  ([below](#a-pointer-into-an-object)).
 - **The C++ standard library's classes are `libcxx`'s** (below): a local holding the string
   `text` returns is declared `sep: own std_string = text(" ");`, with `std_string` imported from
   `libcxx`.
 
 ### A pointer into an object
 
-A pointer a C++ class's non-static member gives (`s.c_str()`, `v.data()`, a `ptr[T]` result of
-any member of an imported class) points into the object it was called on, so it is a shared loan
-of that object, as `&s` is ([Borrows](../language/ownership-borrows.md)). The object is kept while
-the pointer is used, and while a copy of it (`q = p`) or a pointer computed from it (`p + 8`) is:
-as C++ keeps a local to the end of its scope, where a managed local would otherwise go at its last
-use.
+A pointer a C++ class's non-static member gives may point into the object it was called on. Where
+C++ declares that it does, the result is a shared loan of the object, as `&s` is
+([Borrows](../language/ownership-borrows.md)): a member marked `[[clang::lifetimebound]]`, and the
+accessors of `std`'s strings and containers that Clang's own lifetime analysis follows (`c_str`,
+`data`, `begin`, `operator[]`, `front` and the rest). That holds for a `ptr[T]` result, a
+reference result and a pointer to a class alike. The object is kept while the pointer is used,
+and while a copy of it (`q = p`) or a pointer computed from it (`p + 8`) is: as C++ keeps a local
+to the end of its scope, where a managed local would otherwise go at its last use.
 
 ```jac
 import from libcxx { std_string }
@@ -883,8 +901,12 @@ with entry {
 string longer than the small buffer holds
 ```
 
-An `own` owner given away while such a pointer is used is E1304, as with any borrow. What the loan
-does not cover is C++'s own contract, as it is in C++, and nothing checks it:
+An `own` owner given away while such a pointer is used is E1304, as with any borrow. A member C++
+declares no such thing of gives its pointer under C++'s own contract, with no loan: a managed
+local's object goes at its last use, an `own` one's where its scope ends, and the pointer then
+dangles; keep the object in a local read after the pointer, or in an `own` local, as long as it
+is used. What a loan does not cover is C++'s own contract too, as it is in C++, and nothing checks
+it:
 
 - **a member that changes the object** (`s.append_ptr_i8(...)`, a vector's `push_back` past its
   capacity) called while the pointer is used may leave it dangling;

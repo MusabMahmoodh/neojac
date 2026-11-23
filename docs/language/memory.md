@@ -57,9 +57,9 @@ Under `managed` and `rc` a value is freed as soon as nothing holds it:
 
 - **A local gives up its value at its last use**, not at the end of its
   scope. A local never read again gives it up as soon as it is bound. A
-  pointer a C++ class's member gives into the local's object (`s.c_str()`)
-  is a use: the object is kept while the pointer, or one computed from it,
-  is used ([A pointer into an object](../interop/c-modules.md#a-pointer-into-an-object)).
+  pointer a C++ class's member gives into the local's object, where C++
+  declares it so (`s.c_str()`), is a use: the object is kept while the
+  pointer, or one computed from it, is used ([A pointer into an object](../interop/c-modules.md#a-pointer-into-an-object)).
 - **Rebinding a name, or assigning a field, gives up the old value** at
   once.
 - **A container gives up what it lets go**: `pop()` whose result is unused,

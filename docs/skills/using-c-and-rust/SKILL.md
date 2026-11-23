@@ -102,9 +102,13 @@ form (`def bump_by(c: Counter, step: i32) -> i32`); a lambda, a bound method or 
 signature is E1639. A pointer to a member function of the class a Jac class derives
 (`int (T::*m)(int)`) takes a method by its class (`Drop.plus_size`), E1623 otherwise. C++ must
 call it on the thread that called into C++: from a thread of the library's own the program ends,
-naming the function. A C++ member's `const char *` result (`s.c_str()`) is a `ptr[i8]` into the
-object, a loan of it: the object is kept while the pointer is used, a member that changes it may
-leave the pointer dangling, and `str(p)` copies its text.
+naming the function. In an extension module or a Node addon, a thread of the loading process that
+enters through the module's exports (Node's main thread, a worker's) is made known to the Jac
+runtime and may be called back on. A C++ member's `const char *` result (`s.c_str()`) is a `ptr[i8]` into the
+object, a loan of it (as C++ declares of `std`'s accessors and of a `[[clang::lifetimebound]]`
+member): the object is kept while the pointer is used, a member that changes it may leave the
+pointer dangling, and `str(p)` copies its text. A member C++ declares no loan of gives a pointer
+under C++'s contract alone: keep its object while the pointer is used.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
