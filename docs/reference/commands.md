@@ -800,7 +800,7 @@ Its guide: [toolchain/inspect](../toolchain/inspect.md) (`neojac docs toolchain/
 Write a space's JavaScript, or its Python code.
 
 ```sh
-neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]]
+neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]] [--laid]
 neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 ```
 
@@ -809,6 +809,7 @@ neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 | `-o <dir>` | The directory to write |
 | `--app <app>` | The space as that app's program of it, with its plan |
 | `--profile <profile>` | The app under that profile |
+| `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from a project's root: the modules of one space of its archwire, checked and written as an app's build would write them. emit-js is for a space on a JavaScript host (browser, node, hermes), emit-py for one on cpython.
