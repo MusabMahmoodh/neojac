@@ -18,7 +18,11 @@ moves.
   scope or being moved while a borrow of it is used later. A value that
   carries a borrow borrows as the borrow does: the result of a call that
   returns a borrow, a view (below), a container a borrow is put in, a
-  closure that captures one.
+  closure that captures one. A tuple with a `&` among its items borrows
+  too: `def pick(b: &Buffer) -> tuple[&Buffer, int]` lends its result
+  what it was lent, and each item unpacked from it that the annotation
+  marks `&` borrows (`(k, n) = pick(&a)`, then `finish(a)` while `k` is
+  used later is E1304).
 - **A borrow of a local is not returned** (E1306). A function may return a
   borrow it was lent: `def lend_back(b: &Buffer) -> &Buffer`.
 - **A borrow starts at a parameter, `self`, an `own` value or another

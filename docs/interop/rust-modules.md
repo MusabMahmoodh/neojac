@@ -329,14 +329,19 @@ panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `h
   `s.len()`, `is_empty()` and `to_vec()` are `[T]`'s own; a slice is never written through. It
   borrows what it is a slice of, so it is a value that borrows (below): a parameter or a local,
   and its `Vec` is not changed while it is used (E1302). `Slice[u8]` names `&[u8]` as a type
-  argument; a parameter of type `&[u8]` takes a Jac `bytes`.
+  argument; a parameter of type `&[u8]` takes a Jac `bytes`, and `bytes(s)` of a `Slice[u8]`
+  copies its bytes out into a Jac `bytes`.
+- **A slice's methods are a `Vec`'s**, as Rust reaches them through `Deref`: `v.sort()`,
+  `v.contains(&x)`, `v.starts_with(b)`, `v.to_vec()` of a `Vec[u8]`.
 - **An iterator of a Rust type has `next()`**, which gives an `Option` of its item: a loop steps
   it as Rust's `for` does, `while True { got = it.next(); if got.is_none() { break; } ... }`.
   An item borrows what the iterator borrows (a `HashMap`'s `iter()`, `keys()` and `values()`,
   a `Vec`'s `iter()`), not the iterator: `next` lends the iterator for its call alone, so the
   loop steps it again while an item lives, and the collection is not changed while either is
   used (E1302). An item that is a reference to a number, or a tuple of them (a `HashMap[u32,
-  u32]`'s `(&u32, &u32)`), is copied to the numbers.
+  u32]`'s `(&u32, &u32)`), is copied to the numbers. A tuple holding a reference to another
+  crate's value among them (a `HashMap[Vec[u8], u32]`'s item) is `tuple[&Vec[u8], u32]`: the
+  `Vec` lent, the number copied, and each item unpacked from it borrows as the tuple does.
 - **A `Vec` of another crate's values lends its item by index**: `v[i]` is Rust's `&v[i]`
   (`Index::index`, its panic past the end), a borrow of `v`, which is not changed while the item
   is used (E1302). A `Vec` of numbers gives the number.
@@ -430,6 +435,37 @@ with entry {
 ```output
 50 1 26
 ```
+
+```jac
+import from std.collections { HashMap }
+import from std.vec { Vec }
+
+def main {
+    v: own Vec[u8] = Vec[u8].new();
+    for n in [9, 3, 7] {
+        v.push(u8(n));
+    }
+    v.sort();
+    print(bytes(v.as_slice()), v.contains(&u8(7)), v.starts_with(b"\x03"));
+    copied: own Vec[u8] = v.to_vec();
+    m: own HashMap[Vec[u8], u32] = HashMap[Vec[u8], u32].new();
+    m.insert(copied, u32(17));
+    it = m.iter();
+    (key, n) = it.next().unwrap();
+    print(bytes(key.as_slice()), n);
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+b'\x03\x07\t' True True
+b'\x03\x07\t' 17
+```
+
+`m.clear()` before the last `print` would be E1302: `key` borrows `m`.
 
 ### A Result of Jac's types
 

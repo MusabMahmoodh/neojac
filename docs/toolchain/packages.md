@@ -526,6 +526,31 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   `native/eggs.jac`, `from spamlib import _eggs` gives `_eggs.halve(8) == 4`, a `ValueError`
   from `_eggs.halve(3)`, and `_eggs.Basket("ann").add(5) == 1`.
 
+  What Python sees of a class is its face:
+
+  - **Its `:priv` members are not Python's**, nor are `init` and `postinit` (Python makes an
+    object by calling the class): reading or setting one is `AttributeError`, and `dir()` of an
+    object lists its other members, fields with no default among them.
+  - **A class's `static has __module__: str`** is its Python class's `__module__`; without one it
+    is the module's name.
+  - **A Jac exception crosses as itself**: one the program raises reaches Python holding the Jac
+    object, with its `args` and its fields (`e.code`), and is that object again where it comes
+    back into Jac; Python makes one (`_eggs.Fault(5)`) by the class's `init`.
+  - **An `obj` that defines `__buffer__` and `__release_buffer__` exports its memory** to Python,
+    as PEP 688 says: `memoryview(obj)` and `bytes(obj)` read it. A Jac `memoryview` reaching
+    Python is Python's view of the same memory, with its format, item size, shape, strides and
+    read-only flag; a view of a `bytearray` is refused (`BufferError`), since its bytes move as
+    it grows.
+  - **A value crosses checked**: a sized int out of its type's range is `OverflowError` (`-1` for
+    a `u32` parameter), a Python `set` or `frozenset` is a Jac `set`, and a `list[u32]` the
+    module gives is a Python list of its items.
+
+  `neojac port` writes such a module from a crate's PyO3 bindings
+  ([Porting Rust](../interop/port-rust.md)): `#[pyclass]` with its `#[pymethods]` is an `obj`
+  holding the crate's value in a `:priv` field, with `__module__` `builtins` as PyO3 gives it.
+  The extension is built from that module once its `[extensions]` row names it by `jac`
+  (`jac = "src/py.jac"`) in place of the crate's `cargo`; port leaves the row as it is.
+
 - **The C modules it links are linked with it.** A wire from a file of one C module to a file
   of the extension's says so: that module's objects are made a library and given to the link,
   as a build system gives a static library. What each exports is what its sources and its flags

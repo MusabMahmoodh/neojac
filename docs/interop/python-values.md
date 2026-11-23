@@ -14,7 +14,8 @@ operators, comparisons, `with`, `len`, `in` and iteration are Python's. `type(x)
 type, and `x is y` asks whether they are the same Python object.
 
 A `PyObject` fits wherever a Jac type is wanted, and becomes the Jac value it stands for when it
-arrives there: a Python int, float, str, bool, list or dict becomes Jac's. One that is not of the
+arrives there: a Python int, float, str, bool, list or dict becomes Jac's, and a set or a
+frozenset a Jac `set`. One that is not of the
 type wanted is a `TypeError` as it arrives. A Python int fits where a `float` is wanted, and a
 number that is neither an int nor a float (numpy's numbers, CPython's own `decimal.Decimal`) converts to a
 `float` by its `__float__` and to an `int` by its `__index__`. A `Decimal` has no `__index__`, so
@@ -99,7 +100,8 @@ with entry {
 
 Python calling a Jac function passes its arguments as Jac code's values arrive: each becomes the
 parameter's type by the rules above, and one of another type is a `TypeError`
-(`expected int, found str`).
+(`expected int, found str`). An int out of a sized parameter's range is an `OverflowError`, as
+a typed conversion's is: it is never wrapped.
 
 ```jac
 import builtins;
@@ -133,6 +135,31 @@ with entry {
 {'a': 1}
 4 2.50 0.5 2.0
 TypeError: expected str, found Decimal
+```
+
+```jac
+import builtins;
+
+def small(n: u8) -> int {
+    return int(n) * 2;
+}
+
+with entry {
+    s: set[str] = builtins.frozenset(["a", "b"]);
+    print(sorted(s), type(s).__name__);
+    print(builtins.list(builtins.map(small, [3, 200])));
+    try {
+        builtins.list(builtins.map(small, [300]));
+    } except OverflowError as e {
+        print("OverflowError:", e);
+    }
+}
+```
+
+```output
+['a', 'b'] set
+[6, 400]
+OverflowError: integer overflow
 ```
 
 A Jac object is the same object on both sides: Python's `getattr`, `setattr`, `len`, `iter` and
@@ -249,7 +276,10 @@ base class
 ```
 
 A Jac exception raised in a Jac function that Python called reaches Python as a Python exception
-of the Jac class's name, deriving from its base's, and comes back to Jac as itself. An uncaught
+of the Jac class's name, deriving from its base's, with its own arguments (`raise
+KeyError(b"k")` is Python's `KeyError(b'k')`, its `args` `(b'k',)`), and comes back to Jac as
+itself. One of a class of the program holds the Jac object, whose fields Python reads
+(`e.code`), and Python makes one by the class's `init`. An uncaught
 exception's report lists the Jac frames it passed through, then Python's, then Python's own last
 line.
 
