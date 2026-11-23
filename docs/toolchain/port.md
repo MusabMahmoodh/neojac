@@ -347,11 +347,11 @@ A file ports whole or not at all. Port reports every construct it refuses, each 
 the source with what to do instead, writes nothing for that file, and exits with status 1.
 
 ```text
-$ neojac port gen.py
-gen.py:2:11: error[E4005]: port writes no Jac yet that keeps the meaning of the value of a `yield`: a Jac generator's `yield` gives None, and `send` is no method of one
- 2 |     got = yield 1
-   |           ^
-    = help: Use the `yield` as a statement of its own.
+$ neojac port tail.py
+tail.py:3:1: error[E4005]: port writes no Jac yet that keeps the meaning of module code after `if __name__ == "__main__":`: a Jac module's `with entry` code runs before its `with entry:__main__`
+ 3 | print("after")
+   | ^
+    = help: Move the code above the `if`.
 
 1 source refused, nothing written for it
 `neojac docs port` says what port translates and what it refuses.
