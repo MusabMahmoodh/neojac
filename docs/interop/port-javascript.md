@@ -32,7 +32,7 @@ an operand as JavaScript does.
 | A class declared in a function, `function f() { class C extends B { } return new C(); }`; a class expression, `new (class { get a() { } })()`, `const K = class { }` | `obj C(B) { }` where its statement stands, which a JS space's JavaScript makes there, a new class each time; `obj Class_1 { }` before the statement, its `name` JavaScript's: `globalThis.Object.defineProperty(Class_1, "name", {"value": "", "configurable": True});` where it has none, `obj K { }` where it is a variable's |
 | `let x = v;`, `const x: T = v;`, `let x;` | `x: T = v;`, with the type TypeScript gives `x`; `let x;` is `x: any = None;` |
 | `var x = v;` in a function: once, among the function's own statements, and read nowhere before it; any other `var` of a function, in a block, a loop's body or a `for`'s head, declared twice, or read before its statement (by a closure too) | `x: T = v;`, as `let`; `x: any = None;` at the function's start, and `x = v;` where each `var x = v;` stands (`var x;` leaves `x` as it is; `for (var k in o)` is `for item_1 in js_for_in(o) { k = item_1; }`): one variable of the function, which every pass and closure shares, `undefined` before its statement. A `var` that names a parameter is the parameter |
-| `import.meta`; a CommonJS module's `__filename`, `__dirname`, `require.main === module`; `new.target`; `F.prototype` of a function used as a constructor | `js_meta()` of `js`, `import.meta` of the module on a JS host; `js_meta().filename`, `js_meta().dirname`, `js_meta().main`; `new.target` is `js_new_target()` of `js`, the `new.target` of the call that reached the function: a function's, and a constructor's of a class JavaScript makes; `F.prototype` is `js_prototype(F)` of `js`, the prototype of the function's JavaScript face, which JavaScript's `new` constructs with |
+| `import.meta`; a CommonJS module's `__filename`, `__dirname`, `require.main === module`; `new.target`; `F.prototype` of a function used as a constructor | `js_meta()` of `js`, `import.meta` of the module on a JS host; `js_meta().filename`, `js_meta().dirname`, `js_meta().main`; a member read off it is the module's own `import.meta` text (`js_meta().env.MODE` is `import.meta.env.MODE`), which a bundler rewrites where it stands, as it rewrites the source's; `new.target` is `js_new_target()` of `js`, the `new.target` of the call that reached the function: a function's, and a constructor's of a class JavaScript makes; `F.prototype` is `js_prototype(F)` of `js`, the prototype of the function's JavaScript face, which JavaScript's `new` constructs with |
 | `require(spec)` in a function, or after the file's code has started, of a package, a Node addon or a path the program computes; `require` as a value; `require("./conf.json")` of a JSON file or an addon, anywhere | `createRequire(js_meta().url)(spec)`, `import from "node:module" { createRequire }`: Node's own `require` of the module |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }`, of a boolean | `if c { } elif d { } else { }`, `while c { }` |
 | `switch (s) { case "a": f(); break; default: g(); }`, of string literals, or of number or boolean literals where TypeScript types `s` so | `switch s { case "a": f(); break; default: g(); }`: Jac's falls through as JavaScript's does |
@@ -61,7 +61,7 @@ an operand as JavaScript does.
 | `===`, `!==` of two objects or arrays; `x === undefined` | `is`, `is not`; `x is None` |
 | `!c`, `c && d`, `c \\|\\| d` of booleans; `c ? a : b`; `-a` | `not c`, `c and d`, `c or d`; `a if c else b`; `-a` |
 | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x++;`, `x--;` as statements | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x += 1.0;`, `x -= 1.0;` |
-| `f(a)`, `o.m(a)`, `new C(a)`, `o.x` | `f(a)`, `o.m(a)`, `C(a)`, `o.x` |
+| `f(a)`, `o.m(a)`, `new C(a)` of a class of the run or of a Jac module, `o.x` | `f(a)`, `o.m(a)`, `C(a)`, `o.x` |
 | `console.log(a, b)`, `Math.sqrt(x)`, `Math.PI` | The same, on JavaScript's own `console` (`import from "node:console" { default as console }`) and `Math` |
 | `[a, b]`, `xs[0]`, `xs.length`, `xs.push(v);` of an array the file's own code alone reaches: iterated, spread or indexed where it stands, or held by a variable that is only read so, its `length`, or a method of an array that keeps it to itself; any other array, `Object.freeze([1])`, `box.add(xs)`, `return [a]`; `[1, , 3]`, a hole, in a JavaScript space | `[a, b]`, `(xs[0] if len(xs) > 0 else None)` (`xs[0] = v;` assigned), `float(len(xs))`, `xs.append(v);`; `js_array([1.0])`, JavaScript's own array, an `any` read through `js`, which crosses to JavaScript as itself where a Jac list crosses as a copy; `[js_delete(holed_1 := [1.0, None, 3.0], 1), holed_1][1]`: JavaScript's own hole, which `in`, `forEach` and `Object.keys` skip and `length` counts |
 | Any other method of an array or a string, `xs.join(", ")`, `s.split("")`; a string's `length` | `js_method(xs, "join", ", ")`, `js_method(s, "split", "")`, `js_item(s, "length")`, of `js`: JavaScript's own method, called on the value |
@@ -75,7 +75,7 @@ an operand as JavaScript does.
 | `throw new TypeError(m);` | `raise new(globalThis.TypeError, m);` |
 | `try { } catch { } finally { }`, and `catch (e)` where the block does not use `e` | `try { } except BaseException { } finally { }` |
 | `/a+/g` | `new(globalThis.RegExp, "a+", "g")` |
-| `new C(a)` of a class that is not the file's | `new(C, a)` |
+| `new C(a)` of a class JavaScript keeps: a package's, or a file's that stays JavaScript | `new(C, a)` |
 | `typeof x === "string"`, `"boolean"`, `"number"`, `"undefined"`, `"function"`, `"object"` | `isinstance(x, str)`, `isinstance(x, bool)`, `(isinstance(x, float) or globalThis.Number.isInteger(x))`, `x is None`, `callable(x)`; of any other name `js_typeof(x) == "object"`, JavaScript's `typeof` |
 | `typeof x` but compared with a string literal | `js_typeof(x)` |
 | `delete o.p`, `delete o[k]`, in a module or a strict script | `js_delete(o, "p")`, JavaScript's `delete`, of a table's key too |
@@ -127,6 +127,8 @@ construct in the table whose Jac would mean something else (E4005):
   has a default and which has none of its own.** The first's default gives its names values
   keyword-only parameters do not; for the second JavaScript throws where a call gives no
   object, which keyword-only parameters take as an empty one.
+- **`import.meta.glob`.** A bundler expands its patterns from the module's own place, and the
+  files they match are the sources, where a ported module's JavaScript is not emitted.
 
 Each construct the table lists keeps its meaning: a property of `undefined` or `null` throws
 JavaScript's TypeError, an element past an array's end and a key an object lacks are `undefined`,
