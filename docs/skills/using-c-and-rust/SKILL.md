@@ -91,7 +91,9 @@ data, `hold(obj)`, taken back in the callback by `held[T](p)` (a `TypeError` for
 does not hold) and given up by `release(p)`.
 Only a named function is a callback as it is; a function value (a variable, a parameter, a
 record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cmp)`, and one with
-no C address (a closure that captures) raises `TypeError` there.
+no C address (a closure that captures) raises `TypeError` there. A function pointer C may give
+as `NULL` is `Callable[...] | None`, `None` where C's is null: test it before calling it.
+`ptr[u16]("text")` and `ptr[u32]("text")` are C's `u"text"` and `U"text"`, of a literal only.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
@@ -156,7 +158,8 @@ one as a managed place. `neojac docs Rust module` has what crosses.
    `jac/jhelp.h`, which neojac writes. Such a function takes and gives integers, floats and
    pointers (E1249). A C++ class is an `obj` Jac uses, and derives with `C.init_base(self, ...)`
    in its `postinit`; a class template's instance is named by its template form, `Box[i32]`,
-   and a member template's by its type arguments, `c.to[float]()` (`neojac docs C module`).
+   and a member template's or a header library's function template's by its type arguments,
+   `c.to[float]()`, `kept_[Counter](c)` (`neojac docs C module`).
 
 5. **Bind a project library** you build yourself:
 
