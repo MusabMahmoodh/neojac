@@ -333,16 +333,25 @@ backend/pyproject.toml: pytest tests
 - **An npm tree's script and a crate's tests run as `neojac npm` and `neojac cargo` run
   anything**: the tree's manifest written first, with the toolchain's compilers. A tree's
   extension modules, its addons, are built first (`neojac build <directory>/package.json`).
-- **An npm tree whose space holds a Jac module runs its script on what the space emits.** Once
-  `neojac port` has made a file of the tree Jac, its tests still `require('../lib')`: the space is
-  emitted into `.jac/test/spaces/<space>`, with a forwarder where each ported module's
-  JavaScript stood (`lib/twice.js` requiring `lib/twice.mjs`), the tree's other files are laid
-  over it (`node_modules` linked, not copied), and the script runs there. The tree's own files
-  are not touched. Where the package's dev space (`<space>_dev: node`, its tests and
-  benchmarks) holds Jac too, the script runs in the dev space's emission, with the package's
-  and the tree's laid over it: one copy of each module in the process, the one the tests import.
-  A ported file that Node runs by its path (a test file) starts when it is required, not with the
-  package.
+- **An npm tree whose space holds a Jac module runs its script on what the space emits**, laid
+  out so that the tree's own tools see what they saw. Once `neojac port` has made a file of the
+  tree Jac, its tests still `require('../lib')`: the tree is laid in
+  `.jac/test/spaces/<space>/<tree>/` (at `.jac/test/spaces/<space>/` for a tree at the project's
+  root), its own files there as they are, with no Jac file, `jac.toml` or `jac.lock` among them
+  and `node_modules` linked, not copied. At each ported source's place stands one file of the
+  source's own name (`lib/twice.js`, `lib/kinds.ts`), a forwarder that gives the module: it
+  declares each value the module gives, so a tool that reads the file's text (a router reading a
+  route file's exports) finds them. Everything emitted, the modules, their maps, their
+  [faces](../interop/npm.md#a-projects-own-javascript) (`kinds.d.ts`) and the runtime, is apart
+  in the laid tree's `.jac/`, imported by relative paths. The tree's configuration is not
+  changed, and its own files are not touched. Where the package's dev space
+  (`<space>_dev: node`, its tests and benchmarks) holds Jac too, the script runs in the dev
+  space's laid tree, which holds the package's modules too: one copy of each module in the
+  process, the one the tests import. A ported file that Node runs by its path (a test file)
+  starts when it is required, not with the package.
+  `neojac npm run`, `run-script`, `test` and `start`, and `neojac npx`, run in the same laid
+  tree ([Running npm](packages.md#running-npm)), so `neojac npm run build` builds the tree its
+  own way on the port.
 - **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
 - **A suite that exits with another status than 0 fails the run**:
   `FAILED backend/pyproject.toml (its suite exited with status 1)`.

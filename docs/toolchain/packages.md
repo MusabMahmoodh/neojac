@@ -623,6 +623,14 @@ neojac: jac.toml took what npm wrote in eco/web
 
 Only the tree's table changes. The rest of `jac.toml`, its comments with it, is as it was.
 
+In a tree some of whose files `neojac port` made Jac, `neojac npm run`, `run-script`, `test` and
+`start`, and `neojac npx`, run in the tree as its space emits it, laid in
+`.jac/test/spaces/<space>/<tree>/`: the tree's own files, a forwarder of each ported source's own
+name at its place, and what the space emits in the laid tree's `.jac/`
+([neojac test](test.md#a-projects-own-suites)). So `neojac npm run build` and
+`neojac npx vite build` build the ported tree by its own configuration. npm's other commands
+(`install`, `pkg`, `ls`) run in the tree itself.
+
 In a directory that is no Jac project (no `jac.toml` in it or above it), `neojac npm` is npm as it
 is anywhere, on that directory's own `package.json`.
 

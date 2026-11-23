@@ -436,6 +436,8 @@ defect.
 | `cpython` | An `any` holding a list, dict or set taken as a typed one (`list[int]`) is the same container whenever no item has to change; natively it is always a new one |
 | `cpython` | `list[int]` is CPython's alias of `list`, so `type([1]) is list[int]` is `False`; natively `True` |
 | `cpython` | An `assert`'s message may be any object, as Python's may: `assert ok, (n, "small")` raises `AssertionError` with the tuple. Natively the message is a `str` (E1001) |
+| `cpython` | `del` of a module's own global, function or imported name deletes it, as Python's `del` does ([Variables](../language/variables.md#del)); natively it is E0083 |
+| `cpython`, `node`, `browser`, `hermes` | A class declared in a code body (a function, a method, a `with entry` block) is made where its statement runs, a new class each time, as Python makes one ([A class in a code body](../interop/python-classes.md#a-class-in-a-code-body)); natively it is E5176, and a class is declared at a module's top level |
 | `node`, `browser`, `hermes` | A dict whose keys change under a loop over it, its size the same, is walked as JavaScript walks a `Map`: on, past a removed key and through an added one, where native code raises `dictionary keys changed during iteration` for a key removed from the middle. A change of size raises `dictionary changed size during iteration`, as on every host |
 | `node`, `browser`, `hermes` | A whole float held in an `any` is an int: `a: any = 2.0` prints `2`, `-0.0` prints `0`, and `[1, "two", 3.0]` of anys prints `[1, 'two', 3]`. A `float`-typed value prints as natively (`2.0`) |
 | `node`, `browser`, `hermes` | An `int` is a JavaScript number ([Numbers](../language/numbers.md)) |

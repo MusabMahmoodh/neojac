@@ -210,7 +210,8 @@ compiles ([comptime if](../language/compile-time.md#among-declarations-and-membe
 
 A class declared in a function, a method or a `with entry` block is made by Python where its
 statement runs, each time it runs, as a Python `class` statement in a function is: two calls make
-two classes.
+two classes. An `obj` there with no Python base is a Jac `obj` still, whose fields are its
+constructor's parameters (`Local(n=k)`); one over a Python base is a Python class.
 
 <!-- example: not checked: runs in a cpython space -->
 ```jac
@@ -243,14 +244,14 @@ closures of the body.
 
 ### In a space of another host
 
-A native or JavaScript program's classes are known as it compiles, so none of these is made there:
+A native or JavaScript program's classes are known as it compiles, so these are not made there:
 
 | Code | In a native or JavaScript space |
 |---|---|
 | E5174 | A class or a function decorated by a Python callable |
 | E1490 | A class or a function decorated by a function of the program that is not compile-time |
 | E5175 | An `if` among a class's members that is not `comptime` |
-| E5176 | A class in a code body: declare it at the module's top level |
+| E5176 | Natively, a class in a code body: declare it at the module's top level. On a JavaScript host JavaScript makes it where its statement runs, a new class each time, as Python does ([Hosts](../apps/hosts.md)) |
 | E2101 | Keywords after a class's bases |
 
 A class whose base is a Python class is, natively, a subclass of it in the embedded interpreter

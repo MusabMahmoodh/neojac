@@ -1,6 +1,6 @@
 ---
 description: Using npm packages and Node's built-in modules from a native Jac program - imports by quoted name, how their names are checked from TypeScript declarations, how values cross, Node's loop, and neojac node, npm and npx.
-keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_unpack, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
+keywords: npm, npm package, Node.js, JsObject, JsNull, js_error, js, node:, Node-API, TypeScript declarations, js_add, js_truthy, js_item, js_method, js_iter, js_unpack, js_invoke, js_with_length, js_promise, js_for_in, js_typeof, js_meta, js_global, js_mod, js_shl, js_band, js_new_target, js_rest, js_delete, js_prototype, js_as_method, js_async_generator, new.target, extends, CommonJS, require
 ---
 # npm and Node
 
@@ -126,6 +126,13 @@ graph import {
   it (below). In a node space the forwarder stands at that place; in a browser space the
   bundler resolves the import to it ([Vite](../apps/ui-bindings.md#vite)), and the module starts
   as the bundle imports it.
+- **A `.d.ts` beside a Jac module of its stem** (`kinds.d.ts` beside `kinds.jac`) is that
+  module's face to TypeScript, as a C header beside a module is its face to C: TypeScript reads
+  the module's types there, and a type a TypeScript file imports of the module is held to it. It
+  is no module of the project (not a module `kinds.d`), and an app or a laid tree carries it
+  beside the module's JavaScript. [`neojac port`](../toolchain/port.md) writes it of a module it
+  made from TypeScript, as TypeScript's own declaration output for the source. A `.d.ts` file of
+  the project's own holds no code, and is never ported.
 - **A CommonJS file** (`.cjs`, or a `.js` where Node reads the place as CommonJS) that `require`s
   a Jac module is given it as CommonJS: its exports, and for `require` itself the module's
   default where it has one.
@@ -371,6 +378,9 @@ operator it names; natively each runs in the program's Node.
 | `js_delete(o, k)` | `delete o[k]` in strict code: `True`, a `TypeError` where the property cannot be removed |
 | `js_rest(o, keys)` | The `...rest` of the pattern `{ a, b, ...rest } = o` whose other names `keys` lists: a new object of `o`'s own enumerable properties but those |
 | `js_method(o, name, ...)` | `o[name](...)`, called on `o`: `name` a string or a symbol (`Symbol.iterator`), an array's or a string's own method among them |
+| `js_invoke(f, ...)` | `f(...)`, called on no object: a Jac function whose first parameter is `self` takes JavaScript's `this` there, so it gets `None`, and the arguments bind the parameters after it; any other function is called as a Jac call of it is. What a port writes for a call of a value whose function it cannot know |
+| `js_with_length(f, n)` | `f`, whose JavaScript `length` is `n`, whatever its signature counts: a function that takes its arguments as `*args` and binds its parameters from them says so (`function (a, b) { return arguments.length; }`, whose `length` is 2). The method `js_as_method` makes of it has that `length` too |
+| `js_promise(co)` | The promise JavaScript's `await` takes of `co`: of a Jac coroutine, one that runs it at once to its first wait, as JavaScript runs an async function where it is called, its rejection JavaScript's unhandled rejection where nothing handles it; on a JS host, of any other value `Promise.resolve`'s. `await js_promise(f())` waits as JavaScript's `await f()` does, a microtask after the promise settles, where Jac's `await f()` runs the coroutine in place |
 | `js_iter(x)`, `js_for_in(o)` | `x[Symbol.iterator]()`, what `for ... of` steps through; the keys `for (k in o)` visits |
 | `js_unpack(o, n, rest)` | The array pattern `[a, , c, ...more] = o`: `o` iterated as JavaScript iterates it, a list of its first `n` items (`None` past its end) and, where `rest`, a list of the items after them last. An iterator the pattern leaves unfinished is closed (its `return()`); a `TypeError` where `o` is not iterable. `js_unpack(new Set([10, 20, 30]), 2, True)` is `[10, 20, [30]]` |
 | `js_meta()` | The calling module's `import.meta`: its `url`, `filename`, `dirname` and `main` |
