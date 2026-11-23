@@ -366,10 +366,14 @@ panic: byte index 2 is not a char boundary; it is inside 'é' (bytes 1..3) of `h
   member template's is.
 - **A function of another crate generic over its input is named by its instance at the call**,
   as a generic method is: `decode_last_utf8[Slice[u8]](b)` calls `bstr`'s
-  `decode_last_utf8::<&[u8]>`, and `size_of[u32]()` std's `size_of::<u32>`. The instance is asked
-  of rustc as the module is read, and what it lends and keeps is judged on the function's generic
-  signature. One whose bounds do not hold for its type arguments (`size_of[str]()`: Rust's `str`
-  has no size) is E1625.
+  `decode_last_utf8::<&[u8]>`, and `size_of[u32]()` std's `size_of::<u32>`. A function imported
+  under another name is named so (`import from std.cmp { max as larger }`, `larger[u32](u32(3),
+  u32(7))` is 7). The instance is asked of rustc as the module is read, and what it lends and
+  keeps is judged on the instance: only an input whose type there holds a borrow is lent, and
+  only where the result holds one is it kept, so `max[u32]` of two numbers borrows nothing. One
+  whose bounds do not hold for its type arguments (`size_of[str]()`: Rust's `str` has no size) is
+  E1625. A Rust function is named only through an import of it: a module's dotted path
+  (`std.cmp.max`) is not a form for a Rust module (W1100).
 - **`rust.char_is_whitespace(c)`** is Rust's `char::is_whitespace`: whether `c` has Unicode's
   White_Space property, as Rust's table gives it. Python's `isspace` also counts U+001C to U+001F,
   which are not White_Space: `char_is_whitespace("\x1c")` is `False` where `"\x1c".isspace()` is
