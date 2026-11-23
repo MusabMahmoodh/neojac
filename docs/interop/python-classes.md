@@ -47,8 +47,9 @@ Such a class is Python's, from its body:
 - **Its static fields are the body's plain assignments**, and its keywords are the class
   statement's.
 - **Its methods are as written.** Jac generates no constructor, `__eq__`, `__hash__` or
-  `__repr__` for it: its base's or its decorator's machinery reads the fields. A Python
-  `__init__` is its constructor.
+  `__repr__` for it: its base's or its decorator's machinery reads the fields. Its `init` is
+  Python's `__init__`, its constructor, and `super.init(...)` calls the base's `__init__`: a
+  class Python makes is constructed as Python constructs it.
 - **It is made where its statement stands**, in order with the module's `with entry` code, as
   Python makes a class where its `class` statement runs.
 - **Its comparisons, arithmetic and attributes are Python's.** A call of the class, and a member
@@ -97,6 +98,36 @@ Pair(left=1, right=None) 1/None Pair(left=2, right=None)
 ```
 
 `Ver(1).major = 2` raises `dataclasses.FrozenInstanceError`, as Python's does.
+
+An `init` of a class with a Python base:
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import from collections { UserList }
+
+class Stack(UserList) {
+    def init(first: int) {
+        super.init([first]);
+        self.top = first;
+    }
+}
+
+class Pair(Stack) {
+    def init(a: int, b: int) {
+        super.init(a);
+        self.append(b);
+    }
+}
+
+with entry {
+    p = Pair(1, 2);
+    print(p, p.top, "__init__" in (Stack as any).__dict__);
+}
+```
+
+```text
+[1, 2] 1 True
+```
 
 ### A class decorated by a function of the program
 
@@ -393,6 +424,38 @@ with entry {
 
 ```text
 ['127.0.0.1', 'b.txt']
+```
+
+**In module code, an import binds the module's `glob` of the name it gives**, where it runs, as
+Python's import at a module's top binds the module's name: under a `try` that falls back where a
+module is not installed, or under an `if`. A name the module declares no `glob` of stays the
+code's own. Natively the `glob` and the import are two declarations of one name, E2036.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+glob json: any,
+     fast: any;
+
+with entry {
+    import json;
+    try {
+        import from not_installed_anywhere { loads as fast }
+    } except ImportError {
+        fast = None;
+    }
+}
+
+def dumped -> any {
+    return json.dumps([1, fast]);
+}
+
+with entry {
+    print(dumped());
+}
+```
+
+```text
+[1, null]
 ```
 
 ## A module's `__file__`

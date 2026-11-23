@@ -184,7 +184,17 @@ name exactly. By host, it also starts from:
 | `browser` | Each of the project's page modules that the space holds ([Pages](pages.md)) |
 | `wasm` | Nothing more: its module is the first one its patterns name |
 
-Everything those modules import comes with them. A module nothing reaches is not built.
+Everything those modules import comes with them. A module nothing reaches is not built, and
+neither is one that only another target's [`comptime if`
+branch](../language/compile-time.md#among-declarations-and-members) imports, though a pattern
+names it.
+
+A cpython space's directories are its package as Python sees them: each is a path entry of the
+space's own finder, which finds the space's modules there and the Python files and extension
+modules beside them (a `_native.cpython-*.so` beside the Jac modules of its package), so
+`pkgutil.iter_modules` of a package lists both, and a plugin package found by its name is found. A
+directory that holds modules and no module of its own name is a namespace package, as Python makes
+one.
 
 An `entry` decides what the program does when it starts:
 

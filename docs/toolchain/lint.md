@@ -227,6 +227,34 @@ True
 
 `separate-impls` and `impls-in-annex` together keep every body out of a module's own file: the module declares, and `impl/<module>.impl.jac` implements. `fmt --fix` moves each body, with the comments inside it, into that annex, creating it when it is not there. See [Projects](projects.md#impl-annexes) for where annexes go.
 
+A function declared in a branch of a [`comptime if`](../language/compile-time.md#among-declarations-and-members), at a module's top or among a class's members, keeps its declaration in that branch, and its body moves into the annex under the same branches, with the `jaclang.comptime` import their conditions read:
+
+<!-- example: not checked: shows a module and the annex fmt --fix writes for it -->
+```jac
+import from jaclang.comptime { target }
+
+comptime if target().os == "windows" {
+    def sep -> str;
+} else {
+    def sep -> str;
+}
+```
+
+<!-- example: not checked: the annex impl/main.impl.jac of the module above -->
+```jac
+import from jaclang.comptime { target }
+
+comptime if target().os == "windows" {
+    impl sep -> str {
+        return "\\";
+    }
+} else {
+    impl sep -> str {
+        return "/";
+    }
+}
+```
+
 ## Spellings neojac always rejects
 
 These are errors in every program, with no configuration. `fmt --fix` rewrites every one of them.

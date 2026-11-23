@@ -220,7 +220,10 @@ An import in a branch is the target's alone: a target whose branch does not impo
 not load it. Under an `archwire.jac` an import of a project module stays in its branch, and the
 wire into the module admits it, as a wire admits [an import in a code
 body](modules.md#an-import-in-a-code-body): `plat.linux ++> main { name }` and
-`plat.darwin ++> main { name }` for a module whose branches import `name` from each.
+`plat.darwin ++> main { name }` for a module whose branches import `name` from each. A module
+that only another target's branch imports is not loaded for this target, even where a space's
+pattern holds it (`plat.*`) and the wire names it: it is not checked or built there, so it may
+use what only its own target has.
 
 ```jac
 import from jaclang.comptime { target }

@@ -314,6 +314,12 @@ function is:
   runs (its names are `any` to the checker). A module of Python's that the native library does
   not have is refused in a native program (E5090), and so is, in a `cpython` space, an import in
   a code body of anything Python cannot load as it runs: a path, an `include` (E5173).
+- **In a `cpython` space, an import in module code binds the module's `glob` of the name it
+  gives**, where it runs, as Python's import at a module's top does: `glob json: any;` and
+  `with entry { import json; }` make `json` the module's, which its functions read. An import
+  whose name has no `glob` is the code's own, as above. Natively the `glob` and the import are
+  two declarations of one name (E2036)
+  ([An import in a code body](../interop/python-classes.md#an-import-in-a-code-body)).
 - **Under an `archwire.jac`**, the wire into the module admits the import, and names what it may
   import (`units ++> shapes { label }`); the import in the body binds them where the module
   starts. A name the wire lacks is E2094, as for any wired import.
