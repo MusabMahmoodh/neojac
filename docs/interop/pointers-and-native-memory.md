@@ -257,7 +257,9 @@ released
   holds stays whole until `release`.
 - `hold`, `held`, `held_at` and `release` keep C's holds in one table the program shares, which
   another thread may be changing, so a `Shared` class's method may call none of them (E1541):
-  take the object back with `held` before its threads start.
+  take the object back with `held` before its threads start. A `flow for` whose body calls one
+  runs its chunks one after another on the calling thread
+  ([When it runs in order](../language/flow-for.md#when-it-runs-in-order)).
 - Only native code has addresses: in a cpython, node, browser or hermes space each of them is
   refused (E1540, "native memory").
 

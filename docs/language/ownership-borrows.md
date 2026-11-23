@@ -23,6 +23,14 @@ moves.
   what it was lent, and each item unpacked from it that the annotation
   marks `&` borrows (`(k, n) = pick(&a)`, then `finish(a)` while `k` is
   used later is E1304).
+- **A borrow counts from where it is made.** What a local holds at a use
+  is what the bindings that reach that use lent: a local bound to one
+  borrow before a loop and to another after it holds the first in the first
+  loop and the second in the second, so a change to the owner between
+  them is no conflict. Where paths join, it holds what either lent: after
+  an `if` whose branches each bind `r`, `r` borrows both owners, and a
+  binding late in a loop's body is what a use earlier in the next turn
+  holds.
 - **A borrow of a local is not returned** (E1306). A function may return a
   borrow it was lent: `def lend_back(b: &Buffer) -> &Buffer`.
 - **A borrow starts at a parameter, `self`, an `own` value or another
@@ -54,6 +62,9 @@ moves.
 - **A mutable borrow reaches storage**: `&mut x` of an `int` local is E1330,
   since a scalar is copied. Lend what holds it (an object, a list, a struct
   variable).
+- **A borrow of a struct is its place**: a local declared `&mut P` and a
+  function declared `-> &mut P` reach the struct they lend, and change it,
+  rather than a copy ([Places](structs.md#places)).
 
 ```jac
 obj Player {
@@ -87,6 +98,28 @@ def lend_back(b: &Player) -> &Player {
     return b;
 }
 
+def bump(b: &mut Player) {
+    b.score += 1;
+}
+
+def rebound -> int {
+    p: own Player = Player(score=4);
+    bump(&mut p);
+    x = lend_back(&p);
+    total = 0;
+    for i in range(2) {
+        t = lend_back(x);
+        total += t.score;
+    }
+    bump(&mut p);
+    y = lend_back(&p);
+    for i in range(2) {
+        t = lend_back(y);
+        total += t.score;
+    }
+    return total;
+}
+
 with entry {
     p: own Player = Player(name="ada");
     name: &str = &p.name;
@@ -94,14 +127,18 @@ with entry {
     print(name, p.score, lend_back(&p).name);
     c = Chain(head=Link(v=1, next=Link(v=2, next=Link(v=3))));
     hit = find(c, 3);
-    print(hit.v if hit is not None else None, c.steps);
+    print(hit.v if hit is not None else None, c.steps, rebound());
 }
 ```
 
 ```output
 ada 3 ada
-3 3
+3 3 22
 ```
+
+In `rebound`, `t` is bound in both loops; the second `bump` changes `p`
+while no borrow of it that reaches there is used later: `x` is not used
+after the first loop, and `y` is made after the `bump`.
 
 ### Reference loops
 
@@ -242,7 +279,7 @@ optional field, `swap(&mut p.a, &mut p.b)` of two fields,
 ## What is rejected
 
 ```jac
-# expect: E1302 x2, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
+# expect: E1302 x4, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
 obj Buffer {
     has n: int = 0;
 }
@@ -276,6 +313,33 @@ def lent_mutably_while_shared {
     r = &a;
     bump(&mut a);
     print(r.n);
+}
+
+def lend_back(b: &Buffer) -> &Buffer {
+    return b;
+}
+
+def lent_mutably_after_a_join(flag: bool) {
+    a: own Buffer = Buffer();
+    b: own Buffer = Buffer();
+    if flag {
+        r = lend_back(&a);
+    } else {
+        r = lend_back(&b);
+    }
+    bump(&mut a);
+    print(r.n);
+}
+
+def lent_mutably_while_an_earlier_turn_holds {
+    a: own Buffer = Buffer();
+    b: own Buffer = Buffer();
+    r = lend_back(&a);
+    for i in range(2) {
+        bump(&mut b);
+        print(r.n);
+        r = lend_back(&b);
+    }
 }
 
 def moved_while_borrowed {
@@ -347,7 +411,7 @@ def cut_by_call(head: Link, other: Link) -> Link | None {
 
 | Code | Meaning |
 |---|---|
-| E1302 | A second mutable borrow while one is live, or a change to what a `&mut` loop lends. |
+| E1302 | A second mutable borrow while one is live (made on any path that reaches it), or a change to what a `&mut` loop lends. |
 | E1303 | The owner is changed while a shared borrow of it is live. |
 | E1304 | A borrow is used after its owner went out of scope or was moved. |
 | E1306 | A borrow of a local escapes its scope (returned). |
