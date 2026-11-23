@@ -107,7 +107,7 @@ Every file under an `archwire.jac` in a language whose imports are wires is a mo
 | A directory that holds an `@jac` directory | An emitted space's modules ([`neojac emit-js`](../reference/commands.md)) |
 | A directory with an `archwire.jac` or a `jac.toml` of its own | That archwire governs it, or it is a project of its own |
 | A crate or C module that `jac.toml` does not hold | A dependency: one module, its files its own business ([Rust modules](../interop/rust-modules.md), [C modules](../interop/c-modules.md)) |
-| A path `exclude` under `[project]` names | Yours to say. [`neojac absorb`](packages.md#taking-in-a-repository-neojac-absorb) lists there each directory whose manifest no workspace names |
+| A path `exclude` under `[project]` names | Yours to say: a directory of `.jac` files a site shows as text, which no space's pattern should hold and nothing should check. [`neojac absorb`](packages.md#taking-in-a-repository-neojac-absorb) lists there each directory whose manifest no workspace names, and what git ignores |
 
 ```toml
 [project]

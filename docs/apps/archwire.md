@@ -191,13 +191,16 @@ name exactly. By host, it also starts from:
 |---|---|
 | `native` | Each module directly in the directory of a `pkg.*` pattern |
 | `cpython` | Every module its patterns name, at any depth: Python finds a module by its name as it runs (a test runner's collection, a module imported by a string), so each is emitted, and starts where Python first imports it |
-| `browser` | Each of the project's page modules that the space holds ([Pages](pages.md)) |
+| `node`, `browser` | Every module its patterns hold, at any depth, whether or not anything imports it: a JavaScript tool finds a module by its path (a bundler, a test runner, a page of the project's, [Pages](pages.md)), so each is checked in the space and emitted |
 | `wasm` | Nothing more: its module is the first one its patterns name |
 
-Everything those modules import comes with them. A module nothing reaches is not built, and
-neither is one that only another target's [`comptime if`
-branch](../language/compile-time.md#among-declarations-and-members) imports, though a pattern
-names it.
+Everything those modules import comes with them. So on a JavaScript or a cpython host a module
+under a pattern is the space's and is checked there for that host though nothing imports it: a
+file of the tree that is no module of the program (an example a site shows as text) belongs under
+`[project] exclude` in `jac.toml`. On a native host a module nothing reaches is not built. On
+every host a module that only another target's [`comptime if`
+branch](../language/compile-time.md#among-declarations-and-members) imports is not loaded for this
+target, though a pattern names it.
 
 A cpython space's directories are its package as Python sees them: each is a path entry of the
 space's own finder, which finds the space's modules there and the Python files and extension

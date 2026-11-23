@@ -46,7 +46,7 @@ A package's identity, and what of its tree is its source.
 | `project.kind` | string | none | `"library"` or `"plugin"`, for a package other projects declare. A project that is neither has no `kind` |
 | `project.neojac` | string | none | The oldest neojac the package builds with, `neojac = "0.4"`: a neojac older than that refuses it (E2229), the project's own included |
 | `project.archwire` | boolean | `true` | `false` says the project has no `archwire.jac`: its modules write their own imports, and nothing judges which imports which. Without it, a module of the project that no `archwire.jac` governs is E2231 ([Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports)) |
-| `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, and a directory that matches is not entered ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
+| `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, no space holds it and nothing checks it, and a directory that matches is not entered. Its entries are yours to write (a directory of example snippets a site shows as text) beside those `neojac absorb` writes (a directory whose manifest no workspace names, what git ignores) ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
 
 ```toml
 [project]
