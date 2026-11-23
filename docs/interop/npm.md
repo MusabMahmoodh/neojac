@@ -134,7 +134,9 @@ graph import {
   TypeScript, and the face is laid with the emission in the laid tree's `.jac/`, not among the
   tree's files; a value the module never assigns again is declared in the forwarder's own text
   (`export const LIMIT = $m.LIMIT`), so that a tool reading the text finds it, and any other
-  global is given live from the module. The laid tree's top
+  global is given live from the module. The Jac source itself stands at its place too, a link
+  to the project's file, and the source maps name it there, so a test runner reports a ported
+  test's failure at `tests/login.spec.jac:24:5`. The laid tree's top
   links the project's entries beside the tree, so a path that leaves the tree (`../../.env`)
   reaches the project's own file. In a node space the
   forwarder stands at that place;

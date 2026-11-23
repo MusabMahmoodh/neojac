@@ -338,8 +338,13 @@ backend/pyproject.toml: pytest tests
   out so that the tree's own tools see what they saw. Once `neojac port` has made a file of the
   tree Jac, its tests still `require('../lib')`: the tree is laid in
   `.jac/test/spaces/<space>/<tree>/` (at `.jac/test/spaces/<space>/` for a tree at the project's
-  root), its own files there as they are, with no Jac file, `jac.toml` or `jac.lock` among them
-  and `node_modules` linked, not copied. At each ported source's place stands a forwarder that
+  root), its own files there as they are, with no `jac.toml` or `jac.lock` among them and
+  `node_modules` linked, not copied. Each Jac file of the tree stands at its own place too, a
+  link to the project's file (an annex directory with its files), and the source maps of what
+  the space emits name it there: a test runner reports a failure at `tests/login.spec.jac:24:5`,
+  relative to its own test directory, as it reported `tests/login.spec.ts:24:5` of the source.
+  A link the tree holds is laid as the link it is, one to a directory included. At each ported
+  source's place stands a forwarder that
   gives the module, under the source's own name and extension (`lib/twice.js`, `lib/kinds.ts`,
   `src/main.tsx`, `tests/auth.setup.ts`), so that what the tree's tools find by a source's name
   (a test runner's pattern, an `index.html`'s script, an import by `./counter.mts`) is there. A
@@ -384,7 +389,7 @@ backend/pyproject.toml: pytest tests
   entries are not linked: `.jac/`, which holds the laid top, and `.git`, so that git, walking up
   from the laid tree, finds the project's own repository and work tree and a script that stages
   or commits never writes laid files into its index. Inside the tree nothing is linked but
-  `node_modules`. On Windows a link is a symbolic link, of the directory kind for a directory,
+  `node_modules`, the Jac files and the tree's own links. On Windows a link is a symbolic link, of the directory kind for a directory,
   which needs Developer Mode or the privilege to make symbolic links.
 - **Nothing walks the laid top following its links.** They lead out of the tree into the project
   itself: a walk that followed them would read the whole project as the tree's files, and one

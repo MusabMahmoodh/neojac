@@ -237,7 +237,9 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   place a forwarder of the source's own name and extension that gives the module (`main.tsx`,
   `auth.setup.ts`, `counter.mts`), a TypeScript module where the source was one, and what the
   space emits apart in the laid tree's `.jac/`, each module's face beside its emission. No face
-  stands among the tree's own files. `neojac test`, `neojac npm run build` and `neojac npx vite
+  stands among the tree's own files. The Jac file stands at the source's place too, a link to
+  the project's file, and the source maps name it there: a test runner reports a ported test's
+  failure at `tests/login.spec.jac:24:5`, where it reported `tests/login.spec.ts:24:5`. `neojac test`, `neojac npm run build` and `neojac npx vite
   build` run there, with the tree's configuration as it is, so a tool that matches a file by the
   source's name (a test runner's pattern, an `index.html`'s script) finds its forwarder ([A
   project's own suites](test.md#a-projects-own-suites)). A file that stays and imports a source
