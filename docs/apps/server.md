@@ -154,7 +154,7 @@ any other.
 | 403 | `rejected` | An untagged endpoint, and no deployment key: `an internal endpoint` |
 | 404 | `failed` | No such endpoint |
 | 409 | `conflict` | What the call changed in the graph, other instances of the app changed first, each of the 4 times it ran ([An app's data](data.md#several-instances-on-one-store)) |
-| 500 | `failed` | The endpoint raised. The reply says only `<name> failed`; the exception is printed on the server's output. |
+| 500 | `failed` | The endpoint raised. The reply says only `<name> failed`; the exception is printed on the server's output, followed by the calls it passed through, outermost first, each a file, a line and a function (`  svc.jac:12, in greet`). |
 
 A request that is not a `POST` to an endpoint, a `restspec` route, a file's bytes or a served
 page's file is `404 not found`. The server never serves files from the directory it runs in.
