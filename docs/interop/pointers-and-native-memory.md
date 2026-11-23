@@ -198,6 +198,7 @@ it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
 |---|---|
 | `hold(x)` | A `ptr`: the address of the object `x`, with one reference to it that C holds. The object stays, at that address, until the reference is released, though nothing in Jac holds it |
 | `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where C holds no object at `p` (null, an address C released, any other address), asked before the object is read, and where it holds one of no class that is or derives from `T` |
+| `held[T](f=p)` | The `T` C holds whose field `f`, a C record it keeps in place, is at `p`: the object found by the address of a record inside it. `TypeError` as for `held[T](p)` |
 | `held_at(x)` | The address C holds the object `x` at, with no reference of its own: what `hold(x)` gave. `TypeError` where C holds none of `x` |
 | `release(p)` | C's reference goes. The object is freed when nothing else holds it. `TypeError` where C holds no object at `p` |
 
@@ -311,11 +312,67 @@ hub freed: loose
 
 The object is freed at the `release`: the local `hub` is not used after it.
 
+### An object found by a record it keeps
+
+A C library often takes the address of a record of its own and hands that address back, where the
+program wants the object the record belongs to: C's subclassing by first member, where a library's
+record (a table of callbacks, a cursor) heads a structure that carries the program's own state
+after it. A field of an `obj` whose type is a C record is kept in the object's own memory, as a C
+member is, so it has an address: `addressof(x.f)`, good while the object lives. `held[T](f=p)` takes
+that address back to the object.
+
+```jac
+import from c {
+    obj Pair {
+        has a: i32,
+            b: f32;
+    }
+}
+
+obj Tally {
+    has n: int,
+        pair: Pair;
+}
+
+def bump(q: ptr[Pair]) -> int {
+    t = held[Tally](pair=q);
+    t.n += int(q[0].a);
+    return t.n;
+}
+
+with entry {
+    t = Tally(n=4, pair=Pair(a=i32(3)));
+    p = hold(t);
+    q = addressof(t.pair);
+    print(bump(q), bump(q), held[Tally](pair=q) is t);
+    release(p);
+    try {
+        held[Tally](pair=q);
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+7 10 True
+TypeError: held[Tally]() of an address C does not hold
+```
+
+- `f` must be a field of `T` whose type is a C record, and `p` a `ptr` of that record's type.
+  Check proves both (E1638): a bare `ptr` C handed back is cast first, `ptr[Pair](p)`.
+- C must hold the object (`hold`), as for `held[T](p)`: C's holds are asked before anything is
+  read, and an address of no object C holds, a released one included, is `TypeError`.
+- This is how `neojac port` writes a C++ cast between a class's pointer and the pointer to the C
+  record that is its first member ([Porting C++](port-cxx.md)).
+
 ## `addressof`
 
 `addressof(x)` is the address of a C global or of a C record value, as a `ptr[T]`. For a C array
-defined in an import block it points at the first element. It takes nothing else (E1154).
-[C libraries](c-libraries.md) shows it with a global.
+defined in an import block it points at the first element. For a C record field of an `obj` or a
+struct (`addressof(t.pair)`) it is the field's own address inside the object, good while the object
+lives ([An object found by a record it keeps](#an-object-found-by-a-record-it-keeps)). It takes
+nothing else (E1154). [C libraries](c-libraries.md) shows it with a global.
 
 ## Accesses that say more: `load`, `store`, `vector`
 
@@ -398,7 +455,7 @@ atomic ones are in [Atomic integers](../language/numbers-atomics.md).
 ## What is rejected
 
 ```jac
-# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411, E1635 x2
+# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411, E1635 x2, E1638
 import from c {
     obj Pair {
         has a: i32,
@@ -432,6 +489,7 @@ with entry {
     print(f.vector(0, 3));
     lent = hold(5);
     held[Pair](bare);
+    held[Box](v=bare);
 }
 ```
 
@@ -448,6 +506,7 @@ with entry {
 | E1410, E1411 | A vector of something that is no int or float type, or of a length that is not a power of two from 2 to 64 |
 | E1154 | `addressof()` of anything but a C record or a C global |
 | E1635 | `hold()` of what is no counted object, or `held[T]` of a `T` that is none: `hold(5)`, `held[Pair](p)` |
+| E1638 | `held[T](f=p)` where `f` is no C record field `T` keeps in place, or `p` no `ptr` to that record: `held[Box](v=bare)` |
 
 ## Differences from Python and from the reference design
 
