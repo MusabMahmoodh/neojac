@@ -311,7 +311,10 @@ function is:
   too. A use of one anywhere else in the module, or before the import, is E2240.
 - **A Jac module it names starts where the import first runs**, once, with the modules only it
   brings in, and not when the program starts. Modules that import each other this way start in
-  the order Python's would.
+  the order Python's would. The module is made whole there, on every host: natively too, each of
+  its globals gets its value where the import runs, one made with no code (`glob seen: dict[str,
+  int] = {};`) as much as one code makes, so a function of it called there finds every global
+  made.
 - **It is synchronous on every host**: a JavaScript host starts the module at the statement, as
   a native program and a `cpython` space do.
 - **A module the importing module also imports at its top** starts as a top-level import starts

@@ -182,18 +182,27 @@ hello, node
 | `_jac.py`, `@jac/` | The space's Python runtime and its manifest |
 
 ```text
-import enum
 import _jac
 
-def greet(name):
-    return f'hello, {name}'
-
 def __jac_init__():
+    global greet
+
+    def greet(name: str) -> str:
+        return f'hello, {name}'
     print(greet('python'))
+__dir__ = _jac.shows({'_jac', '__dir__'})
 __jac_init__()
+del __jac_init__
 ```
 
-That is `py/main.py` for the `main.jac` above.
+That is `py/main.py` for a `main.jac` whose `greet` is `def greet(name: str) -> str`: its
+declarations are made where they stand in the module's code, as Python makes them, and its
+`__dir__` leaves the names the emission needs out of `dir()` of the module.
+
+`neojac python <dir> -m <module>` runs one module of the space as `python -m` runs it, as
+`__main__`, over the space's other modules (`-m pytest` runs a suite the space holds), and
+`neojac python <dir> -c <code>` runs code over them. A space with no entry is run only these two
+ways.
 
 ### What emit-js writes
 

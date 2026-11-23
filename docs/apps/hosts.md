@@ -218,6 +218,11 @@ What differs from a native space:
   take the module itself, and a dunder the module does not declare (`m.__doc__`, `m.__file__`)
   is Python's read of it. Natively and on a JavaScript host a module is no value (E5090): a native
   module has no object holding its globals, and a JavaScript module's namespace is read-only.
+- **A module-level def's default that reads a global bound once is Python's own default value**,
+  made with the def, so `inspect.signature` shows it; every other default is made at each call,
+  as on every host ([A default made once](../interop/python-classes.md#a-default-made-once)).
+- **A static written through a subclass is the subclass's own attribute**, as in Python; on every
+  other host it is E1640 ([Static fields](../language/fields.md#static-fields)).
 - **A file cannot be imported by path** (E5090).
 
 Walkers, nodes and edges work as they do natively. A cpython space with no `entry` serves exactly

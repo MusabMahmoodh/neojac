@@ -425,6 +425,77 @@ abab 9
 A Python name used as a type (`EmailStr`, `uuid.UUID`, `Literal["a", "b"]`) is `any` to the
 checker, on every host.
 
+**An annotation may name a variable of the module, and may be a string**, as Python's may. A
+`glob` named where a type stands (`Annotated[Kind, "which"]`, where module code binds
+`Kind = typing.Literal["a", "b"]`) is `any` to the checker, which checks the name as a read of the
+global, and Python is handed its value. A string literal (`n: "int"`) is the string, as Python
+keeps a forward reference, and `any` to the checker. Natively and on a JavaScript host neither is
+a type: E2018 for the variable, E1163 for the string.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import typing;
+
+glob Kind: any;
+
+with entry {
+    Kind = typing.Literal["a", "b"];
+}
+
+def picked(kind: typing.Annotated[Kind, "which"], n: "int" = 1) -> str {
+    return kind * n;
+}
+
+with entry {
+    print((picked as any).__annotations__);
+    print(typing.get_type_hints(picked, include_extras=True)["n"], picked("b", 3));
+}
+```
+
+```text
+{'kind': typing.Annotated[typing.Literal['a', 'b'], 'which'], 'n': 'int', 'return': <class 'str'>}
+<class 'int'> bbb
+```
+
+### A default made once
+
+A parameter's default is made each time a call leaves the parameter out, on every host, so a
+default that reads a global reads its value at the call. In a cpython space a module-level def's
+default that reads a global bound once is instead Python's own default value, made when the def is
+made, so `inspect.signature` and `__defaults__` show it and a library that reads the signature
+(typer, click) passes it. A global is bound once where it is given a value at its declaration and
+never again, or declared with none and stored once, by a top-level statement of a `with entry`
+block of the def's own file above the def; no write of it anywhere in the program (an attribute
+write of its name included) and no `del`. Any other default is made at each call, as natively.
+
+<!-- example: not checked: runs in a cpython space -->
+```jac
+import inspect;
+
+glob SHELF_DEFAULT: any;
+
+with entry {
+    SHELF_DEFAULT = [1];
+}
+
+def shelved(where: any = SHELF_DEFAULT) -> any {
+    return where;
+}
+
+with entry {
+    print(inspect.signature(shelved), shelved() is SHELF_DEFAULT);
+}
+```
+
+```text
+(where=[1]) True
+```
+
+Within the program nothing changes: the global holds that one value whenever a call reads it.
+**The one difference** is for a Python file of the space that rebinds the module's attribute
+after the def is made (`used.SHELF_DEFAULT = [2]`): the def's default is still the value it was
+made with, `[1]`, as Python's own default would be, where a per-call default would read `[2]`.
+
 `import from __future__ { annotations }` is Python's own future statement in a cpython space:
 Python postpones the module's annotations, keeping each as its text, so a raw `__annotations__`
 read gives strings and `typing.get_type_hints` gives the objects. It governs the whole module, its
@@ -556,7 +627,9 @@ object, as Python's is.
 A module holds the names its imports and wires bind as its attributes, as Python's import binds
 them in the module's namespace: with `import from os.path { basename }` and `import math;` in
 `kit/shapes.jac`, `shapes.basename` and `shapes.math` are those objects, to Python reading the
-module and to a Jac module that takes it whole, and `dir()` of the module lists them.
+module and to a Jac module that takes it whole, and `dir()` of the module lists them. `dir()`
+lists what the module's source gives, its declarations and the names its imports bind, and none of
+the names the emission needs to run it.
 
 <!-- example: not checked: runs in a cpython space whose module kit/shapes.jac is wired as shapes, `kit.shapes as shapes ++> main;` -->
 ```jac

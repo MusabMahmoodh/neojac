@@ -208,6 +208,24 @@ high
 True
 ```
 
+The fixer rewrites a block after the blocks inside it, so one run reaches what a fix inside makes
+fixable: where an inner `if`'s `else` after a `return` is dropped, and the inner `if` then ends in
+`return` too, the outer `else` is dropped in the same run.
+
+```jac
+def k(v: int) -> int {
+    if v > 1 {
+        if v > 2 {
+            return 2;
+        }
+        return 1;
+    }
+    return 0;
+}
+```
+
+That is what `--fix` makes of `k` written with an `else` after each `return`.
+
 ### What each rule judges
 
 | Rule | Detail |
