@@ -465,6 +465,11 @@ dependencies = ["fastapi>=0.141"]
 - **A `pyproject.toml`'s table is the project's manifest as its own tools read it**: its build
   backend's, pytest's, a linter's. `neojac install` installs what it depends on, beside what
   `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)).
+- **A Python project the repository holds is installed already, to pip.** Where what `neojac
+  install` resolves depends on one of them (a test group's package that depends on the project
+  itself), pip is given that project as installed, at its name and version, and takes it; no
+  release of it is fetched, and `jac.lock` pins none. The program imports the project as neojac
+  builds it, one copy.
 - **`neojac cargo`** writes the project's manifests first, and takes back what cargo changed as it
   ends (`cargo add`, `cargo update`).
 
@@ -506,7 +511,13 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   variables, so no Python need be on `PATH`.
 - **Under an npm tree it is a Node addon**, built from a C module where the tree's own code looks
   for it, `<path>.node`: `neojac build <directory>/package.json` builds the tree's, and
-  `neojac test` builds them before the tree's suite.
+  `neojac test` builds them before the tree's suite. It exports Node-API's entry points
+  (`napi_register_module_v1`, `node_api_module_get_api_version_v1`), as one under a Python tree
+  exports `PyInit_<name>`, whatever it is built from.
+- **A C module some of whose sources were ported is built from their Jac.** The extension module
+  or the addon links the Jac its C module's `jac` lists with the sources that stay
+  ([C modules](../interop/c-modules.md#the-manifest)), so a recorded addon whose C++ `neojac port`
+  made Jac is built from the Jac and loads in Node as the C++'s did.
 
   ```toml
   [extensions."build/Release/kvstore"]
@@ -637,7 +648,8 @@ pyproject.toml: pytest tests --import-mode=append
   after the Jac tests, in the project's directory, with `.jac/venv` first on `PATH`. It names the
   `groups` (`[dependency-groups]`) and the `extras` (`[project.optional-dependencies]`) of the
   `pyproject.toml` that the command needs, which `neojac install` installs with the rest.
-  `absorb` writes it for a project that configures pytest and has no test command of its own:
+  `absorb` writes it for a project that configures pytest, or holds pytest's `conftest.py` in its
+  directory or one directory down, and has no test command of its own:
   `command = ["pytest", "--import-mode=append"]`, with `groups = ["test"]` where `test` is the
   one dependency group that names pytest ([jac.toml](../reference/jac-toml.md#testpypidirectory)):
   the import mode keeps the package's directory beside the tests off the front of Python's path
@@ -762,7 +774,12 @@ scripts are a second `cpython` space, `<space>_dev`, which each later absorb gro
 since. An npm package's files that run in Node and that the package does not ship (its tests,
 its benchmarks: what its `files` leaves out) are a second `node` space the same way,
 `<space>_dev: node { test.* | benchmark.*; }`, and so are a browser tree's Node files that import
-its modules. A tree a space already holds, and a name already taken, are left alone.
+its modules. A Python tree that ships no wheel, with neither a `[project]` nor a `[build-system]`
+table (a uv workspace's root), has its own Python files in a `cpython` space all the same,
+`<dir>_dev`, named for the tree's directory (`space shop_dev: cpython { hooks.* | scripts.*; }`
+for the root of a repository in `shop/`); a workspace member's files
+stay the member's. A tree a space already
+holds, and a name already taken, are left alone.
 
 What still stands between the archwire and a check that passes is printed as the diagnostics
 every command would give, and `absorb` then exits with status 1. The files it wrote stay.
@@ -777,7 +794,7 @@ item**. `absorb` lists each at its file, and does not guess:
 | `build` | A `setup.py` beside a `pyproject.toml`, or a `pyproject.toml` whose build backend is in the repository (`backend-path`); any other Python project that builds a wheel and has no `[wheel]` table yet, whose build backend says what the wheel holds, so that no space holds its Python until a record does; a `binding.gyp` beside a `package.json` | `neojac absorb --record` ([Recording a build](#recording-a-build)): a Python project's module linked from a crate or from C, what its wheel holds and the space that holds its Python, and an npm tree's addon linked from C |
 | `lock` | `uv.lock`, `poetry.lock`, `pdm.lock`, `Pipfile.lock`; `bun.lock`, `pnpm-lock.yaml`, `yarn.lock` | The same versions pinned by pip or npm in `jac.lock` ([A lock another tool wrote](#a-lock-another-tool-wrote)) |
 | `form` | `pnpm-workspace.yaml`, and a key of a `pnpm` table in `package.json` that npm has no counterpart of (`packageExtensions`) | The form npm reads. `pnpm.overrides` and a `workspace:` dependency are no open item: absorb rewrites the one ([below](#what-absorb-rewrites)) and `jac.toml` holds the other ([Workspaces](#workspaces)) |
-| `tests` | A Python project with no test command of its own that does not configure pytest; one that configures pytest where several dependency groups name pytest, or none does | `[test.pypi."<directory>"]`, the command that runs its tests, or its `groups` ([Building and testing a Python project](#building-and-testing-a-python-project)) |
+| `tests` | A Python project with no test command of its own that neither configures pytest nor holds a `conftest.py`; one that does where several dependency groups name pytest, or none does | `[test.pypi."<directory>"]`, the command that runs its tests, or its `groups` ([Building and testing a Python project](#building-and-testing-a-python-project)) |
 
 ```text
 $ neojac absorb --check

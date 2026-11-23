@@ -343,6 +343,9 @@ backend/pyproject.toml: pytest tests
   link to the project's file (an annex directory with its files), and the source maps of what
   the space emits name it there: a test runner reports a failure at `tests/login.spec.jac:24:5`,
   relative to its own test directory, as it reported `tests/login.spec.ts:24:5` of the source.
+  A runner's file filter is matched against both the forwarder it loads and the Jac source its
+  locations name, so it names a ported test by its stem: `neojac npx playwright test
+  login.spec`, not `tests/login.spec.ts`, which matches no location.
   A link the tree holds is laid as the link it is, one to a directory included. At each ported
   source's place stands a forwarder that
   gives the module, under the source's own name and extension (`lib/twice.js`, `lib/kinds.ts`,

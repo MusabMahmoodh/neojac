@@ -754,6 +754,12 @@ neojac npx tsc --version
   `-bundle -undefined dynamic_lookup` on macOS). An addon of Node's C++ API and V8's (`node.h`,
   `v8.h`) builds with `neojac c++` as node-gyp builds one: in C++20, with the module's name
   defined.
+- A project's own addon is a C module's: `neojac absorb --record` writes its table from its
+  node-gyp build, and neojac builds it from then on ([Recording a
+  build](../toolchain/packages.md#recording-a-build)). `neojac port` takes its C++ to Jac, native
+  code that the C module holds and no npm tree's space takes, and the addon is then built from
+  that Jac with the C that stays, exporting Node-API's entry points
+  ([port](../toolchain/port.md#in-a-project)).
 
 ```sh
 neojac c++ -std=c++20 -DNODE_GYP_MODULE_NAME=hello -bundle -undefined dynamic_lookup \

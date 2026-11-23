@@ -113,6 +113,11 @@ A module is in at most one space. When several patterns match it, the most speci
 
 Two spaces writing the same pattern is E1275.
 
+A module two spaces both hold, the `entry` of each (`space py: cpython { entry main; }` beside
+`space js: node { entry main; }`), is, in each one's program, that space's own: compiled for its
+host and emitted with the space's other modules. Elsewhere, in a third space's program, it is the
+module of the space the rules above pick.
+
 The production also allows a bare `*`. That form is for a layer in `graph layers`; in a space it
 names no module.
 

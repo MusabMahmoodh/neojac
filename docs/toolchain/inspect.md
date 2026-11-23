@@ -199,12 +199,16 @@ That is `py/main.py` for the `main.jac` above.
 
 | In `<dir>` | What it is |
 |---|---|
-| `<module>.mjs` | Each module as an ES module, with a source map `<module>.mjs.map` beside it (its sources are the module's `.jac` file and its annexes) |
+| `<module>.mjs` | Each module as an ES module, with a source map `<module>.mjs.map` beside it (its sources are the module's `.jac` file and its annexes). The module and its map share a debug ID, the source map specification's link: the module ends with `//# debugId=<id>` before its `//# sourceMappingURL=`, and the map's `"debugId"` is the same, a hash of both texts |
 | `<module>.jsx` | For a space whose host renders JSX (a browser or hermes space), its modules, for the space's bundler |
 | `__main.mjs` | A node space's entry, which `neojac node` runs |
 | `@jac/` | The JavaScript runtime the modules import (stdjac's files, and the runtime file of the space's `ui` plugin where it names one), and `bundle.json`, what the space's bundler is told |
 
 `neojac node --enable-source-maps` reports an exception's frames at the lines of the `.jac` files. A source map is version 3: its `sources` are the Jac files' paths from the project's root, and its `sourceRoot` leads from the map back to the project's root (`"../"` for `out-js/jsmain.mjs.map` above, `"../../"` for a module `lib.greet`).
+
+The debug ID changes whenever either text does, so a tool that caches what it read of a module by
+its text and path (a test runner's transform cache) reads its map again after an edit that moved
+the Jac's lines and left the JavaScript as it was.
 
 `emit-js --laid` writes the maps for a laid npm tree ([A project's own suites](test.md#a-projects-own-suites)), which holds each Jac source at its project path inside `<dir>`: each map's `sourceRoot` leads to `<dir>` itself (`"./"` for `out-js/jsmain.mjs.map`, `"../"` for `lib.greet`'s), so a tool that reports a location names the source where it stands in that tree. `neojac test`, `neojac npm` and `neojac npx` write a laid tree's emission this way themselves.
 

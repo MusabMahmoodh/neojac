@@ -175,6 +175,8 @@ A name the headers do not declare at all is E1145.
 ```toml
 headers = ["counter.h"]            # a dependency's interface, read with Clang
 sources = ["counter.c"]            # compiled into every program using it
+jac = ["clamp.jac"]                # Jac modules its sources were ported to (below)
+language = "c++"                   # its headers are C++ though they end in .h (below)
 include = ["include"]              # header directories
 defines = ["NDEBUG", "LEVEL=2"]    # -D, as NAME or NAME=VALUE
 cflags = ["-fwrapv"]               # other Clang flags, for every source
@@ -269,6 +271,13 @@ frameworks = ["CoreFoundation"]    # macOS frameworks its code calls
   library's amalgamation, a dependency's sources): it is built as it is, and
   [`neojac port`](../toolchain/port.md#in-a-project) reads none of it (a path into it is E4011).
   No tool can tell that from the files, so `absorb` never writes it: the project says it.
+- `jac` lists the Jac modules the module's own sources were ported to, by paths from its
+  directory: [`neojac port`](../toolchain/port.md#in-a-project) takes a source off `sources` and
+  lists its Jac here. They are the module's code as its C was, never a space's: a program, an
+  extension module or a Node addon built from the module links them with the sources that stay,
+  and no npm tree's space takes them, whatever the tree's `files` names. A module all of whose
+  C++ sources were ported keeps `language = "c++"`, which port writes, so that its headers are
+  still read as C++ ([C++ sources](#c-sources)).
 - `interpreter = true` says the module is an interpreter's C API, which the interpreter that
   loads an extension module gives it: a program that is an extension module
   ([Extension modules](../toolchain/packages.md#extension-modules)) compiles against the

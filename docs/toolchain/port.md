@@ -218,6 +218,14 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **The C that stays calls the Jac.** A C source of the module that is not ported, and called a
   function of the ported file, calls the Jac module's function through its wire, by the header
   beside the Jac module ([C modules](../interop/c-modules.md#calling-jac-from-c)).
+- **A C module's ported sources stay its code.** Port takes each off the module's `sources` and
+  lists its Jac in the table's `jac` ([C modules](../interop/c-modules.md#the-manifest)): native
+  code the module is built from, never an npm tree's space, even in a directory the tree's
+  `files` names. A module all of whose C++ sources are ported keeps `language = "c++"`. A header
+  library under `node_modules` the module includes (node-addon-api's) is wired to the Jac as any C
+  module is (`node_modules.kit.kit ++> addon.twin { Tally }`). So a Node addon built from the
+  module is built from the Jac and loads in Node as the C++'s did
+  ([Extension modules](packages.md#extension-modules)).
 - **A Python project's tests and scripts are its space's clients.** A file of the project's tree
   that its wheel does not list (`tests/`, `scripts/`, a `setup.py`) imports the package as the
   space builds it, so it holds no module back, and its Python import of a ported module reaches
@@ -239,7 +247,8 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   space emits apart in the laid tree's `.jac/`, each module's face beside its emission. No face
   stands among the tree's own files. The Jac file stands at the source's place too, a link to
   the project's file, and the source maps name it there: a test runner reports a ported test's
-  failure at `tests/login.spec.jac:24:5`, where it reported `tests/login.spec.ts:24:5`. `neojac test`, `neojac npm run build` and `neojac npx vite
+  failure at `tests/login.spec.jac:24:5`, where it reported `tests/login.spec.ts:24:5`, and its
+  file filter names a ported test by its stem (`login.spec`). `neojac test`, `neojac npm run build` and `neojac npx vite
   build` run there, with the tree's configuration as it is, so a tool that matches a file by the
   source's name (a test runner's pattern, an `index.html`'s script) finds its forwarder ([A
   project's own suites](test.md#a-projects-own-suites)). A file that stays and imports a source
