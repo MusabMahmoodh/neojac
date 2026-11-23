@@ -230,6 +230,11 @@ graph import {
 `lib/paint-brush.ts` holds `import pick, { brush } from "./tools"`. A payload of a `-->` wire may
 name any word the other language exports, a keyword of Jac's such as `default` among them.
 
+A stem that holds a dot is quoted too, as is every file under a directory whose name is no word:
+`"web/twice.gen"` is `web/twice.gen.ts`, where `web.twice.gen` would name `gen.ts` in a
+directory `twice`. A quoted name that a dotted one could say is E2310: `"lib/tools"` is
+`lib.tools`.
+
 A name the provider lacks is E1145 where the file states all it gives. A CommonJS file, a file
 that exports another's names with `*`, and a Python file with `from m import *` or a module
 `__getattr__` do not, so any name is taken of them.

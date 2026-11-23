@@ -26,8 +26,8 @@ neojac docs JsObject         # the same page, at its values
 A project's npm packages are an npm tree of its `jac.toml`: a `[npm."<directory>"]` table, named
 by the tree's directory from the project's root (`eco/web`, or `.` for a package at the root),
 which is the `package.json` of that directory. Look for one in `jac.toml`; the first install
-makes it. An import resolves in the project's only tree, or the one its space names
-(`[spaces.<space>] npm = "<directory>"`). Never write `package.json` by hand: neojac writes it, in
+makes it. An import resolves in the project's only tree, the one its space names
+(`[spaces.<space>] npm = "<directory>"`), or the one its space holds. Never write `package.json` by hand: neojac writes it, in
 the tree's directory, from `jac.toml`.
 
 ## Steps

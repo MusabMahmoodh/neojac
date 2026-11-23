@@ -283,7 +283,11 @@ neojac: test: linux-x86_64 test runners don't run on macos-aarch64; build one wi
 
 A project that holds trees of other ecosystems has their suites too, which `neojac test` runs
 after the Jac tests where `jac.toml` names them. A tree with no table is not tested, whatever
-its manifest says: a `test` script written for another tool is simply not named.
+its manifest says: a `test` script written for another tool is simply not named. `neojac absorb`
+writes the table where the tree says how it is tested: an npm tree's `[test.npm."<directory>"]`
+where its `package.json` has a `test` script, and a Python project's `[test.pypi."<directory>"]`
+from its `[tool.cibuildwheel] test-command`, `{project}` and `{package}` read as the tree's own
+directory (`pytest {project}/tests` is `command = ["pytest", "tests"]`).
 
 | Table | The tree | What is run, in the tree's directory |
 |---|---|---|
@@ -318,6 +322,12 @@ backend/pyproject.toml: pytest tests
 - **An npm tree's script and a crate's tests run as `neojac npm` and `neojac cargo` run
   anything**: the tree's manifest written first, with the toolchain's compilers. A tree's
   extension modules, its addons, are built first (`neojac build <directory>/package.json`).
+- **An npm tree whose space holds a Jac module runs its script on what the space emits.** Once
+  `neojac port` has made a file of the tree Jac, its tests still `require('../lib')`: the space is
+  emitted into `.jac/test/spaces/<space>`, with a forwarder where each ported module's
+  JavaScript stood (`lib/twice.js` requiring `lib/twice.mjs`), the tree's other files are laid
+  over it (`node_modules` linked, not copied), and the script runs there. The tree's own files
+  are not touched.
 - **Its output is its own**, printed as it runs. neojac counts the suite, not its tests.
 - **A suite that exits with another status than 0 fails the run**:
   `FAILED backend/pyproject.toml (its suite exited with status 1)`.

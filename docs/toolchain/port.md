@@ -169,7 +169,12 @@ step that checks is written.
   naming what the Jac reads, and the module's Jac imports nothing of the project at its top level.
   An import in a function stays where it loads ([an import in a code body](../language/modules.md#an-import-in-a-code-body))
   and gets its wire too; a re-export (`export { total as summed } from "./total"`) is an `include`
-  wire, `include web.total ++> web.gives { total as summed }`, naming every name it gives;
+  wire, `include web.total ++> web.gives { total as summed }`, naming every name it gives. An
+  import by a path `tsconfig.json`'s `paths` aliases (`import { total } from "@/total"`) is the
+  wire of the module the alias resolves to, `web.total ++> web.halve { total }`, and a module
+  whose file's stem holds a dot is named by its quoted path,
+  `"web/twice.gen" ++> "web/quad.gen" { twice }`
+  ([a module whose name is no identifier](../language/modules.md#a-module-whose-name-is-no-identifier));
 - keeps the wires of the files that stay in their language and use it: a `-->` wire declares an
   import their own source writes (C's `#include` and calls, JavaScript's `import`), and it now
   names what they take of a Jac module; a C source leaves its module's table in `jac.toml`;
@@ -192,6 +197,11 @@ shop/use.py -> replaced-by-neojac/shop/use.py
   the Jac. A module the wheel ships ports too: port lists its Jac in the project's `[wheel]`
   `files` in its source's place (`fastlib/api.py` becomes `fastlib/api.jac`), and the wheel
   holds it as Python's own module ([Building and testing a Python project](packages.md#building-and-testing-a-python-project)).
+- **A JavaScript file reads a ported module as its JavaScript stood.** A later run ports a file
+  that imports or requires a module an earlier run made Jac: the reader takes the Jac module's
+  names, its `default` and, in a CommonJS directory, its exports as the JavaScript module gave
+  them. An npm tree's own tests run on what its space emits, a forwarder in each ported file's
+  place ([A project's own suites](test.md#a-projects-own-suites)).
 - **A module imported by a file of no space** (a script outside every space and every Python
   project's tree) is refused (E4009): that file would have nothing to import.
 - **`-o` is for sources outside a project.** In one, the Jac is written beside its source.

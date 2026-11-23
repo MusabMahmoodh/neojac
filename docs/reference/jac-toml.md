@@ -130,7 +130,7 @@ Where `neojac test` looks for tests when it is given no paths. See [test](../too
 
 ### [test.pypi."\<directory\>"]
 
-The own suite of a Python project the repository holds, `[pypi."<directory>"]`: `neojac test` runs it after the Jac tests, against what `neojac build` makes of the project ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
+The own suite of a Python project the repository holds, `[pypi."<directory>"]`: `neojac test` runs it after the Jac tests, against what `neojac build` makes of the project ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)). `neojac absorb` writes `command` from the project's `[tool.cibuildwheel] test-command`.
 
 | Key | Type | Meaning |
 |---|---|---|
@@ -150,7 +150,7 @@ groups = ["dev"]
 
 ### [test.npm."\<directory\>"] and [test.cargo."\<directory\>"]
 
-The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says.
+The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says. `neojac absorb` writes `script = "test"` for an npm tree whose `package.json` has a `test` script.
 
 | Key | Type | Meaning |
 |---|---|---|
@@ -395,7 +395,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | `spaces.<space>.bundler` | table | `plugin` is the one the space's `ui` plugin names | The `bundler` plugin that packs the space, as `plugin = "<name>"`: one neojac ships (`vite`, `expo`), or one `[plugins]` declares, whose script neojac runs on its Node |
 | `spaces.<space>.bundler.<plugin>` | table | | The settings of the space's bundler. `vite` has `config`: a configuration file, relative to the root (in the space's npm tree: `eco/web/vite.config.ts`) |
 | `spaces.<space>.base` | string | `"/"` | The URL path a browser space is served at |
-| `spaces.<space>.npm` | string | the project's only tree | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
+| `spaces.<space>.npm` | string | the project's only tree, else the one npm tree the space holds | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
 
 | Code | Cause |
 |---|---|
@@ -404,7 +404,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | E1214 | `ui` names a plugin that does not support the space's host |
 | E5158 | `ui` or `bundler` is a string, or the space has a `bundler_config`: the forms these had before; or the space has the table of a plugin it is not built with, or a setting its bundler does not list |
 | E1287 | `npm` names a tree `jac.toml` does not declare |
-| E1288 | The space imports from npm, `jac.toml` declares several trees, and `npm` names none |
+| E1288 | The space imports from npm, `jac.toml` declares several trees, the space holds none of them, and `npm` names none |
 
 ## [apps.\<app\>]
 
