@@ -347,10 +347,11 @@ so only a plugin of `auth` declares it.
   and gives `open_book(host)`, the `Book` it keeps them in. The library's settings are the
   plugin's, beside its own: `accounts` adds `path`
   ([Serving a space](server.md#the-accounts-plugin)).
-- **A `Book` is eight methods, each one step done whole:** a session by its token's hash, one
+- **A `Book` is nine methods, each one step done whole:** a session by its token's hash, one
   begun and one ended, an account found by its username or email, one made unless either is
-  taken, the user an identity of another service names, that service's identities, and
-  `away_key()`, the key that signs what a caller carries to another service and back.
+  taken, the user an identity of another service names (as it is known, and made where it is
+  not), that service's identities, and `away_key()`, the key that signs what a caller carries
+  to another service and back.
 - **What is taken is an answer, not an error:** `add` says whether the account was made. So a
   book over a database several programs reach is a statement or two for each method, and holds
   no transaction open.
