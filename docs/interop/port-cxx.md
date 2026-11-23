@@ -86,6 +86,18 @@ the library is named as its interface names it (an overload set's member by its 
 `twice_i32`), wherever in the library's directory it is defined, and the wire names the set by
 its C++ name (`tally.tally ++> app.use { twice }`).
 
+A call of an instance of the library's function template is named by its template arguments,
+as a member template's is: `tally::kept(c)` is `kept_[Counter](c)`, the template named as an
+overload set's member is, by the parameters it does not make, so that a function of its name
+that is no template is named by its own (`tally::kept("four")` is `kept_ptr_i8("four")`);
+the program's build makes the instance.
+
+A class that has both a copy and a move assignment gives the move as `op_assign_move`:
+`a = b` is `a.op_assign(b)` (or the copy's name among `operator=`'s overloads, such as
+`op_assign_std_string`), and `a = std::move(b)` is `a.op_assign_move(b)`, which leaves `b`
+as the class's move leaves it. `std::move(x)` and `std::forward<T>(x)` are `x` where a
+library class's parameter of type `T&&` takes them, and refused anywhere else.
+
 A record a system header declares that C could declare too (`struct stat`,
 `napi_property_descriptor`, `sqlite3_module`) is C's, as in a C file: the file's import block
 binds it with its fields, and a local of it C++ leaves unset (`struct stat st;`) is made zeroed.
@@ -148,16 +160,25 @@ of a member function on `this` in its constructor or destructor (C++ dispatches 
 class being made), an overloaded virtual function, more than one base or constructor and a
 `return` in its destructor are refused.
 
+A reference to a record port writes as a struct is a borrow of its place: `Counts &k =
+c->tally();` is `k: &mut Counts = &mut c.tally();`, `const Counts &seen = c->counts;` is
+`seen: &Counts = &c.counts;`, and `Counts &tally() { return counts; }` is
+`def tally -> &mut Counts { return &mut self.counts; }`. A field or a method of the borrow
+changes the place, as C++ changes it through the reference. A reference to a local is refused
+(E1323: a borrow starts at a parameter, `self`, an `own` value or another borrow).
+
 ## What is refused
 
 Anything not in the table or in C's is refused with E4001: inheritance from a class port does
 not write as an `obj`, the file's own class templates, a function template with a value, a pack
 or a default among its parameters or whose body applies an operator to a value of its type
-parameter, a header library's function template, a
+parameter, a header library's function template whose instance the call names by what is
+no class or number type, a
 standard library class the library keeps to itself (`std::__wrap_iter`), operators
-and conversions of the file's own classes, a non-member operator, the destructor of a class
-port does not write as an `obj`, references but a library class's as a parameter and an
-`obj`'s, lambdas, range `for`, exceptions, `new` into storage the program gives, `new[]` and
+and conversions of the file's own classes, a non-member operator, `std::move` but as a
+library class's `T&&` argument, the destructor of a class
+port does not write as an `obj`, references but a library class's as a parameter, an `obj`'s
+and a struct's place, lambdas, range `for`, exceptions, `new` into storage the program gives, `new[]` and
 `delete[]` of anything but numbers and pointers, a static data member another file defines, a member
 of a library class its interface does not bind (a member template's instance whose arguments
 are no class or number type among them), a member of a library class with no default
