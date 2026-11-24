@@ -19,10 +19,23 @@ def with_devices(db: any) {
     db.execute(DEVICES);
 }
 
-glob ACCOUNTS_FORMAT: int = 2,
+"""The table of the links mailed to accounts' addresses: what layout 3 has
+that 2 did not, beside whether an account's address is checked."""
+glob LINKS: str = "create table links (token_hash text primary key, user_id text not null, purpose text not null, expires real not null)";
+
+"""A file of layout 2 made one of layout 3."""
+def with_links(db: any) {
+    db.execute("alter table users add column checked integer not null default 0");
+    db.execute(LINKS);
+}
+
+glob ACCOUNTS_FORMAT: int = 3,
      # The steps from each layout of the accounts file a release wrote to the
      # next.
-     ACCOUNTS_UPGRADES: list[Upgrade] = [Upgrade(since=1, apply=with_devices)];
+     ACCOUNTS_UPGRADES: list[Upgrade] = [
+         Upgrade(since=1, apply=with_devices),
+         Upgrade(since=2, apply=with_links),
+     ];
 
 """The accounts file, as the accounts ask it."""
 obj FileBook(Book) {
@@ -87,7 +100,8 @@ obj FileBook(Book) {
                 return False;
             }
             self.db.execute(
-                "insert into users values (?, ?, ?, ?)", (username, email, password, now)
+                "insert into users (username, email, password, created) values (?, ?, ?, ?)",
+                (username, email, password, now),
             );
             self.db.commit();
         }
@@ -182,6 +196,87 @@ obj FileBook(Book) {
             return (answered, str(found[0][1]));
         }
     }
+
+    def address(user: str) -> tuple[str, bool] {
+        with self.turn {
+            for r in self.db.execute(
+                "select email, checked from users where username = ?", (user,)
+            ) {
+                return (str(r[0] or ""), int(r[1]) == 1);
+            }
+        }
+        return ("", False);
+    }
+
+    def give_address(user: str, email: str) -> bool {
+        with self.turn {
+            for r in self.db.execute("select username from users where email = ?", (email,)) {
+                return False;
+            }
+            given = self.db.execute(
+                "update users set email = ? where username = ? and coalesce(email, '') = ''",
+                (email, user),
+            ).rowcount;
+            self.db.commit();
+        }
+        return given == 1;
+    }
+
+    def link(key: str, user: str, purpose: str, expires: float, now: float) {
+        with self.turn {
+            self.db.execute("delete from links where expires <= ?", (now,));
+            self.db.execute("insert into links values (?, ?, ?, ?)", (key, user, purpose, expires));
+            self.db.commit();
+        }
+    }
+
+    """The user of the link `key` for `purpose` that lasts at `now`, taken
+    out as it is followed, in the transaction this begins: "" where there
+    is none, or another program took it out first."""
+    def followed(key: str, purpose: str, now: float) -> str {
+        found = self.db.execute(
+            "select user_id from links where token_hash = ? and purpose = ? and expires > ?",
+            (key, purpose, now),
+        ).fetchall();
+        if len(found) == 0 {
+            return "";
+        }
+        taken = self.db.execute(
+            "delete from links where token_hash = ? and purpose = ? and expires > ?",
+            (key, purpose, now),
+        ).rowcount;
+        return str(found[0][0]) if taken == 1 else "";
+    }
+
+    def check(key: str, now: float) -> str {
+        with self.turn {
+            user = self.followed(key, "check", now);
+            if user != "" {
+                self.db.execute("update users set checked = 1 where username = ?", (user,));
+                self.db.execute(
+                    "delete from links where user_id = ? and purpose = 'check'", (user,)
+                );
+            }
+            self.db.commit();
+        }
+        return user;
+    }
+
+    def reset(key: str, password: str, now: float) -> str {
+        with self.turn {
+            user = self.followed(key, "reset", now);
+            if user != "" {
+                self.db.execute(
+                    "update users set password = ?, checked = 1 where username = ?",
+                    (password, user),
+                );
+                self.db.execute("delete from sessions where user_id = ?", (user,));
+                self.db.execute("delete from links where user_id = ?", (user,));
+            }
+            self.db.commit();
+        }
+        return user;
+    }
 }
 
 obj Accounts(AccountsAuth) {
@@ -199,12 +294,13 @@ obj Accounts(AccountsAuth) {
                 self.kept_as(),
                 ACCOUNTS_FORMAT,
                 [
-                    "create table users (username text primary key, email text, password text not null, created real)",
+                    "create table users (username text primary key, email text, password text not null, created real, checked integer not null default 0)",
                     # An account another service vouches for: its own namespace,
                     # which no username reaches, since its user ID holds a `:`.
                     "create table identities (provider text, external_id text, user_id text not null unique, created real, primary key (provider, external_id))",
                     "create table sessions (token_hash text primary key, user_id text not null, expires real not null)",
                     DEVICES,
+                    LINKS,
                 ],
                 ACCOUNTS_UPGRADES,
                 host,

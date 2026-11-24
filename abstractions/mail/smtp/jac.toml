@@ -1,0 +1,13 @@
+# The standard `mail` plugin: each letter handed to an SMTP server, which
+# sends it on.
+[project]
+name = "smtp"
+kind = "plugin"
+
+[plugin]
+fills = "mail"
+interface_ver = 1
+class = "smtp.mail.Smtp"
+
+[check.lint]
+select = []

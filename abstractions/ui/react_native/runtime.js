@@ -16,19 +16,22 @@ function show(next) {
 
 // A way of signing in that leaves for a page has no way back to a phone's app,
 // so it is not offered here: the form has the ways that answer in place.
-__showSignIn((asks, answer) => {
+__showSignIn((asks, answer, forgot) => {
     const actions = asks.actions.filter((a) => !a.redirect);
     if (actions.length === 0) return null;
     return new Promise((resolve) => {
-        show({ fields: asks.fields, actions, answer, done: (ok) => { show(null); resolve(ok); } });
+        show({ fields: asks.fields, actions, answer, forgotten: asks.forgot, forgot, done: (ok) => { show(null); resolve(ok); } });
     });
 });
 
 const h = React.createElement;
 
-function SignInForm({ fields, actions, answer, done }) {
+function SignInForm({ fields, actions, answer, forgotten, forgot, done }) {
     const [given, setGiven] = React.useState({});
     const [error, setError] = React.useState("");
+    // What the form was told, not refused: a link mailed, where one who
+    // forgot their password asked for it.
+    const [told, setTold] = React.useState(false);
     const [busy, setBusy] = React.useState(false);
     // The keyboard covers the foot of the screen and moves nothing: the form
     // keeps to what is left above it, and scrolls where that is too little.
@@ -46,7 +49,18 @@ function SignInForm({ fields, actions, answer, done }) {
         const said = await answer(action, sent);
         setBusy(false);
         if (said.ok) done(true);
-        else setError(said.detail);
+        else { setTold(false); setError(said.detail); }
+    };
+    // One who forgot their password asks for a link that sets another, by
+    // what they gave the field the plugin names: it is mailed, and opened in
+    // a browser.
+    const askLink = async () => {
+        if (busy) return;
+        setBusy(true);
+        const said = await forgot(given[forgotten] || "");
+        setBusy(false);
+        setTold(said.ok);
+        setError(said.detail);
     };
     const rows = fields.map((f) => h(View, { key: f.name, style: styles.field },
         h(Text, { style: styles.label }, f.label || f.name),
@@ -80,7 +94,11 @@ function SignInForm({ fields, actions, answer, done }) {
                 keyboardShouldPersistTaps: "handled", accessibilityViewIsModal: true,
             },
                 ...rows,
-                h(Text, { style: styles.error, accessibilityRole: "alert" }, error),
+                forgotten
+                    ? h(Pressable, { style: styles.forgot, accessibilityRole: "button", disabled: busy, onPress: askLink },
+                        h(Text, { style: styles.forgotText }, "Forgot your password?"))
+                    : null,
+                h(Text, { style: told ? styles.told : styles.error, accessibilityRole: "alert" }, error),
                 h(View, { style: styles.actions }, buttons))));
 }
 
@@ -107,6 +125,9 @@ const styles = StyleSheet.create({
     choices: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
     choice: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: "#eee" },
     error: { minHeight: 20, color: "#b00020" },
+    told: { minHeight: 20, color: "#111" },
+    forgot: { alignSelf: "flex-start" },
+    forgotText: { fontSize: 14, color: "#1a73e8", textDecorationLine: "underline" },
     actions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 },
     button: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: "#eee" },
     buttonText: { fontSize: 16, color: "#111" },

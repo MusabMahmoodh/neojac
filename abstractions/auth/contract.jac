@@ -41,12 +41,15 @@ obj Session {
 
 """What signing in takes, as a page shows it: a form of `fields` with its
 `actions`; or a place to go, `redirect`; or nothing, for a caller the plugin
-knows already, whose `session` it is."""
+knows already, whose `session` it is. `forgot` is the field whose value a
+page gives `Auth.forgot`, for one who forgot their password: "" where the
+plugin mails no link that sets one."""
 obj SignIn {
     has fields: list[SignInField] = [],
         actions: list[SignInAction] = [],
         redirect: str = "",
-        session: Session | None = None;
+        session: Session | None = None,
+        forgot: str = "";
 }
 
 """A program that shows no page, waiting to be signed in by someone at one:
@@ -80,10 +83,18 @@ plugin may (`Host`), and
 - `consume_limit`, which counts a use of `scope` by `actor` with the
   project's `limits`, and gives 0 while that is within `limit` uses in
   `seconds`, else the seconds until it is: how a plugin holds sign-ins to
-  so many tries."""
+  so many tries.
+- `sends_mail`, whether the project's `mail` sends mail where the program
+  runs.
+- `send_mail`, which sends a letter of plain `text` to the address `to`
+  with the project's `mail`. One that was not sent is said where the
+  program says what went wrong, and to no caller: the plugin is told
+  nothing different."""
 obj AuthHost(Host) {
     def windowed -> bool abst;
     def consume_limit(scope: str, actor: str, limit: int, seconds: int) -> int abst;
+    def sends_mail -> bool abst;
+    def send_mail(to: str, subject: str, text: str) abst;
 }
 
 """Who a caller is, and how one signs in: the interface of the `auth`
@@ -111,7 +122,35 @@ no such program in:
   knows, and for a code no program waits under.
 - `device_session` is the session of the program that holds `secret`, once:
   None while no one has answered, Rejected where it was turned away, or
-  waited too long."""
+  waited too long.
+
+An account's address is checked by a link mailed to it, and a password set
+again by one. A plugin that keeps addresses mails them where the program
+sends mail (`AuthHost.sends_mail`) and knows where it is reached, which a
+link names. These are what it says of them, and each step of them is
+Rejected by a plugin that mails no links:
+
+- `checked` is whether the address of the account `user` is checked: a link
+  mailed to it was followed, or the account is one another service vouches
+  for. False for a user no one knows, and for one with no address.
+- `mails` is whether the plugin mails links: whether an account can be
+  checked here at all.
+- `mail_check` mails the address of a request's caller a link that checks
+  it, which they followed none of yet. `address` is the address an account
+  that has none gives itself, and "" for one that has one. Rejected for a
+  caller no one knows, one checked already, and an address that is taken
+  or is none.
+- `check` checks the address the link that holds `token` was mailed to,
+  for the client at `client`. Rejected for a token no link holds, or one
+  too old.
+- `forgot` mails the address of the account `name` names (its username, or
+  the address) a link that sets a new password, for the client at
+  `client`. It does the same, as the caller sees it, whether or not there
+  is such an account, so nothing is learnt of which accounts there are.
+- `reset` sets `password` for the account whose link holds `token`, for the
+  client at `client`: the account's address is checked, every session of
+  it ends, and the caller is given a new one. Rejected for a token no link
+  holds, one too old, and a password the plugin refuses."""
 obj Auth {
     def open(host: dyn AuthHost) abst;
     def caller(headers: dict[str, str]) -> str | None abst;
@@ -121,6 +160,12 @@ obj Auth {
     def device(client: str) -> DeviceSignIn abst;
     def device_answer(headers: dict[str, str], code: str, allow: bool) abst;
     def device_session(secret: str) -> Session | None abst;
+    def checked(user: str) -> bool abst;
+    def mails -> bool abst;
+    def mail_check(headers: dict[str, str], address: str) abst;
+    def check(token: str, client: str) abst;
+    def forgot(name: str, client: str) abst;
+    def reset(token: str, password: str, client: str) -> Session abst;
 }
 
 """The credential a request with `headers` carries as a bearer token, or ""."""
