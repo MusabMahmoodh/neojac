@@ -621,11 +621,18 @@ Ask what the language server answers, from the command line.
 
 ```sh
 neojac query <what> <file>[:<line>[:<column>]]
+neojac query index <program> [--no-lint]
 ```
+
+| Option | What it does |
+|---|---|
+| `--no-lint` | index: the program as an editor that has turned the lint rules off is told of it |
 
 <what> is one of definition, declaration, implementation, type, references, hover, symbols, completion, signature, diagnostics and arch. The file is checked as the language server checks it, in the program it belongs to, and the answer is printed: places as <file>:<line>:<column>-<line>:<column>, one to a line.
 
 `arch` prints, as JSON, the architecture picture the file is in, as `neojac arch --json` does: a module's file gives its module, the line of a layer in archwire.jac that layer, and anywhere else there the project.
+
+`index` prints, as JSON, what the language server keeps of a whole program for the answers that reach across programs: its files, the diagnostics of each, the names it declares, and every reference by what it refers to. The program is its main module, or `archwire.jac#<space>` for a space of a project. The language server runs it for each program of a workspace, several at a time, and keeps what it prints in the build cache.
 
 | Example | What it does |
 |---|---|
@@ -633,6 +640,7 @@ neojac query <what> <file>[:<line>[:<column>]]
 | `neojac query references core/clock.jac:3:5` | Every use of it in its program |
 | `neojac query symbols main.jac` | The file's outline |
 | `neojac query arch core/clock.jac` | What the module takes and gives |
+| `neojac query index main.jac` | A program's index, as JSON |
 
 Its guide: [toolchain/lsp](../toolchain/lsp.md) (`neojac docs toolchain/lsp`).
 
@@ -740,7 +748,7 @@ neojac arch --view spaces [--profile <profile>] [<output>]
 
 Run from inside a project. The picture is drawn from archwire.jac and from nothing else: its layers are the boxes, its wires the arrows, each labelled with the edge rule that admits it.
 
-With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, and a click on a layer, a module or an arrow opens it. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
+With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer, a module or an arrow opens it, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
 
 Every module archwire.jac names is read, whether or not a program loads it, and every target's wires are checked, so what is drawn holds for the whole project.
 
