@@ -23,7 +23,7 @@ impl DialogOverlay(**kwargs: any) -> JsxElement {
 }
 
 impl DialogContent(**kwargs: any) -> JsxElement {
-    showCloseButton = kwargs.get("showCloseButton") is not False;  # jac:ignore[W2075]
+    showCloseButton = kwargs.get("showCloseButton") is not False;
     return <DialogPortal>
         <DialogOverlay />
         <DialogPrimitive.Content

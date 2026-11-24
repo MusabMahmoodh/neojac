@@ -1,3 +1,10 @@
 [project]
 name = "raylib_shooter"
-archwire = false
+# The game's twins in C, Rust and Python are programs of their own, each
+# built or run by its own command, and no modules of this project: its
+# archwire.jac does not answer for them.
+exclude = [
+    "shooter.c",
+    "shooter.rs",
+    "shooter.py",
+]

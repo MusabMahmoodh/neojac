@@ -16,8 +16,6 @@ glob SWEEP_BATCH: int = 5,
 def:priv knowledge_repo_tick;
 
 glob _repo_job: list[Job[str]] = [];
-
-"""Clone or update the jac repo, as a job: it's minutes of git on a first run."""
 @job
 def refresh_repo(version: str, note: JobNote) -> str;
 

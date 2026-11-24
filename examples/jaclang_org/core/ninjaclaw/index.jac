@@ -70,9 +70,6 @@ glob STOP_WORDS: set[str] = {
 def tokens_of(text: str) -> list[str];
 
 def index_doc(kind: str, key: str, title: str, href: str, text: str) -> IndexDoc;
-
-"""Where a docs page in the tree can be read: under `base`, its home in the repo at the
-release the tree is from. The site's own docs are a different corpus."""
 def docs_route(rel: str, base: str) -> str;
 
 def heading_anchor(heading: str) -> tuple[str, str];

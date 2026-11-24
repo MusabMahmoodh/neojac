@@ -31,8 +31,6 @@ def looks_like_script(text: str) -> bool;
 def _fetch_script -> str | None;
 
 def _write_cache(text: str);
-
-# Served at a path of its own, as the shell script curl expects.
 @restspec(method=HTTPMethod.GET, path="/install.sh", produces="text/x-shellscript", envelope=False)
 def:pub install_sh -> str;
 

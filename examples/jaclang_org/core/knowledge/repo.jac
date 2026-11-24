@@ -31,8 +31,6 @@ def knowledge_dir -> Path;
 def repo_dir -> Path;
 
 def repo_url -> str;
-
-"""Where the docs of release `tag` can be read on the web."""
 def docs_source_url(tag: str) -> str;
 
 def git(args: list[str], cwd: Path | None = None, extra_env: dict[str, str] | None = None) -> str;

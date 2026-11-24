@@ -4,13 +4,7 @@ import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" { ArrowRight01Icon, BookOpen01Icon }
 
 def _title_matches(title: str, q: str) -> bool;
-
-"""What names a section among the sidebar's closed ones: the titles of the
-sections from the outermost down to it."""
 def:pub section_key(titles: list[str]) -> str;
-
-"""The items of a section of the tree, or of the top: `trail` is the titles of
-the sections they are in."""
 def:pub DocTreeLevel(
     items: list[TreeNode],
     trail: list[str],
