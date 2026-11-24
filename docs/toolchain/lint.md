@@ -78,11 +78,11 @@ jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is 
 
 `style` is the style rules. `clean` is `style` and the policies for a project's layout and its comments: no comment, no docstring, every body in an `impl` in its module's annex. `fmt --fix` applies each rule of both, so selecting either never leaves work the fixer cannot do. The two rules in no group need their author, and are selected by name: `select = ["clean", "no-print", "too-many-params"]` is every rule.
 
-neojac's own `jac.toml` names no rules, so its compiler and its toolchain's build are held to `"clean"`: their source holds no comment or docstring and every body is in an annex. It names only the files the rules leave alone:
+neojac's own `jac.toml` names no rules, so its compiler, its runtime and its toolchain's build are held to `"clean"`: their source holds no comment or docstring and every body is in an annex. It names only the files the rules leave alone:
 
 ```toml
 [check.lint]
-exclude = ["rt/*", "tests/*", "examples/*", "scripts/*"]
+exclude = ["tests/*", "examples/*", "scripts/*"]
 ```
 
 ### The style group, in one program
