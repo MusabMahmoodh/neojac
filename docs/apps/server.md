@@ -523,7 +523,24 @@ curl http://127.0.0.1:8000/robots.txt    # User-agent: *
 curl http://127.0.0.1:8000/status        # {"ok": true, "data": {"up": 1}}
 ```
 
-`@restspec(method, path, produces="text/plain", envelope=True)` is a
+A page is such a function, of a server that has no browser space: its result is the HTML, and
+`headers` keeps it out of another site's frame.
+
+<!-- example: not checked: it is one function of a served app -->
+```jac
+@restspec(
+    method=HTTPMethod.GET,
+    path="/about",
+    produces="text/html; charset=utf-8",
+    envelope=False,
+    headers={"Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'"}
+)
+def:pub about -> str {
+    return "<!doctype html><title>About</title><p>A page of this app.</p>";
+}
+```
+
+`@restspec(method, path, produces="text/plain", envelope=True, headers=None)` is a
 [decorator](../language/decorators.md): it records the route on the function as the program
 compiles, and nothing is registered as the module starts.
 
@@ -533,6 +550,7 @@ compiles, and nothing is registered as the module starts.
 | `path` | Absolute: one that does not start with `/` does not compile |
 | `envelope` | `True`: the reply is the JSON envelope. `False`: the body is the function's result, which must be a `str`. |
 | `produces` | The `Content-Type` of an unenveloped body |
+| `headers` | Headers an unenveloped body is sent with, a dict written at the decorator: what a page says of where it may be shown and what it may load (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control`). A refusal and a failure are the JSON envelope, sent with none of them |
 
 The function takes no parameters. Its access tag guards the route as it guards its endpoint:
 `:pub` for anyone, `:protect` for a signed-in caller (401 otherwise), untagged for requests with
