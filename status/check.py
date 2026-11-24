@@ -14,11 +14,34 @@ import sys
 import urllib.error
 import urllib.request
 
-# What is asked: the platform's own address, which signs people in and takes
-# launches, and one app launched on it, which a request wakes if it sleeps.
+# What is asked, each named for what people use it for, with the line the page
+# says under the name in place of the address asked: the site; the platform's
+# own address, which signs people in and takes launches (asked for what
+# signing in takes, which the runtime of every app answers); the public page of
+# the usage statistics; and one app launched on the platform, which a request
+# wakes if it sleeps. That one app stands for the apps: the platform's gateway,
+# its certificates and its waking an app are what it shows. No other app is
+# asked or named here: how an app does is its owner's to know.
 ASKED = [
-    {"name": "The platform", "url": "https://launch.neojac.dev/__jac/auth/", "expects": 200},
-    {"name": "A launched app", "url": "https://jaclang-org.neojac.app/", "expects": 200},
+    {"name": "The site", "at": "neojac.dev", "url": "https://neojac.dev/", "expects": 200},
+    {
+        "name": "Signing in and launching",
+        "at": "launch.neojac.dev",
+        "url": "https://launch.neojac.dev/__jac/auth/",
+        "expects": 200,
+    },
+    {
+        "name": "Usage statistics",
+        "at": "telemetry.neojac.dev",
+        "url": "https://telemetry.neojac.dev/totals",
+        "expects": 200,
+    },
+    {
+        "name": "Launched apps",
+        "at": "one app launched on the platform, jaclang-org.neojac.app, asked in their place",
+        "url": "https://jaclang-org.neojac.app/",
+        "expects": 200,
+    },
 ]
 SECONDS = 10
 CHECKS_KEPT_HOURS = 48
@@ -61,8 +84,15 @@ def main(record):
     oldest = (now - datetime.timedelta(hours=CHECKS_KEPT_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
     kept["checks"] = [c for c in kept["checks"] if c["at"] >= oldest]
     first_day = (now - datetime.timedelta(days=DAYS_KEPT)).strftime("%Y-%m-%d")
-    kept["days"] = {d: v for d, v in sorted(kept["days"].items()) if d >= first_day}
-    kept["asked"] = [{"name": one["name"], "url": one["url"]} for one in ASKED]
+    # Only what is asked now is kept: a name no longer asked leaves the record.
+    names = [one["name"] for one in ASKED]
+    kept["checks"] = [c for c in kept["checks"] if c["name"] in names]
+    kept["days"] = {
+        d: {name: of for name, of in v.items() if name in names}
+        for d, v in sorted(kept["days"].items())
+        if d >= first_day
+    }
+    kept["asked"] = [{"name": one["name"], "at": one["at"]} for one in ASKED]
     kept["at"] = stamp
     with open(path + ".new", "w") as f:
         json.dump(kept, f, separators=(",", ":"))
