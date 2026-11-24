@@ -801,7 +801,7 @@ A program that imports JavaScript links Node, so it is large: over 100 MB.
 | W1100 | A package that is not installed, or not among the packages of the tree the import resolves in: `cannot find module` |
 | E1287, E1288 | The module's space names a tree `jac.toml` does not declare, or none of several |
 | E5160 | The tree's packages are not installed as `jac.toml` and `jac.lock` say |
-| E5090 | A JavaScript import in a build for a platform without the toolchain's Node |
+| E5090 | A JavaScript import in a build for a platform without the toolchain's Node; an addon that registers itself from a static constructor; an addon built from its C and C++ for another system than this one |
 
 As the program runs: `ImportError` for an export an undeclared package or a built-in module
 lacks, `AttributeError` for a property an object lacks, `OverflowError` for an int past 2**53 sent
