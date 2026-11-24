@@ -62,7 +62,12 @@ The same functions run in the kernel and in ordinary code.
 
 `array[T, N]`:
 
-- `T` is a number type, a struct of plain data, or another array (`E1420`).
+- `T` is a number type, a pointer (`ptr[T]`), a struct of plain data, a C
+  record an `import from c` block declares with its fields, or another array
+  (`E1420`). A pointer is a machine word, as C's array of pointers holds it,
+  and an array made with no values holds null pointers; an item that is a C
+  record is that record where it lies
+  ([C libraries](../interop/c-libraries.md#bit-fields-and-arrays)).
 - `N` is a compile-time int above 0 (`E1421`): a literal, a `comptime` name, or
   arithmetic on them, as a tensor's dimension is. A run-time value is `E0033`.
 
@@ -339,7 +344,8 @@ own, and the same value: copied where native code copies one, an element read
 and written at an index of the array's alone (`IndexError` for a negative one),
 compared and hashed by its elements, printed as a list, boxed into an `any` as a
 list and made again of one (`ValueError` for another length, `OverflowError` for
-a sized int out of its element type's range).
+a sized int out of its element type's range). An array of pointers is refused
+there, as a pointer is (`E1540`).
 
 Such a space holds a 128-bit int as its host's int, a Python int or a JavaScript
 BigInt, checked against its type's range as natively.

@@ -248,6 +248,31 @@ handler raises `UnicodeEncodeError`, whose message gives its code-point index (`
 surrogates not allowed`); the `surrogatepass` handler encodes it
 (`"\udfff".encode("utf-8", "surrogatepass")` is `b'\xed\xbf\xbf'`).
 
+Two surrogate escapes side by side stay two code points, as in Python: `"\ud83d\udc4d"` has
+length 2 and is not `"\U0001f44d"`, the character the pair stands for in UTF-16: it is
+`chr(0xd83d) + chr(0xdc4d)`. On a JavaScript host a `str` is UTF-16 text, in which the pair is that
+character: a str literal that holds a pair is refused there (E5221), and two surrogates a program
+joins as it runs are the one character
+([Where the language differs by host](../apps/hosts.md#where-the-language-differs-by-host)).
+
+```jac
+with entry {
+    lone = "\ud83d";
+    pair = "\ud83d\udc4d";
+    print(len(lone), len(pair), pair == "\U0001f44d", ascii(pair));
+    try {
+        pair.encode("utf-8");
+    } except UnicodeEncodeError as e {
+        print("UnicodeEncodeError:", e.reason);
+    }
+}
+```
+
+```output
+1 2 False '\ud83d\udc4d'
+UnicodeEncodeError: surrogates not allowed
+```
+
 | Operation | Result |
 |---|---|
 | `s + t` | Concatenation. Both sides are strings: `"a" + 1` is E1110; write `"a" + str(1)`. |

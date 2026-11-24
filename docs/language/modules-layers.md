@@ -57,7 +57,11 @@ A layer holds modules, or it holds other layers. It never holds both (E2212).
 
 - **Modules**, named by pattern: a module (`core.clock`), a package and everything in it
   (`app.*`), or everything `archwire.jac` governs (`*`). Each pattern matches at least one module
-  (E2098).
+  (E2098). A module whose path a dotted name cannot say, a file stem holding a dot, is named by
+  its quoted path from the archwire's directory, as in a wire: `layer gen { "web/twice.gen"; }`
+  ([A module whose name is no identifier](modules.md#a-module-whose-name-is-no-identifier)). A
+  quoted path the dotted name could say is E2310. A string before a nested `layer` is still that
+  layer's docstring.
 - **Other layers.** A layer nests to any depth. Modules that would sit beside the layers inside
   one get a layer of their own there, as `machine` is above, so every box of a picture is one kind
   of thing and every rule has a layer to name.
@@ -159,6 +163,7 @@ it runs. They are independent, and a module has one of each.
 | E0166 | A docstring that describes nothing |
 | E0077 | A layer named as another layer |
 | E2098 | A layer's pattern matches no module |
+| E2310 | A layer's quoted path to a module whose path is all identifiers |
 | E2213 | An `archwire.jac` that declares no layer |
 | E2201 | A module in no layer |
 | E2202 | A module in two layers |

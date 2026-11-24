@@ -42,6 +42,12 @@ exclude = ["tests/*/reject/*"]         # files left alone
 - `neojac check` reports each selected rule as an error, at the code it judges: a finding in a body written in an annex is at the annex's line (`impl/simplify_ternary.impl.jac:2:13`), not at the declaration. `neojac build` and `neojac test` do not judge selected rules.
 - Rules are selected by name, not by code. A name in `select` or `ignore` that is no rule is error E3057, at its place in `jac.toml`.
 - **Under `"clean"`, `neojac fmt --fix` deletes every comment and docstring** of the files the rules judge, since `strip-comments` and `strip-docstrings` are among them, and moves every body into its module's annex. That is so in a project that names no rules. `exclude` names the files to leave alone, and `ignore` the rules to leave out: `ignore = ["strip-comments", "strip-docstrings"]` keeps them.
+- **A module of a `cpython` space keeps its docstrings and its `-> None`.** There a docstring is
+  the program's, the `__doc__` Python reads ([Classes and decorators in a cpython space](../interop/python-classes.md#doc-strings)),
+  and `-> None` is the function's annotation, `f.__annotations__["return"]`, so neither
+  `strip-docstrings` nor `unnecessary-none-return` judges it, in `neojac check` or in
+  `neojac fmt --fix`, which reads the project's spaces to know. Its comments and bodies are judged as any module's. Its
+  `import from __future__ { annotations }` is Python's too, and stays.
 
 ```text
 jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is no rule a project selects
@@ -202,6 +208,24 @@ high
 True
 ```
 
+The fixer rewrites a block after the blocks inside it, so one run reaches what a fix inside makes
+fixable: where an inner `if`'s `else` after a `return` is dropped, and the inner `if` then ends in
+`return` too, the outer `else` is dropped in the same run.
+
+```jac
+def k(v: int) -> int {
+    if v > 1 {
+        if v > 2 {
+            return 2;
+        }
+        return 1;
+    }
+    return 0;
+}
+```
+
+That is what `--fix` makes of `k` written with an `else` after each `return`.
+
 ### What each rule judges
 
 | Rule | Detail |
@@ -222,6 +246,34 @@ True
 
 `separate-impls` and `impls-in-annex` together keep every body out of a module's own file: the module declares, and `impl/<module>.impl.jac` implements. `fmt --fix` moves each body, with the comments inside it, into that annex, creating it when it is not there. See [Projects](projects.md#impl-annexes) for where annexes go.
 
+A function declared in a branch of a [`comptime if`](../language/compile-time.md#among-declarations-and-members), at a module's top or among a class's members, keeps its declaration in that branch, and its body moves into the annex under the same branches, with the `jaclang.comptime` import their conditions read:
+
+<!-- example: not checked: shows a module and the annex fmt --fix writes for it -->
+```jac
+import from jaclang.comptime { target }
+
+comptime if target().os == "windows" {
+    def sep -> str;
+} else {
+    def sep -> str;
+}
+```
+
+<!-- example: not checked: the annex impl/main.impl.jac of the module above -->
+```jac
+import from jaclang.comptime { target }
+
+comptime if target().os == "windows" {
+    impl sep -> str {
+        return "\\";
+    }
+} else {
+    impl sep -> str {
+        return "/";
+    }
+}
+```
+
 ## Spellings neojac always rejects
 
 These are errors in every program, with no configuration. `fmt --fix` rewrites every one of them.
@@ -230,7 +282,7 @@ These are errors in every program, with no configuration. `fmt --fix` rewrites e
 |---|---|---|
 | `def __init__`, `def __post_init__` | `def init`, `def postinit` | W3004 |
 | `def f()`, `lambda () ...`, `obj A()`, `enum E()` | No parentheses when there is nothing in them | W3005 |
-| `import from __future__ { annotations }` | Nothing | W3009 |
+| `import from __future__ { annotations }`, outside a cpython space | Nothing | W3009 |
 | An `impl` that restates its declaration's signature differently | The declaration's signature | W3010 |
 | A `;` standing for nothing (stray, after accessors, after a for step) | No `;` | W3013 |
 | `@staticmethod` | `static def` | W3001 |

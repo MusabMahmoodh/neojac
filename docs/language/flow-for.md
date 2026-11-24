@@ -333,7 +333,8 @@ thread may reach: it assigns a module global or a captured name, writes a
 shared object through another name (`alias = c; alias.n += 1`), grows a
 container a field holds (`self.items.append(v)`), calls `random`, `re` or
 `math`, or needs what a loop's threads lack (a call no analysis follows, a
-graph's change, a task). The full list is in
+graph's change, a task, C's holds of objects: `hold`, `held`, `held_at`,
+`release`). The full list is in
 [Where code runs](../accel/requirements.md) (`neojac docs requirements`).
 
 ```jac

@@ -81,8 +81,10 @@ What the compiler checks of these:
   `AttributeError`. A class's `__getattr__` and `__setattr__` are asked for
   names it does not declare (see [Special methods](methods-special.md)).
 - **An object has only its declared fields**: `setattr` cannot add one.
-- **A class is a value.** Held in an `any` (`k: any = Point3`, or what
-  `type(x)` gives), it has `__name__` and `__qualname__`, `is` compares it
+- **A class is a value.** Named directly, it has `__name__` and `__qualname__`
+  (`Point3.__name__`, `OSError.__qualname__`), on every host. Held in a
+  local (`k = Point3`, `k: any = Point3`, or what `type(x)` gives), it has
+  them too, `is` compares it
   with a class, calling it constructs an instance (binding the `init`'s
   parameters, keywords included), `k.m(x)` calls the class's own method `m`
   on `x`, and `issubclass(k, C)` is answered as the program runs.
@@ -187,6 +189,7 @@ name: str, verified: bool | True False ''
 | `type_args(T)` | The types a type is made of: a list's, set's or array's item type, a dict's key and value types, a tuple's item types, a union's members |
 | `members(E)` | An enum's members, in order |
 | `bits(T)`, `signed(T)` | A number type's width in bits (8 for `u8`, 64 for `int` and `float`, 32 for `f32`), and whether it holds negative values; see [Compile-time values](compile-time-values.md) |
+| `sizeof(T)` | The bytes a value of `T` takes as C lays it out, for the target being built: a number, a `bool`, a `ptr`, a C record, a struct of those or an `array` of them (E1636 for any other type); see [Compile-time values](compile-time-values.md#bits-signed-and-sizeof) |
 | `sendable(T)` | Whether a value of `T` may be sent to another thread or space; see [Crossing](../accel/crossing.md) |
 | `nullable(T)` | Whether `None` is a value of `T`, as the checker has it where `None` is given for a `T`: a str, bytes, a list, a set, a dict and a class (whose types `\| None` adds nothing to), a union one of whose members is `None` or one of those, and `None`'s own type. Never an int, a float, a bool, an enum's, a struct's or a tuple's |
 | `holds(T, U)` | Whether a value of `T` may hold a value of `U`: `T` is `U`, or one of `T`'s fields, items, keys, values or members may hold one. What a walk over a value's parts is written with, so that it is no code for a type that holds nothing it looks for |

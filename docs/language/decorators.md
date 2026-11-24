@@ -1,6 +1,6 @@
 ---
-description: Decorators, compile-time calls that record facts on the declaration they precede; the facts jaclang.comptime provides (inline, noinline, cold, align, fast_math), writing your own, and what replaces a run-time wrapper, @staticmethod and @property.
-keywords: decorator, decorators, @, inline, noinline, cold, align, fast_math, fast-math
+description: Decorators, compile-time calls that record facts on the declaration they precede; the facts jaclang.comptime provides (inline, noinline, cold, align, packed, fast_math), writing your own, and what replaces a run-time wrapper, @staticmethod and @property.
+keywords: decorator, decorators, @, inline, noinline, cold, align, packed, fast_math, fast-math
 grammar: decorators, decorated
 ---
 # Decorators
@@ -72,8 +72,8 @@ A decorator is `@` and a name, optionally called with arguments
 
 ## The facts
 
-`jaclang.comptime` provides these. Each is of a function with a body, and
-`align` of a [struct](structs.md) too.
+`jaclang.comptime` provides these. Each is of a function with a body, but
+`packed`, which is of a [struct](structs.md), and `align`, which is of either.
 
 | Decorator | Fact |
 |---|---|
@@ -81,6 +81,7 @@ A decorator is `@` and a name, optionally called with arguments
 | `@noinline` | Every call of it stays a call, in a [kernel](../accel/kernels.md)'s code too. |
 | `@cold` | It runs rarely: a slow path kept out of line (it is `noinline` too), so the fast path that calls it stays small. |
 | `@align(n)` | Its code starts at a multiple of `n` bytes, `n` a power of two up to 4096 (E1495). Of a struct, see below. |
+| `@packed`, `@packed(n)` | Of a struct: its fields are laid out with no padding, or each at most `n`-aligned. See below. |
 | `@fast_math(*flags)` | Its float operations may be computed as LLVM's fast-math flags allow. See below. |
 
 ### align of a struct
@@ -125,6 +126,64 @@ with entry {
 
 `Vec3`'s fields are 12 bytes; aligned to 16, each element of the list takes
 16. `Tagged` puts its `Vec3` at offset 16, after the `u8` and its padding.
+
+### packed
+
+`@packed` before a struct, or a C record of an `import from c` block, lays its fields out as C's `__attribute__((packed))` does: each right
+after the one before, with no padding, and the struct aligned to 1. `@packed(n)`, `n` a power of
+two (E1495), is C's `#pragma pack(n)`: each field aligned to the lesser of its own alignment and
+`n`. With `@align(n)` too, the packed struct is then aligned to `n`, as C's
+`__attribute__((packed, aligned(n)))`, and its size rounded up to it. A field is read and written
+where it lies, aligned or not.
+
+```jac
+import from jaclang.comptime { align, packed }
+
+@packed
+@align(4)
+struct Header {
+    has size: u32 = u32(0),
+        used: u64 = u64(0);
+}
+
+@packed(2)
+struct Halved {
+    has tag: u8 = u8(0),
+        n: i32 = i32(0),
+        x: f64 = 0.0;
+}
+
+@packed
+struct Tight {
+    has tag: u8 = u8(0),
+        n: i32 = i32(0);
+}
+
+def main {
+    hs: list[Header] = [Header(size=u32(1)), Header(size=u32(2), used=u64(9))];
+    qs: list[Halved] = [Halved(), Halved(n=i32(6))];
+    ts: list[Tight] = [Tight(), Tight(tag=u8(1), n=i32(5))];
+    ph = ptr[Header](__list_data_ptr(hs));
+    pq = ptr[Halved](__list_data_ptr(qs));
+    pt = ptr[Tight](__list_data_ptr(ts));
+    print(int(ph + 1) - int(ph), int(pq + 1) - int(pq), int(pt + 1) - int(pt));
+    print(ph[1].used, pq[1].n, pt[1].n, hs[1].size, qs[1].tag, ts[1].tag);
+}
+
+with entry {
+    main();
+}
+```
+
+```output
+12 14 5
+9 6 5 2 0 1
+```
+
+`Header` is 12 bytes, its `u64` at 4; `Halved` 14, its `i32` at 2 and its `f64` at 6; `Tight` 5.
+A struct is packed once (two `@packed`s that disagree are E1494). A struct held in a packed one
+below the alignment it needs is not supported yet (E5090): its own fields would be read where
+they do not align.
 
 ### fast_math
 
@@ -249,8 +308,11 @@ enum Signal {
 
 A function that wraps another as the program runs is not a decorator: `@`
 before a declaration names a `comptime` function, and anything else is
-refused (E1490). Call the wrapper and bind its result where the program
-needs it:
+refused (E1490); a Python callable is E5174. In a `cpython` space a
+decorator that is not a `comptime` function runs as Python runs it, as the
+function or class is made
+([Classes and decorators in a cpython space](../interop/python-classes.md#decorators)).
+Elsewhere, call the wrapper and bind its result where the program needs it:
 
 ```jac
 def logged(f: Callable[[int], int]) -> Callable[[int], int] {
@@ -370,11 +432,12 @@ with entry {
 | Code | Meaning |
 |---|---|
 | E1490 | The decorator is not a `comptime` function (a run-time wrapper, a C function). Call a wrapper instead. |
+| E5174 | Outside a `cpython` space, the decorator is a Python callable (`@dataclass`). |
 | E1491 | A fact is recorded outside a decorator's evaluation, or on a declaration other than the one the decorator was given. |
-| E1492 | A fact is applied to a declaration it is not of: a class (but `align` of a struct), a C function, a `comptime` function, an abstract method. |
+| E1492 | A fact is applied to a declaration it is not of: a class (but `align` or `packed` of a struct), a C function, a `comptime` function, an abstract method; `packed` of anything but a struct. |
 | E1493 | `@inline` of a function on a cycle of calls. |
-| E1494 | Two facts that disagree (`@inline` and `@cold`, two different `@align`s). |
-| E1495 | An alignment that is not a power of two up to 4096. |
+| E1494 | Two facts that disagree (`@inline` and `@cold`, two different `@align`s or `@packed`s). |
+| E1495 | An alignment that is not a power of two up to 4096, `@packed(n)`'s among them. |
 | E1496 | A decorator before an `impl` or a `test`. Write it before the declaration the `impl` is of. |
 | E1561 | `@align(n)` of a struct with `n` less than its fields' alignment. |
 | E1572 | `fast_math` given a name that is not one of its flags. |

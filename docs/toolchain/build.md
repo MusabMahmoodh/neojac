@@ -351,11 +351,13 @@ What C sees of each type:
 | `float` | `double` |
 | `f32`, `f16`, `bf16` | `float`, `_Float16`, `__bf16` |
 | A `glob:pub` global | C data of its type, declared `extern` (`extern int64_t counter;`); a Windows C program declares it `__declspec(dllimport)` |
+| `Callable[[P, ...], R]` of those types | A pointer to a C function of that signature, which the Jac function calls: `def:pub apply_twice(f: Callable[[int], int], x: int) -> int` is `int64_t apply_twice(int64_t (*f)(int64_t), int64_t x)`, given a C function by its name |
 | An `obj` (or any other value) | An opaque handle, `void *`, which C only passes back |
 
 - **A handle** stays valid while the library is loaded: what the library hands out is never freed. `jac_retain(void *)` and `jac_release(void *)` are the calls for a C program that holds and drops handles; neither is needed for a handle to stay valid.
 - **An exception** an exported function raises cannot reach C. The function returns 0 (a float function 0.0) and prints the exception's traceback on stderr.
 - **The library's module code** runs when the library is loaded, before any export is called: as a constructor on Linux and macOS, from `DllMain` on Windows (called by mingw-w64's `dllcrt2.o`), from `_initialize` on WASI.
+- **Any thread of the host may call an export.** A thread is made known to the Jac runtime the first time it calls in, and holds the Jac lock while it runs Jac, giving it up when the export returns, so the library's Jac runs on one thread at a time: four threads of a C program calling `jadd` and `apply_twice` at once each get their own results.
 
 Name the output as the platform names libraries (`lib<name>.dylib`, `lib<name>.so`, `<name>.dll`). Linking a C program against it:
 

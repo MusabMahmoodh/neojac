@@ -49,6 +49,18 @@ obj SignIn {
         session: Session | None = None;
 }
 
+"""A program that shows no page, waiting to be signed in by someone at one:
+the `code` it shows them, which they give the page; the `secret` it alone
+holds, which it collects its session with; how many seconds the wait
+`lasts`; and how many seconds it leaves between one asking and the next
+(`every`)."""
+obj DeviceSignIn {
+    has code: str,
+        secret: str,
+        lasts: int,
+        every: int;
+}
+
 """A sign-in the plugin refuses, saying why: and, for one made too often, how
 many seconds to wait."""
 obj Rejected(Exception) {
@@ -84,13 +96,31 @@ abstraction's plugins. `headers` are a request's, their names lowercased.
 - `asks` is what signing in takes, for a page to show.
 - `answer` signs a caller in by `action` with what they gave, from the
   client at `client`: their session, or Rejected.
-- `leave` ends the session a request carries."""
+- `leave` ends the session a request carries.
+
+A program that shows no page (a command in a terminal) is signed in by
+someone at a page, who is signed in there and says the program is theirs.
+These are the three steps of it, and each is Rejected by a plugin that signs
+no such program in:
+
+- `device` begins it, for the program at `client`: what the program shows
+  and what it collects with.
+- `device_answer` is the answer of a request's caller, who is signed in, for
+  the program showing `code`: that it is theirs (`allow`), and gets a
+  session of them, or that it is turned away. Rejected for a caller no one
+  knows, and for a code no program waits under.
+- `device_session` is the session of the program that holds `secret`, once:
+  None while no one has answered, Rejected where it was turned away, or
+  waited too long."""
 obj Auth {
     def open(host: dyn AuthHost) abst;
     def caller(headers: dict[str, str]) -> str | None abst;
     def asks(headers: dict[str, str]) -> SignIn abst;
     def answer(action: str, given: dict[str, str], client: str) -> Session abst;
     def leave(headers: dict[str, str]) abst;
+    def device(client: str) -> DeviceSignIn abst;
+    def device_answer(headers: dict[str, str], code: str, allow: bool) abst;
+    def device_session(secret: str) -> Session | None abst;
 }
 
 """The credential a request with `headers` carries as a bearer token, or ""."""

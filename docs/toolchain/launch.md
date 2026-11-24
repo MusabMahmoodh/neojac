@@ -15,14 +15,26 @@ neojac launch deploy web                     # launch the project's app `web`
 neojac launch secrets set ANTHROPIC_API_KEY  # a variable of its environment
 neojac launch logs                           # what its instances said last
 neojac launch domains add shop.example       # another name it answers at
+neojac launch delete                         # take the app away, with what it keeps
 ```
 
 ## Signing in
 
-`neojac launch login` asks for a username and a password and signs in to the platform, which is at
-`https://launch.neojac.dev`; an address given after it names another platform. `--new` makes the account first, and asks for an email address as well; a platform that takes
-no new accounts says so (`this app makes no new accounts: ask whoever runs it for one`). The session
-is kept for the commands that follow, on this machine and for this user:
+`neojac launch login` signs in to the platform, which is at `https://launch.neojac.dev`; an address
+given after it names another platform. Signing in is done in a browser, at a page of the platform:
+
+```text
+To sign in to https://launch.neojac.dev, open
+
+    https://launch.neojac.dev/__jac/auth/device?code=WRQB-NRZQ
+
+sign in there, and check that the page shows the code WRQB-NRZQ
+```
+
+Open the link on this machine or on any other. The page asks for a username and a password, or makes
+an account (`Create account`), shows the code, and asks whether the program is yours: `Sign it in`.
+`login` waits for that, ten minutes at most, and nothing typed at the page comes to this machine but
+the session. The session is kept for the commands that follow, on this machine and for this user:
 
 | System | The session's file |
 |---|---|
@@ -50,6 +62,9 @@ read it. Every other command of `launch` says `you are not signed in` until ther
   repository ([Packages](packages.md#jac-packages)).
 - **What the build says is printed as it says it,** then the app's address once it answers. A
   build that fails ends the command with status 1, and the app that was live stays live.
+- **A launch waits its turn for a build.** The platform runs a few builds at once, and one of an
+  account's at a time: `deploy` says it waits, and goes on when its build starts. A build has 20
+  minutes.
 - **A packed project is at most 256 MiB.**
 
 An app is launched under a name, which is the first word of its address. It is the project's name
@@ -90,12 +105,28 @@ its own:
 | | An app has |
 |---|---|
 | Instances | As many as its callers need, 5 at most unless the platform is told otherwise, and never more than 10 |
-| An instance | 1 CPU, 512 MiB of memory and 1 GiB of disk at most. Its disk lasts as long as the instance |
-| Jobs | Each in a copy of the app started for it, with 2 CPUs and 4 GiB at most; 20 pods of the app at once in all |
-| Its database | 20 connections between its instances, and 60 seconds for one statement |
-| The network | Requests reach it through the platform's gateway alone. It reaches the internet and its own database, files and shared state, and no other app |
+| An instance | 1 CPU and 256 MiB of memory, and 1 GiB of disk at most. Its disk lasts as long as the instance |
+| Jobs | Each in a copy of the app started for it, with 1 CPU and 256 MiB |
+| Its database | 1 GiB, a connection for each of its instances and jobs, and 60 seconds for one statement |
+| Its files | 5 GiB |
+| What its instances share (limits, schedules, jobs' notes) | 16 MiB |
+| Its logs | 7 days, and 64 MiB a day on each machine its instances run on: past that a line says the rest was not kept |
+| Its own domains | 5 |
+| The network | Requests reach it through the platform's gateway alone, which tells it each caller's address. It reaches the internet and its own database, files and shared state, and no other app |
 
-An app's code runs unprivileged, and a job it starts runs the app's own image and nothing else.
+Where the platform has them, **each instance, each job and each build runs in a virtual machine of
+its own**, with a kernel of its own, on machines no part of the platform itself runs on, and has no
+connection in or out until the rules above are in force for it. An app's code runs unprivileged
+there, and a job it starts runs the app's own image and nothing else.
+
+An account has at most 3 apps, and launches at most 10 times an hour. The numbers here are the
+platform's defaults: whoever runs a platform sets each.
+
+**An app over its database or its files is held:** its instances are taken away, its address
+answers nothing, and `deploy` and `logs` say why (`'shop' is held: ...`). What it keeps
+stays. It is held until its owner deletes it, or whoever runs the platform gives it more; launching
+it again once it is under its bound brings it back. An app over what its instances share may read
+and delete there, and not write, until it is under.
 
 ## Secrets
 
@@ -115,20 +146,54 @@ variables the platform sets itself (the app's database, its storage) are not the
 
 ## Logs
 
-`neojac launch logs` prints the last lines each running instance said, 200 unless `--lines <n>`
-says how many. An app with no callers has no instance, and the command says so.
+`neojac launch logs` prints the last lines the app's instances and jobs said, 200 unless
+`--lines <n>` says how many. Where the platform keeps logs they are kept for 7 days, whether or
+not an instance runs now; a platform on one machine has only what running instances said.
 
 ## Domains
 
-`neojac launch domains add <domain>` has another name reach the app, `remove` takes one away, and
-`neojac launch domains` lists them. A platform that serves everything over HTTPS refuses a domain
-it has no certificate for (`a domain of an app's own is not served yet`), and the platform's own
-names are no app's to map. The domain's DNS is its owner's to point at the platform. A
-domain reaches one app, and is mapped to an app that is live.
+`neojac launch domains add <domain>` has another name reach the app, once its owner has shown the
+domain is theirs:
+
+```text
+$ neojac launch domains add shop.example
+shop.example is shop's once these records say so, where the domain's DNS is kept:
+    _acme-challenge.shop.example  CNAME  k3j9x2m4p7q8r1t5v6w7.challenges.neojac.dev
+    shop.example                  CNAME  shop.neojac.app
+`neojac launch domains` says how far it has got
+```
+
+- **The first record is the proof,** and what the domain's certificate is issued and renewed by: it
+  stays for as long as the domain is the app's. The name it points at is the account's own, so no
+  one else's record proves a domain for them.
+- **The second sends the domain's callers to the app.** It can wait: the certificate is made
+  before any caller comes, so a site that is live elsewhere moves without a gap. A domain with no
+  name before it (`example.org` itself) can't hold a `CNAME`: where its DNS is kept, use what that
+  provider calls `ALIAS`, `ANAME` or CNAME flattening, to the same name.
+- **`neojac launch domains` lists each domain and how far it has got:** `proving` (the record is
+  not there yet, or does not name the account), `certifying` (the certificate is being issued, a
+  minute or two), `live`, or `failed` with why. A domain that is not proven in 7 days is let go.
+- **`remove` takes one away,** with its certificate. Both records can then go.
+
+A domain reaches one app, and is mapped to an app that is live. The platform's own names are no
+app's to map (`'...' is the platform's`). A platform on one machine maps a domain at once: there is
+no one to prove it to.
+
+## Deleting an app
+
+`neojac launch delete` takes the app away for good: its instances, its database with its accounts
+and its graph, its files, its logs, its domains, its images and its name, which anyone may then
+launch under. It asks for the app's name to be typed; `--yes` says it for a script. The platform
+takes it away in the minute that follows: until all it kept is gone, launching under its name is
+refused (`'shop' is being deleted`).
+
+```sh
+neojac launch delete --as shop
+```
 
 ## The app a command is about
 
-`deploy` names the app it launches. `secrets`, `logs` and `domains` are about the app the project
+`deploy` names the app it launches. `secrets`, `logs`, `domains` and `delete` are about the app the project
 they are run in is launched as: the project's name, or `--as <name>`, which also lets them be run
 from anywhere.
 
@@ -137,9 +202,18 @@ from anywhere.
 | It says | What happened |
 |---|---|
 | `you are not signed in` | No session is kept here, or the platform no longer takes it: `neojac launch login` |
+| `this sign-in was turned away` | Whoever was at the page chose `Turn it away` |
+| `not signed in: no one answered at the page in time` | No one said the program was theirs in the ten minutes the platform waits: `neojac launch login` again |
 | `<address> could not be reached` | The platform did not answer |
 | `the name '...' is taken by another account's app` | Launch under another name, with `--as` |
 | `'...' is the project's app '...'` | That name is another app of a project: an app has a name of its own |
 | `the package '...' is at ..., outside the project` | A package declared by a path that leaves the project's directory |
 | `launch <n> of <name> failed` | Its build failed, or the app did not start: what was printed above says why |
 | `you have no app called '...'` | No app of that name is this account's |
+| `an account has at most 3 apps` | Delete one to launch another: `neojac launch delete` |
+| `an account launches at most 10 times an hour` | It says how long to wait |
+| `... launches wait for a build already` | The platform's builds are full: launch again in a while |
+| `'...' is held: ...` | The app is over its database or its files ([above](#what-an-app-is-held-to)) |
+| `'...' is being deleted` | A deletion that was asked for is under way |
+| `'...' is mapped to another app` | A domain reaches one app |
+| `an app has at most 5 domains of its own` | Remove one to add another |

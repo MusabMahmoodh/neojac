@@ -54,7 +54,7 @@ makes need.
 | tensors | a tensor and its views |
 | a kernel's intrinsics | `accel`'s atomics (`atomic_add`, `atomic_min`, `atomic_max`) and `fence()` |
 | a grid's intrinsics | a thread's place (`thread_idx` and the rest), `barrier()`, `shared`, a warp's operations |
-| changing what another thread reaches | a builtin that writes memory or state another thread reaches, `print(..., file=f)` |
+| changing what another thread reaches | a builtin that writes memory or state another thread reaches, `print(..., file=f)`, C's holds of objects (`hold`, `held`, `held_at`, `release`) |
 | counted references | a value of a reference type: a str, a list, a dict, an `obj`, `None`, an `any`, a function value |
 
 The diagnostic names a need by the text in the first column. Where one

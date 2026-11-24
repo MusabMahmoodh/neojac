@@ -19,44 +19,84 @@ the module `geom`.
 
 | C | Jac |
 |---|---|
-| `int`, `unsigned`, `long long`, `char`, `short`, `double`, `float`, `_Bool` | `i32`, `u32`, `i64`, `i8` or `u8`, `i16`, `float`, `f32`, `bool`: an integer by its width on each target |
+| `int`, `unsigned`, `long long`, `int64_t`, `signed char`, `unsigned char`, `short`, `double`, `float`, `_Bool` | `i32`, `u32`, `int`, `int`, `i8`, `u8`, `i16`, `float`, `f32`, `bool`: an integer by its width on each target, and a signed 64-bit one is `int`, as a C module's interface declares it |
+| `int *`, `void *`, `const char *`, `FILE *`, `int (*)(int, int)`, `int (**)(int)`, `long long (*)()` (a function of no prototype, as `FARPROC`), `char [16]` in a record or at file scope | `ptr[i32]`, `ptr`, `ptr[i8]` on every target, `ptr[FILE]` with `obj FILE;` in `import from c`, `Callable[[i32, i32], i32] \| None`, `ptr[Callable[[i32], i32] \| None]` (its item `p[0]` read and written as the function pointer, and a local whose address is taken the item in the frame), `ptr` (converted to a prototype before each call, as C does), `array[i8, 16]` |
+| `char`, whose sign is the target's: `int n = c;`, `c == 'a'` | `i8` on every target. Its value as a number is the target's: `n = i32(c);`, and `n = i32(u8.wrap(c));` where `char` is unsigned (Linux arm64), the two under `comptime if` where the targets differ |
 | `int f(int a, double b) { }`, `void g(void) { }` | `def f(a: i32, b: float) -> i32 { }`, `def g { }` |
+| `CFSTR("name")` (CoreFoundation's `__builtin___CFStringMakeConstantString`) | `__CFStringMakeConstantString(ptr[i8]("name"))`, the function CoreFoundation's header names for it where the compiler has no builtin, declared in `import from c` |
+| `int say(const char *fmt, ...) { va_list ap; va_start(ap, fmt); n = vprintf(fmt, ap); va_end(ap); }` | `def say[*Ts](fmt: ptr[i8], *ap: *Ts) -> i32 { n = printf(fmt, *ap); }`: a pack of type parameters, compiled for each call's arguments; `va_start` and `va_end` are nothing, and a `v` function of the C library or CPython given the `va_list` is its plain one given the pack (`vsnprintf` is `snprintf`, `PyErr_FormatV` is `PyErr_Format`). C cannot call it: a C file that calls it ports in the same run (E4031) |
 | `int main(void) { }` | `def main -> i32 { }` and `with entry { sys.exit(int(main())); }` |
-| `int total = 0;` at file scope, `int x = 1;` in a function, `int x;` | `glob total: i32 = 0;`, `x: i32 = 1;`, `x: i32 = 0;` |
+| `int total = 0;` at file scope, `int x = 1;` in a function, `int x;`, a local of a name another variable of the function or of the file has | `glob total: i32 = 0;`, `x: i32 = 1;`, `x: i32 = 0;`, the name with `_2` (`_3`, ...): a Jac function has one variable of a name, of one type |
+| `int x; f(&x);`, `int xs[3] = {1, 2};`, `char name[] = "ab";`: a local whose address is taken, a local array | `x = ptr[i32](__alloca(4)); f(x);`, `xs = ptr[i32](__alloca(12)); memset(xs, 0, 12); xs[0] = 1; xs[1] = 2;`: it lives in the function's frame, and is read and written through its address |
+| `static int n = 0;` in a function `next` | `glob next_n: i32 = 0;`, beside the function |
 | `struct point { double x; int n; };`, `struct point p = {1.5, 2};`, `p.x` | `struct point { has x: float = 0.0, n: i32 = 0; }`, `p: point = point(x=1.5, n=2);`, `p.x` |
+| `lldiv_t q = lldiv(47, 5);`, `union sigval v; v.sival_int = 9;`: a record or a union a system header declares, held by value, or a record of no name a named one's field has (`extern_proc`'s `p_un`); a record of a header of the project's C module | `obj lldiv_t { has quot: int, rem: int; }` and `union sigval { has sival_int: i32, sival_ptr: ptr; }` in `import from c`, the fields from Clang's layout, a record of no name by the two names (`extern_proc_p_un`); the module's record by the wire from its header |
 | `enum { RED, GREEN = 5 };` | `comptime RED: i32 = 0;`, `comptime GREEN: i32 = 5;` |
 | `typedef struct { } point;`, `typedef int count;` | The record by its typedef's name; any other typedef is the type it names |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }` | `if c { } elif d { } else { }`, `while c { }`; a condition that is a number is `c != 0` |
-| `for (int i = 0; i < n; i++) { }` | `for i = i32(0) while i < n with i += 1 { }` |
-| `do { } while (c);`, with no `continue` of its own | `while True { ... if not c { break; } }` |
+| GNU's statement expression, `if (({ int t = f(x); t > 2; })) { }`, glibc's `CPU_SET` and `CPU_ISSET` | Its statements written before the statement whose evaluation it begins (an expression statement, an `if`'s condition, a `return`'s value, a declaration's value), then its last expression: `t = f(x);` then `if t > 2 { }`; anywhere else it is refused |
+| `for (int i = 0; i < n; i++) { }`, `for (p = head; p; p = p->next) { }` | `for i = i32(0) while i < n with i += 1 { }`, `for p = head while p != ptr[link](ptr()) with p = p[0].next { }` |
+| `do { } while (c);`; one with a `continue` of its own | `while True { ... if not c { break; } }`; `was_1: bool = True; while was_1 or c { was_1 = False; ... }`, where `continue` goes to the condition as C's does |
 | `return v;`, `break;`, `continue;` | The same |
+| `goto error;` forward, to a label at the top level of the function or of a loop's body, from anywhere before the label: a nested loop, a `switch`, an earlier label's code | `goto_to = 2; break;`: the code before the first label is in a `while True { ... break; }` that a `goto` leaves, with `if goto_to != 0 { break; }` after each loop or `switch` it leaves on the way |
+| `error: free(buf); return NULL;` that a forward `goto` reaches, or that none does; its code may return, go to a later label, or leave its loop | `if goto_to <= 2 { goto_to = 0; ... }`, the k-th label's code, run when the code before falls into it or a `goto` names it; in a loop's body a `continue` or `break` before the label is a `goto` past the body's end; a label no `goto` names is its statement |
 | `a + b`, `a - b`, `a * b` of signed integers and of floats | `a + b`, `a - b`, `a * b`: C leaves a signed overflow undefined, and Jac raises OverflowError |
 | `a + b`, `a - b`, `a * b`, `a << k` of unsigned integers | `a +% b`, `a -% b`, `a *% b`, `wrapping_shl(a, k)`: they wrap, as C defines |
 | `a / b`, `a % b` of signed integers | `(a // b + 1) if (a % b != 0 and (a < 0) != (b < 0)) else (a // b)`, and the like for `%`: C rounds toward zero and Jac toward negative infinity |
 | `a / b`, `a % b` of unsigned integers | `a // b`, `a % b` |
-| `a / b` of floats | `a / b` where `b` is a literal other than 0; else `(a / b) if b != 0.0 else a * math.copysign(float("inf"), b)`, since Jac raises where C gives an infinity |
+| `a / b` of floats; `x = f() / g();`, whose operands have side effects, where the division is the first thing its statement evaluates | `a / b` where `b` is a literal other than 0; else `(a / b) if b != 0.0 else a * math.copysign(float("inf"), b)`, since Jac raises where C gives an infinity; `was_1: float = f(); was_2: float = g();` before the statement, which divides those: each operand once, in C's order |
 | `a < b`, `<=`, `>`, `>=`, `==`, `!=`, `a && b`, `a \\|\\| b`, `!a` | The same comparisons, `a and b`, `a or b`, `not a`; where C takes the result as a number, `i32(a < b)` |
 | `a & b`, `a \\| b`, `a ^ b`, `~a`, `a >> k`, `-a`, `c ? a : b` | `a & b`, `a \\| b`, `a ^ b`, `~a`, `a >> k`, `-a` (`-%a` of an unsigned), `a if c else b` |
 | `x = v;`, `x += v;` and the other compound assignments, `x++;`, `x--;` as statements | `x = v;`, `x += v;` (`x +%= v;` of an unsigned), `x += 1;`, `x -= 1;` |
 | `5`, `5u`, `'a'`, `1.5`, `1.5f` | `5` where its type is given by what takes it, else `i32(5)`, `u32(5)`, `i32(97)`; `1.5`, `f32(1.5)` |
-| A conversion, written `(long long)x` or made by C: to a type that holds every value | `i64(x)`, `float(x)` |
-| A conversion to an integer type that does not hold every value; of a float to an integer | `u8.wrap(x)`: it keeps the low bits, as Clang defines; `i32(x)`: toward zero |
+| `#define SHELF 12` and `SHELF` where a value is taken, a macro whose expansion is one integer | `comptime SHELF: i32 = 12;` and `SHELF`; any other macro is written as what it expands to |
+| `L"text"`, `u"text"`, `U"text"`: a wide string literal | `ptr[u32]("text")` (`ptr[i32](ptr[u32]("text"))` where `wchar_t` is signed), and `ptr[u16]("text")` where `wchar_t` is 16 bits (Windows); `ptr[u16]("text")`, `ptr[u32]("text")`: static NUL-ended data of its code units, as wide as the target's |
+| `p->x`, `*p`, `p[i]`, `&a[i]`, `&p->x`, `p + n`, `p - q`, `NULL`, `if (p)`, `!p` | `p[0].x`, `p[0]`, `p[i]`, `a + i`, `ptr[T](ptr[u8](p) + 8)` (the field's offset), `p + n`, `p - q` (an `int`), `ptr[T]()`, `if not p.is_null()`, `p.is_null()` |
+| `switch (x) { case 1: case 2: f(); break; default: g(); }` | `switch x { case 1: case 2: f(); break; default: g(); }`: Jac's `switch` falls through as C's does |
+| A conversion, written `(long long)x` or made by C: to a type that holds every value | `int(x)`, `float(x)` |
+| A conversion to an integer type that does not hold every value; of a float to an integer | `u8.wrap(x)`, and `int(i64.wrap(x))` to a signed 64-bit integer: it keeps the low bits, as Clang defines; `i32(x)`: toward zero |
+| `(char *)p`, `(void *)p`, `(intptr_t)p`, `(int *)n`, a string literal where its address is taken | `ptr[i8](p)`, `ptr(p)`, `int(p)`, `ptr[i32](int(n))`, `ptr[i8]("...")` |
+| `(void *)f` of a function pointer a variable holds, `(release_fn)-1`, `f == g` of function pointers, a function given to C's `...`; `f = NULL`, `if (f)`, `!f`, `f == NULL` of a function pointer | `ptr(f)`, `Callable[[ptr], None](ptr(int(-1)))`, `ptr(f) == ptr(g)`, `ptr(f)`: the C address the value holds; a function's value gives its C trampoline; `f = None`, `if f is not None`, `f is None`, `f is None`: a null C address is `None`, and `ptr(f)` of `None` is the null address |
 | `f(a, b)`; `printf("%d\n", n)` of the C library | `f(a, b)`; `printf("%d\n", n)`, with `import from c { def printf(format: str, *args: any) -> i32; }` |
-| `sizeof(int)` | Its value on each target, `u64(4)` |
+| `__builtin___strcpy_chk(d, s, n)`, `__builtin___snprintf_chk(b, n, f, k, fmt, ...)`: what `strcpy` and `snprintf` expand to where a header fortifies them | `strcpy(d, s)`, `snprintf(b, n, fmt, ...)`: the C library's function, without the check of a size the compiler would have known |
+| `__builtin_memset(p, 0, n)`, `__builtin_memcpy`, `__builtin_memmove`, `__builtin_memcmp`, `__builtin_strlen` | `memset(p, 0, n)` and the like: the C library's function, which the builtin is |
+| `__builtin_constant_p(x)` | `1` or `0`, the answer Clang gives where it compiles the call: 1 for a constant, 0 for an argument with side effects (not run), that is not a number, or that the optimizer is left to prove (0 is an answer the builtin always allows) |
+| `const char *names[3];` in a record, `static const char *kinds[3] = {"a", "b"};` | `names: array[ptr[i8], 3]`, `glob kinds: array[ptr[i8], 3] = array[ptr[i8], 3](ptr[i8]("a"), ptr[i8]("b"), ptr[i8]())`: an array of pointers, zeroed as null; `char _f[0]` at a system record's end, padding that holds no bytes, is left out |
+| `struct kauth_acl acl;` whose field is `struct kauth_ace acl_ace[1];`, `acl.acl_ace[0].ace_flags = 2;`, `struct kauth_acl again = acl;` | `acl_ace: array[kauth_ace, 1]` in the import block's `obj kauth_acl`, `acl[0].acl_ace[0].ace_flags = 2;`, `again[0] = kauth_acl(acl_entrycount=acl[0].acl_entrycount, acl_flags=acl[0].acl_flags, acl_ace=acl[0].acl_ace);`: an array of records held in the record, each item the record where it lies, and a copy of the record copies its array |
+| `struct ifreq` of the kernel's `<linux/if.h>` in `kernel.c` and of the C library's `<net/if.h>` in `libc.c` | Each file's import block declares the record as its header does (`ifru_data: ptr` and `ifru_settings: if_settings` for `kernel.c`, `ifru_data: ptr[i8]` for `libc.c`): declarations of one tag that agree are one type across the program, and ones that differ are each their module's own, as C's two files hold two types |
+| `struct __attribute__((aligned(4), packed)) buf { uint32_t size; uint64_t used; };`, `#pragma pack(2)` | `@packed @align(4) struct buf { has size: u32 = u32(0), used: u64 = u64(0); }` (`@packed(2)`), with `import from jaclang.comptime { align, packed }`: C's offsets, size and alignment; another attribute of a record, or one of a field, is refused |
+| `struct { ... } buf;` in a function `f` | `struct f_buf { ... }` of the module, named for the function and the variable |
+| `struct sysinfo info; sysinfo(&info);` (a system record whose tag is also a function's or a global's name) | `obj sysinfo as struct_sysinfo { ... }` beside `def sysinfo(a0: ptr[struct_sysinfo]) -> i32;` in `import from c` |
+| `sizeof(int)`, `_Alignof(double)` | Its value on each target, `u64(4)`, `u64(8)`: every size and alignment C folds to a constant; one of no fixed size (a variable-length array's) is refused |
+| `offsetof(struct s, f)` | Its value on each target, `u64(8)` |
 
 ## What is refused
 
-Anything not in the table is refused with E4001, and nothing is written for the file: pointers
-and arrays, strings other than a literal passed to a C library function, unions and bit-fields,
-`switch` and `goto`, `static` locals, a function defined with `...`. So is a construct in the
-table whose Jac would mean something else (E4005):
+Anything not in the table is refused with E4001, and nothing is written for the file: a union,
+a record with no name and a bit-field the file declares, a copy of a union a system header
+declares, a `goto` back to a label, into a loop or to a label inside a block other than a loop's
+body, a `va_list` read by `va_arg`, by `va_copy`, by more than one call or anywhere but the last
+argument of a `v` function, a pointer to an array (the address of an array given where C takes
+another pointer is the address of its first item), an array of function pointers in a
+function's frame, a record
+or a field with an attribute other than packed or aligned, a thread-local variable. So is a
+construct in the table whose Jac would mean something else (E4005):
 
-- **A division whose operands have side effects.** Port tests the operands, and would evaluate
-  them twice.
-- **A local declared inside the block of another of its name, or with the name of a file-scope
-  variable.** A Jac function has one variable of a name, and assigning a global's name assigns
-  the global.
-- **An assignment, `++` or `--` used for its value.**
+- **A division of floats whose operands have side effects, after something else its statement
+  evaluates.** Port tests the divisor, and would evaluate the operands twice. Where the division
+  is the first thing its statement evaluates (`x = f() / g();`, `return f() / g();`), port takes
+  each operand once, in C's order, as a statement before it (`was_1: float = f();`), and divides
+  those. An integer division binds each operand once (`(was_1 := f(x)) % (was_2 := n)`) and
+  tests those, wherever it is.
+- **An assignment, `++` or `--` used for its value where C evaluates it only sometimes** (on
+  the right of `&&` or `||`, in an arm of `?:`, in a `for`'s condition or step, in an `else if`'s
+  condition), **or whose target has side effects.** Elsewhere port writes it as a statement before
+  the one that uses its value. An assignment of a local that holds a number or a pointer is
+  `(c := *tail)` wherever it stands.
+- **A `case` label that is not directly in its `switch`'s braces.**
 
-A function another file of the module still calls is refused with E4002, until a C module can
-take a Jac module's functions.
+In a project, a C file that stays calls the Jac module's functions through its wire and the
+module's header. Outside a project a function another file still calls is refused with E4002:
+nothing would give that file the Jac. A call of a function a header of the project defines
+`static inline` is refused with E4030 where no C module holds that header: once the file is Jac,
+nothing would bind it.

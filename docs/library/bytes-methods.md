@@ -47,7 +47,7 @@ all of `bytearray`'s, are not written yet: see "What is missing" below.
 | `b.split(sep=None, maxsplit=-1)` | The parts between separators, as a `list[bytes]`; ASCII whitespace separates when `sep` is `None` |
 | `b.splitlines(keepends=False)` | The lines, split at `\n`, `\r\n` and `\r`; with `keepends`, each with its line end |
 | `b.partition(sep)`, `b.rpartition(sep)` | `(before, sep, after)` |
-| `sep.join(items)` | The bytes of a list, tuple or other iterable of bytes, joined by `sep` |
+| `sep.join(items)` | The bytes of any iterable (a list, a tuple, a generator) of bytes-like items, `bytes` and `bytearray`, joined by `sep`; an item of another type raises `TypeError: sequence item 1: expected a bytes-like object, str found`, as `str.join` checks its items |
 | `b.replace(old, new, count=-1)` | A copy with `old` replaced by `new` |
 | `b.strip(chars=None)`, `b.lstrip(...)`, `b.rstrip(...)` | A copy without leading and trailing ASCII whitespace, or without the bytes in `chars` |
 | `b.lower()`, `b.upper()` | A copy with ASCII letters in another case |
@@ -60,7 +60,7 @@ with entry {
     print(b[0], b[-1], b[0:5], b + b"!", len(b), 72 in b, b"World" in b);
     print(b.find(b"o"), b.rfind(b"o"), b.count(b"l"), b.startswith((b"x", b"He")));
     print(b.split(), b.partition(b" "), b.replace(b"l", b"L", 1), b.upper());
-    print(b.hex(), bytes.fromhex("6869 21"), b"-".join([b"a", b"b"]), b" x ".strip());
+    print(b.hex(), bytes.fromhex("6869 21"), b"-".join([b"a", bytearray(b"b")]), b" x ".strip());
     print(b.decode(), b"caf\xc3\xa9".decode(), b"\xe9".decode("latin-1"));
     print(b"\xff".decode("utf-8", "replace"), b.translate(None, b"lo"));
     try {
