@@ -383,11 +383,11 @@ standard = "sqlite"
 
 ## [\<abstraction\>]
 
-The plugin that carries out one of the language's abstractions, and the plugins a program is built with for it. There are ten abstractions. Eight are picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits` and `files`. Two are picked as a JavaScript space is built: `ui` and `bundler`. See [Plugins](../apps/plugins.md#binding-a-plugin).
+The plugin that carries out one of the language's abstractions, and the plugins a program is built with for it. There are eleven abstractions. Nine are picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files` and `mail`. Two are picked as a JavaScript space is built: `ui` and `bundler`. See [Plugins](../apps/plugins.md#binding-a-plugin).
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
+| `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`, `smtp` for `mail`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
 | `<abstraction>.<plugin>` | table | | Lists the plugin `<plugin>`, which is then compiled into the program, and holds its settings: each key a field of the plugin's class. For `ui` and `bundler`, only the table of the plugin the space is built with, holding the settings that plugin's own `jac.toml` lists |
 | `spaces.<space>.<abstraction>` | table | the project's | The same table for one space, for an abstraction a space has one of: `store`, `ui` and `bundler` |
 
