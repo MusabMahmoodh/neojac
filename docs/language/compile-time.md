@@ -225,6 +225,14 @@ that only another target's branch imports is not loaded for this target, even wh
 pattern holds it (`plat.*`) and the wire names it: it is not checked or built there, so it may
 use what only its own target has.
 
+That holds whatever the import names: a Jac module, a Python file of the project, a C module, or
+an `include`'s names. In a `cpython` space a branch not taken makes no import as the module
+starts, so `import from kit.plat_py { WHERE }` under `comptime if target().os == "plan9"`, of a
+Python file that raises `ImportError` anywhere else, is never run on macOS. An item the taken
+branch imports too is this target's. The wire is still judged for every target: an item it names
+that no branch of any target uses is E1146, and one only another target's branch uses is no
+error.
+
 ```jac
 import from jaclang.comptime { target }
 
