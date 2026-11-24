@@ -1092,9 +1092,42 @@ module's function gives is the string another's takes.
   comparator) and `std_min_std_initializer_list`, and `std::max` likewise. The name the set
   shares names none of them: `std_min[i32](3, 7)`, or `std_min(3, 7)`, is
   [E1642](../reference/diagnostics/e16.md#e1642), which lists the members to write. The import is
-  the set's name, `std_min`. Two templates libc++
-  declares alike but for their constraints (`std::copy_n`'s) are one Jac template,
-  `std_copy_n_T0_T1_T2`.
+  the set's name, `std_min`. Two templates libc++ declares alike but for their constraints
+  (`std::copy_n`'s) are one Jac template, `std_copy_n_T0_T1_T2`. A template over a container's
+  iterators is called with the iterator's class: `std::sort(v.begin(), v.end())` is
+  `std_sort_T0_T0[std_vector_iterator[i32]](v.begin(), v.end())`.
+- **A `std` template that takes a callable deduces it from a def**, as a header library's member
+  template does ([A Jac function C++ calls back](#a-jac-function-c-calls-back)):
+  `std_call_once(flag, started_once)` runs `started_once` once for the `std_once_flag`. A def
+  taking a class of a C module is E1641: `libcxx`'s instances are made over its own classes and
+  numbers alone.
+
+```jac
+import from libcxx { std_call_once, std_once_flag, std_sort, std_vector, std_vector_iterator }
+
+glob started: list[int] = [0];
+
+def started_once {
+    started[0] += 1;
+}
+
+with entry {
+    flag: own std_once_flag = std_once_flag();
+    std_call_once(flag, started_once);
+    std_call_once(flag, started_once);
+    v: own std_vector[i32] = std_vector[i32]();
+    for n in [5, 1, 4, 2] {
+        v.push_back(i32(n));
+    }
+    std_sort_T0_T0[std_vector_iterator[i32]](v.begin(), v.end());
+    print(started[0], [v.at(u64(k)) for k in range(4)]);
+}
+```
+
+```output
+1 [1, 2, 4, 5]
+```
+
 - **A `std` enumerator, and a `std` constant of an enum's type, have the enum's integer type**:
   `std_memory_order_relaxed` is `std::memory_order_relaxed`, a `u32` (the type
   `std::memory_order` is made of), which a member that takes the enum takes as it is
