@@ -227,6 +227,7 @@ neojac: no documentation found: no docs/nav.json in /opt/neojac/bin or a directo
 - a keyword two pages claim;
 - a diagnostic code with no entry, an entry whose first `text` block is not the compiler's message for the code, and an entry for a code there is not;
 - a rule of the grammar no page's `grammar:` names, and a name there that is no rule;
+- a rule a page quotes in an `ebnf` block that the grammar does not have, or has otherwise: the page's text is shown beside the grammar's. Only spacing and line breaks may differ;
 - a keyword of the language or a lint rule no page claims;
 - a command whose guide page is not there;
 - a link between pages that leads to no page, and a link to a heading its page does not have.
@@ -247,6 +248,7 @@ grammar: archetype, archetype_member
 - `description` is required; `keywords` and `grammar` are lists separated by commas. A keyword belongs to one page in the whole tree.
 - The page has one `# ` title, and links to other pages by relative links to their `.md` files.
 - Every `jac` block is a whole module that neojac takes as the page says, which neojac's own tests check: one whose first line is `# expect: <code>[ x<count>], ...` is refused by `neojac check` with exactly those errors; one followed by an `output` block is built and run, and prints exactly that; any other passes `neojac check`. A block after the line `<!-- example: not checked: <reason> -->` is left alone.
+- An `ebnf` block quotes rules of the grammar, each whole and as `reference/grammar.md` has it, so a page's rule changes when the parser's does. Copy the rule from that page, or from `neojac docs <rule>`.
 - Two pages are generated from the compiler: `reference/commands.md` by `neojac help --markdown`, and `reference/grammar.md` by `neojac grammar compiler/parsing/parser.jac --page` ([Inspect](inspect.md#grammar)).
 
 ## Skills
