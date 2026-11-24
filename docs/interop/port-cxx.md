@@ -32,6 +32,9 @@ printed from the table the translation itself reads (`neojac port --mapping c++`
 | `C(1, 2)` as a value | `C.make_i32_i32(1, 2)`: the constructor a library class's interface binds, or a ported class's `make` |
 | `::operator new[](n * sizeof(T))`, `::operator delete[](p)`, `::operator new(n)`, `::operator delete(p)` | `op_new_array(n * u64(8))`, `op_delete_array(p)`, `op_new(n)`, `op_delete(p)`: C++'s replaceable allocation functions, from `libcxx`, so that memory a file that stays C++ allocates is freed by the port as C++ frees it, and the reverse; where C++ would throw `std::bad_alloc` they raise `MemoryError` |
 | `template <class T> T *filled(size_t n, T v) { ... sizeof(T) ... }`, `filled<int>(3, 4)`, `filled(2, 0.5)` | `def filled[T](n: u64, v: T) -> ptr[T] { ... u64(sizeof(T)) ... }`, `filled[i32](3, 4)`, `filled[float](2, 0.5)`: a function template of the file is a Jac generic, written once from its pattern and checked for each instance the program calls, with the type arguments C++ deduced written at the call |
+| `static int bump_by(Counter &c, int step) { ... }`, `hooks.on_bump(bump_by)`, `Apply(Bump, t, x)`, `t.Scaled(Inc, x)`: a function of the file given where a library's function takes a pointer to a function, of C++ types or of C types alone | `def bump_by(c: Counter, step: i32) -> i32 { ... }`, `hooks.on_bump(bump_by)`: the Jac function by its name, which the library keeps and calls as it called the C++ function; an exception it raises crosses back to the Jac caller of the library's call, and ends the program where the library is built without exceptions |
+| `class Drop : public Pool<Drop> { int plus(int x); ... }`, `Pool<Drop>::call(&Drop::plus, 5)`: a member function of the file's class given where a library takes a pointer to a member function | `Drop.call(Drop.plus, i32(5))`: the method by its class, which the library calls on the object it holds |
+| `template <typename Callable> static int run(Callable cb, int start)`, `Hooks::run(bump_by, 2)`, `Box<int>::keep(3, bump_by)`: a library's member template whose template argument C++ deduces from the function given | `Hooks.run(bump_by, 2)`, `Box[i32].keep(3, bump_by)`: the template by its own name, with no type arguments: the instance is the one the function given makes |
 | `a == b`, `v[i]`, `s += t` on a class a library gives | `a.op_eq(b)`, `v.op_index(i)`, `s.op_iadd(t)`: the member its interface binds for the operator, `op_` and the operator's name, a conversion `op_to_` and its type |
 | `NULL` where C++ takes it as the integer it is (an argument of `...`) | `0`, of the type C++ gives it; where it becomes a pointer, `None` or the null address as C's `NULL` is |
 | `reinterpret_cast<File *>(f)`, `reinterpret_cast<uintptr_t>(p)` | `ptr[File](f)`, `u64.wrap(int(p))`: C's cast of a pointer to another pointer or to an integer, and back; one of a reference or of a pointer to an object of a class with virtual functions is refused |
@@ -108,10 +111,11 @@ overload set's member is, by the parameters it does not make, so that a function
 that is no template is named by its own (`tally::kept("four")` is `kept_ptr_i8("four")`);
 the program's build makes the instance.
 
-A class that has both a copy and a move assignment gives the move as `op_assign_move`:
-`a = b` is `a.op_assign(b)` (or the copy's name among `operator=`'s overloads, such as
-`op_assign_std_string`), and `a = std::move(b)` is `a.op_assign_move(b)`, which leaves `b`
-as the class's move leaves it. `std::move(x)` and `std::forward<T>(x)` are `x` where a
+A member that has both a form taking a class by `const T&` (or by value) and one taking it by
+`T&&` gives the second as `<name>_move`: `a = b` is `a.op_assign(b)` (or the copy's name among
+`operator=`'s overloads, such as `op_assign_std_string`), `a = std::move(b)` is
+`a.op_assign_move(b)`, which leaves `b` as the class's move leaves it, and `v.push_back(p)` of
+a temporary is `v.push_back_move(p)`. `std::move(x)` and `std::forward<T>(x)` are `x` where a
 library class's parameter of type `T&&` takes them, and refused anywhere else.
 
 A record a system header declares that C could declare too (`struct stat`,
