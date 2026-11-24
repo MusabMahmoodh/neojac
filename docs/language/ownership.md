@@ -364,7 +364,13 @@ with entry {
 after del
 AttributeError
 second
+  release second
 ```
+
+The last line is `k` going when the module's code ends: a module's own code (its `with entry`
+blocks) is a body as a function's is, so a local of it is dropped after its last use, and what
+it still holds at its end is dropped there. A module imported by another drops its locals when
+its own code ends, before the importer's goes on.
 
 ```jac
 import from std.collections { HashSet }
