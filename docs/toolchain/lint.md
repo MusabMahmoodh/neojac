@@ -447,8 +447,10 @@ A module is checked as a program of its own. One that is no program is fixed and
 
 | Not checked | Why | What checks it |
 |---|---|---|
-| Another target's variant: `host.windows.jac` on Linux, and `host.jac` there when the module has a `host.linux.jac` | The check is of this machine's target, which has the module's other file | `neojac check <main.jac> --target <platform>` |
+| Another target's variant (`host.windows.jac` on Linux) | The check is of this machine's target | `neojac check <main.jac> --target <platform>` |
 | A file `jac.toml`'s `[check] exclude` names | The project says so: a fixture that must fail, say | The project's tests |
+
+A module's untagged file names the module. On a machine the module has a file of its own for (`host.linux.jac` beside `host.jac`, on Linux), that file is what is checked, once.
 
 A file of a project whose `archwire.jac` declares spaces is checked in its project, whose apps are its programs: precommit runs `neojac check` there once, however many of its files are staged ([Checking a project](check.md#checking-a-project)).
 
