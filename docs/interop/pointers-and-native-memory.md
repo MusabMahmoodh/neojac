@@ -1,6 +1,6 @@
 ---
-description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
-keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
+description: ptr[T], a pointer into C memory - indexing, arithmetic, bounds-checked views, pin and Pinned for addresses C keeps, hold, held, held_at and release for Jac objects C keeps, addressof, and load, store and vector for packed, aligned, volatile and streaming accesses.
+keywords: ptr, ptr[T], pointer, null pointer, is_null, PtrView, pin, Pinned, hold, held, held_at, user data, addressof, C plain data, native memory, volatile, nontemporal, unaligned access
 ---
 # Pointers and native memory
 
@@ -41,7 +41,9 @@ False True True
 ## What a pointer does
 
 `T`, the item, is C plain data: a number of any sized type, a `bool`, another pointer, a C
-record, or a plain [struct](../language/structs.md) (one holding no reference). A pointer to
+record, a plain [struct](../language/structs.md) (one holding no reference), or a C function
+pointer, `Callable[[P], R] | None` of a signature C has
+([A pointer to a function pointer](c-libraries.md#a-pointer-to-a-function-pointer)). A pointer to
 anything else is refused where it is indexed (E1152).
 
 | Expression | Meaning |
@@ -55,6 +57,7 @@ anything else is refused where it is indexed (E1152).
 | `p == q`, `p != q`, `p < q`, `p <= q`, `p > q`, `p >= q` | Comparison of the addresses |
 | `p.is_null()` | Whether the address is zero |
 | `int(p)` | The address |
+| `str(p)` of a `ptr[i8]` | A copy of the NUL-ended UTF-8 text at `p`, as a `str`; `ValueError` for the null pointer. `print(p)` and `f"{p}"` give the same text. A pointer of any other item type has no text (E5090) |
 | `p.view(n)` | A bounds-checked view of the first `n` items (below) |
 | `p.load(i, ...)`, `p.store(i, v, ...)`, `p.vector(i, N)` | An access that says more than `p[i]` (below) |
 
@@ -62,13 +65,22 @@ A value of type `ptr[T]` fits where a bare `ptr` is wanted. A bare `ptr` has no 
 is not indexed or viewed (E1040, E1191, E1199): cast it first, `ptr[u8](p)`.
 
 Reading through a null, freed or out-of-range pointer is undefined, as in C. Nothing checks it.
+A pointer a C++ class's member gives into its object, where C++ declares it so (`s.c_str()`, a
+member marked `[[clang::lifetimebound]]`), is a loan of the object, which is kept while the
+pointer, a copy of it or a pointer computed from it is used
+([A pointer into an object](c-modules.md#a-pointer-into-an-object)).
 
 ### Records in place
 
 Where `T` is a C record or a plain struct, `p[i]` is the record there, in place: `p[i].x = 1.0`
 writes C's memory. Reading `p[i]` into a variable copies the record; `p[i] = r` copies `r` in.
+`sizeof(T)`, from `jaclang.comptime`, is the bytes C lays one out in, for the target being built,
+as C's `sizeof` is: what to ask `calloc` or `malloc` for (see
+[Compile-time values](../language/compile-time-values.md#bits-signed-and-sizeof)).
 
 ```jac
+import from jaclang.comptime { sizeof }
+
 import from c {
     obj Pair {
         has a: i32,
@@ -80,7 +92,7 @@ import from c {
 }
 
 with entry {
-    pairs = calloc(2, 8);
+    pairs = calloc(2, sizeof(Pair));
     pairs[1].a = 9;
     pairs[1].b = 2.5;
     kept = pairs[1];
@@ -184,11 +196,190 @@ True True
 - The cell lives as long as the program holds it. Keep it in a field or a global for as long as C
   uses the address.
 
+## Objects C keeps: `hold`, `held`, `held_at`, `release`
+
+A C library that calls back often takes a `void *` beside the callback, its user data, and hands
+it back on every call. `pin` lends C plain data; `hold` lends it a Jac object:
+
+| Expression | Meaning |
+|---|---|
+| `hold(x)` | A `ptr`: the address of the object `x`, with one reference to it that C holds. The object stays, at that address, until the reference is released, though nothing in Jac holds it |
+| `held[T](p)` | The object at `p`, as a `T`: a reference of Jac's own, for as long as the program uses it. `TypeError` where C holds no object at `p` (null, an address C released, any other address), asked before the object is read, and where it holds one of no class that is or derives from `T` |
+| `held[T](f=p)` | The `T` C holds whose field `f`, a C record it keeps in place, is at `p`: the object found by the address of a record inside it. `TypeError` as for `held[T](p)` |
+| `held_at(x)` | The address C holds the object `x` at, with no reference of its own: what `hold(x)` gave. `TypeError` where C holds none of `x` |
+| `release(p)` | C's reference goes. The object is freed when nothing else holds it. `TypeError` where C holds no object at `p` |
+
+```jac
+import from c {
+    obj Handler {
+        has run: Callable[[ptr, int], int],
+            data: ptr;
+    }
+
+    def calloc(n: int, size: int) -> ptr[Handler];
+    def free(p: ptr[Handler]) -> None;
+}
+
+obj Tally {
+    has total: int = 0;
+
+    def __del__ {
+        print("tally freed at", self.total);
+    }
+}
+
+def add(data: ptr, n: int) -> int {
+    t = held[Tally](data);
+    t.total += n;
+    return t.total;
+}
+
+def register(h: ptr[Handler]) {
+    h[0].run = add;
+    h[0].data = hold(Tally());
+}
+
+with entry {
+    h = calloc(1, 16);
+    register(h);
+    print(h[0].run(h[0].data, 5), h[0].run(h[0].data, 7));
+    print(held[Tally](h[0].data).total);
+    release(h[0].data);
+    print("released");
+    free(h);
+}
+```
+
+```output
+5 12
+12
+tally freed at 12
+released
+```
+
+- `x` is a counted object: an instance of an `obj`, `node`, `edge` or `walker`. A number, a
+  struct or a C record is refused (E1635), and so is a struct or a C record as `held`'s `T`.
+- Each `hold` is one reference of C's, and each is released once. `held` leaves C's reference as
+  it is: it may be called on the same address any number of times, and `release` after the last.
+- While C holds it, the object is a root of the cycle collector: a cycle one of whose objects C
+  holds stays whole until `release`.
+- `hold`, `held`, `held_at` and `release` keep C's holds in one table the program shares, which
+  another thread may be changing, so a `Shared` class's method may call none of them (E1541):
+  take the object back with `held` before its threads start. A `flow for` whose body calls one
+  runs its chunks one after another on the calling thread
+  ([When it runs in order](../language/flow-for.md#when-it-runs-in-order)).
+- Only native code has addresses: in a cpython, node, browser or hermes space each of them is
+  refused (E1540, "native memory").
+
+`held_at` is for an object C holds from where it gets it to where it lets it go, as a C++ object is
+held from its `new` to its `delete`: the program keeps the object as a Jac reference and gives C
+its address each time, with no new reference, and releases it once at the end. This is how
+`neojac port` writes a C++ class whose objects' addresses go to C ([Porting C++](port-cxx.md)).
+
+```jac
+obj Hub {
+    has name: str;
+
+    def __del__ {
+        print("hub freed:", self.name);
+    }
+}
+
+def lifetime {
+    hub = held[Hub](hold(Hub(name="main")));
+    p = held_at(hub);
+    print(held[Hub](p).name, held_at(hub) == p);
+    release(held_at(hub));
+    print("C holds it no more");
+    try {
+        release(p);
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+
+with entry {
+    lifetime();
+    try {
+        held_at(Hub(name="loose"));
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+main True
+hub freed: main
+C holds it no more
+TypeError: release() of an address C holds no object at
+TypeError: held_at() of a Hub C does not hold
+hub freed: loose
+```
+
+The object is freed at the `release`: the local `hub` is not used after it.
+
+### An object found by a record it keeps
+
+A C library often takes the address of a record of its own and hands that address back, where the
+program wants the object the record belongs to: C's subclassing by first member, where a library's
+record (a table of callbacks, a cursor) heads a structure that carries the program's own state
+after it. A field of an `obj` whose type is a C record is kept in the object's own memory, as a C
+member is, so it has an address: `addressof(x.f)`, good while the object lives. `held[T](f=p)` takes
+that address back to the object.
+
+```jac
+import from c {
+    obj Pair {
+        has a: i32,
+            b: f32;
+    }
+}
+
+obj Tally {
+    has n: int,
+        pair: Pair;
+}
+
+def bump(q: ptr[Pair]) -> int {
+    t = held[Tally](pair=q);
+    t.n += int(q[0].a);
+    return t.n;
+}
+
+with entry {
+    t = Tally(n=4, pair=Pair(a=i32(3)));
+    p = hold(t);
+    q = addressof(t.pair);
+    print(bump(q), bump(q), held[Tally](pair=q) is t);
+    release(p);
+    try {
+        held[Tally](pair=q);
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+7 10 True
+TypeError: held[Tally]() of an address C does not hold
+```
+
+- `f` must be a field of `T` whose type is a C record, and `p` a `ptr` of that record's type.
+  Check proves both (E1638): a bare `ptr` C handed back is cast first, `ptr[Pair](p)`.
+- C must hold the object (`hold`), as for `held[T](p)`: C's holds are asked before anything is
+  read, and an address of no object C holds, a released one included, is `TypeError`.
+- This is how `neojac port` writes a C++ cast between a class's pointer and the pointer to the C
+  record that is its first member ([Porting C++](port-cxx.md)).
+
 ## `addressof`
 
 `addressof(x)` is the address of a C global or of a C record value, as a `ptr[T]`. For a C array
-defined in an import block it points at the first element. It takes nothing else (E1154).
-[C libraries](c-libraries.md) shows it with a global.
+defined in an import block it points at the first element. For a C record field of an `obj` or a
+struct (`addressof(t.pair)`) it is the field's own address inside the object, good while the object
+lives ([An object found by a record it keeps](#an-object-found-by-a-record-it-keeps)). It takes
+nothing else (E1154). [C libraries](c-libraries.md) shows it with a global.
 
 ## Accesses that say more: `load`, `store`, `vector`
 
@@ -271,7 +462,7 @@ atomic ones are in [Atomic integers](../language/numbers-atomics.md).
 ## What is rejected
 
 ```jac
-# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411
+# expect: E1040, E1191, E1199, E1152 x2, E1001, E1465, E1052, E1466, E1467, E1410, E1411, E1635 x2, E1638
 import from c {
     obj Pair {
         has a: i32,
@@ -303,6 +494,9 @@ with entry {
     print(pairs.load(0, align=4));
     print(ptr[bool](calloc(4, 1)).vector(0, 4));
     print(f.vector(0, 3));
+    lent = hold(5);
+    held[Pair](bare);
+    held[Box](v=bare);
 }
 ```
 
@@ -318,6 +512,8 @@ with entry {
 | E1467 | `load` or `store` of a C record or a struct |
 | E1410, E1411 | A vector of something that is no int or float type, or of a length that is not a power of two from 2 to 64 |
 | E1154 | `addressof()` of anything but a C record or a C global |
+| E1635 | `hold()` of what is no counted object, or `held[T]` of a `T` that is none: `hold(5)`, `held[Pair](p)` |
+| E1638 | `held[T](f=p)` where `f` is no C record field `T` keeps in place, or `p` no `ptr` to that record: `held[Box](v=bare)` |
 
 ## Differences from Python and from the reference design
 

@@ -9,7 +9,7 @@ interface_ver = 1
 
 [ui]
 model = "rerender"
-hosts = ["browser"]
+hosts = ["browser", "node"]
 owns = ["react", "react-dom", "react-router-dom"]
 bundler = "vite"
 runtime = "runtime.js"
@@ -17,6 +17,7 @@ boot = "@jac/runtime"
 
 [ui.jsx]
 lowercase_tags = true
+source = "react"
 
 [ui.state]
 from = "react"

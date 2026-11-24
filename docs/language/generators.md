@@ -1,6 +1,6 @@
 ---
-description: Generator functions and yield, yield from, the Iterator and Iterable types, iterating with next and for, writing an iterable class, and generator expressions.
-keywords: yield, yield from, generator, generator function, Iterator, Iterable, Generator, iterator, iterable, iteration protocol, __next__
+description: Generator functions and yield, send and the value of a yield, yield from as a delegation, the Iterator and Iterable types, iterating with next and for, writing an iterable class, and generator expressions.
+keywords: yield, yield from, generator, generator function, Iterator, Iterable, Generator, iterator, iterable, iteration protocol, __next__, send, PEP 380, StopIteration value
 grammar: yield_expr
 ---
 # Generators
@@ -21,9 +21,10 @@ parentheses only there, as Python requires them: `x = (yield v);` is an error (E
 
 ## Generator functions
 
-A generator function is declared to return `Iterator[T]`, where `T` is the type of what it yields.
-`yield` in a function declared otherwise is an error (E1202), and each yielded value must be a `T`
-(E1001).
+A generator function is declared to return `Iterator[T]`, where `T` is the type of what it yields,
+or `Generator[Y, S, R]`, which also names what it is sent (`S`, [Sending values in](#sending-values-in))
+and what it returns (`R`). `yield` in a function declared otherwise is an error (E1202), and each
+yielded value must be a `T` (E1001).
 
 1. Calling the function creates the generator; the body has not started.
 2. Each time an item is asked for (`next(g)`, a pass of a `for` loop), the body runs from where it
@@ -121,7 +122,8 @@ with entry {
 ## `yield from`
 
 `yield from it;` yields every item of `it` in turn, then goes on. `it` is any iterable: another
-generator, a list, a `range`.
+generator, a list, a `range`. Where `it` is a generator, the generator that delegates to it is a
+pipe: what is sent, thrown or closed reaches `it` (see [below](#yield-from-delegates)).
 
 ```jac
 def inner -> Iterator[int] {
@@ -145,6 +147,122 @@ with entry {
 [0, 1, 2, 10, 20, 0, 1, 2]
 ```
 
+## Sending values in
+
+A `yield` is also an expression: `got = yield total;` pauses the generator, and when it resumes,
+`got` is the value it was resumed with.
+
+- **`g.send(v)` resumes `g` with the paused `yield` giving `v`**, and gives the next value `g`
+  yields, as `next(g)` does. `next(g)` is `g.send(None)`: the `yield` gives `None`.
+- **The first resume must send `None`.** A generator that has not started is paused at no `yield`,
+  so `g.send(v)` of any other value raises `TypeError: can't send non-None value to a
+  just-started generator`, and leaves `g` unstarted.
+- **A send to a generator that has ended raises `StopIteration`**, as `next` does. The
+  `StopIteration` that ends a generator declared `-> Generator[Y, S, R]` carries what it returned,
+  as its `value`.
+- **The type of a `yield` is `S`** in a generator declared `-> Generator[Y, S, R]`: `got: int =
+  yield 0;` checks, and a sent value of another type raises `TypeError` where the `yield` gives it
+  (`expected int, found str`), as a value of type `any` does wherever a typed place takes it. A
+  union is checked so too, on every host: a generator declared `-> Generator[int, int | None, str]`
+  sent a `str` raises `TypeError: expected int | None, found str` at its `yield`. In a
+  generator declared `-> Iterator[Y]` a `yield` is of type `any`, since nothing declares what it
+  may be sent.
+- **`send` of an iterator that is no generator** (`iter(xs)`, a `map`) raises `AttributeError`.
+
+```jac
+def totals -> Generator[int, int | None, str] {
+    total = 0;
+    while True {
+        got = yield total;
+        if got is None {
+            return f"ended at {total}";
+        }
+        total += got;
+    }
+}
+
+with entry {
+    g = totals();
+    print(next(g), g.send(3), g.send(4));
+    try {
+        g.send(None);
+    } except StopIteration as e {
+        print("returned", e.value);
+    }
+    h = totals();
+    try {
+        h.send(5);
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+    print(next(h), h.send(2));
+}
+```
+
+```output
+0 3 7
+returned ended at 7
+TypeError: can't send non-None value to a just-started generator
+0 2
+```
+
+### `yield from` delegates
+
+While `r = yield from inner();` runs, the outer generator is a pipe to `inner`, as Python's PEP 380
+defines it:
+
+- **What the outer generator is sent goes to `inner`**: `send(v)` resumes `inner`'s `yield` with
+  `v`, and `next` with `None`.
+- **What is thrown into it is thrown into `inner`**, at the `yield` where `inner` is paused, and
+  **`close()` closes `inner`** before the outer generator ends.
+- **`r` is what `inner` returned**, of type `any`; `None` where it returned nothing.
+- Over an iterator that is no generator, a `send` of a value raises `AttributeError` naming the
+  iterable's own class (`'list' object has no attribute 'send'`, `'range'`, `'dict_keys'`), and an
+  exception thrown in is raised where the `yield from` stands. A `yield from` over a list, a range
+  or a dict's view is the direct loop over it.
+
+This holds on every host: natively, on a JavaScript host and in a cpython space.
+
+```jac
+def inner -> Generator[int, int, str] {
+    a = yield 1;
+    print("inner got", a);
+    try {
+        b = yield 2;
+        print("inner got", b);
+    } except ValueError as e {
+        print("inner caught", e);
+        yield 3;
+    }
+    return "inner done";
+}
+
+def outer -> Generator[int, int, None] {
+    r = yield from inner();
+    print("outer got", r);
+}
+
+with entry {
+    o = outer();
+    print(next(o), o.send(10));
+    print(o.throw(ValueError("bad")));
+    try {
+        next(o);
+    } except StopIteration {
+        print("ended");
+    }
+}
+```
+
+```output
+inner got 10
+1 2
+inner caught bad
+3
+outer got inner done
+ended
+```
+
 ## What a generator offers
 
 A generator is an `Iterator[T]`: what it supports is iteration, by `for`, by `next`, and by
@@ -155,19 +273,28 @@ unpack into targets (E1020): `(a, b) = tuple(g);` does (see
 - A generator is its own iterator: `iter(g) is g`, so two loops or two `iter`s over one generator
   share its position, and an inner `for` over the iterator an outer `for` walks takes items from
   it.
-- `yield` used as a value, as in `got: any = yield x;`, gives `None`. Inside a larger expression,
-  the operands to the left of `(yield x)` are evaluated before the generator pauses and kept
-  while it is paused.
+- `yield` used as a value, as in `got = yield x;`, gives what the generator is resumed with:
+  `None` for `next`, `v` for `send(v)` ([Sending values in](#sending-values-in)). Inside a larger
+  expression, the operands to the left of `(yield x)` are evaluated before the generator pauses
+  and kept while it is paused.
 - `str(g)` is `<generator object>`, with no name or address.
+- An iterator's class is Python's, on every host: `type(g).__name__` is `generator` for every
+  generator and generator expression, and an iterator `iter()` gives is named by what it walks:
+  `list_iterator`, `tuple_iterator`, `set_iterator`, `bytes_iterator`, `str_ascii_iterator` (or
+  `str_iterator` for text that is not all ASCII), `dict_keyiterator`, `range_iterator`; `enumerate`
+  and `zip` are their own. `type(iter([1])) is type(iter(["a"]))`, and a message names the class
+  (`'list_iterator' object has no attribute 'send'`).
 - A paused generator keeps the values of its frame alive, and an iterator keeps the collection it
   walks alive, wherever it is held.
 - `return value;` is written in a generator declared `-> Generator[Y, S, R]`, whose `R` is the
   value's type: it ends the generator, and the value is what an `await` of the object whose
   `__await__` the generator is gives (see [Async](async.md)). In a generator that declares no
   result (`-> Iterator[Y]`, or an `R` of `None`) it is refused (E5090); `return;` ends any.
-- A generator has `close()` and `throw(exc)` ([Closing a generator](#closing-a-generator)).
-  `send` is not a method of one (E1030). (A coroutine has it; see [Async](async.md).)
-- `Generator[Y, S, R]` is accepted as a return type, and is the same type as `Iterator[Y]`.
+- A generator has `send(v)` ([Sending values in](#sending-values-in)), `close()` and
+  `throw(exc)` ([Closing a generator](#closing-a-generator)).
+- `Generator[Y, S, R]` is accepted as a return type. A value of it is an `Iterator[Y]`, and an
+  `Iterator[Y]` may be given where one is taken; `S` and `R` say what the generator's own body is
+  sent and returns.
 
 ```jac
 def count_to(n: int) -> Iterator[int] {
@@ -376,7 +503,6 @@ Asynchronous generators, declared `async def ... -> AsyncIterator[T]`, are in [A
 | E1001 | A yielded value of the wrong type |
 | E1004 | A generator declared to return something else, which then lacks a `return` |
 | E5090 | `return value;` in a generator that declares no result |
-| E1030 | `send` on a generator |
 
 ```jac
 # expect: E1202, E1001
@@ -394,7 +520,8 @@ def words -> Iterator[str] {
 
 - A generator function declares its type, `-> Iterator[T]`, and every `yield` is checked against
   it.
-- A generator has no `send`, and returns a value only where it is declared
-  `-> Generator[Y, S, R]`.
+- A generator returns a value only where it is declared `-> Generator[Y, S, R]`, and the value a
+  `yield` gives is checked against `S` there.
 - `str(g)` names neither the function nor an address.
-- `yield` used as a value always gives `None`.
+- A `send` through `yield from [1, 2, 3]` names the list in its `AttributeError` (`'list' object
+  has no attribute 'send'`), where CPython, which folds the literal into a tuple, names `'tuple'`.

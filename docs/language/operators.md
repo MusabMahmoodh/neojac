@@ -1,6 +1,6 @@
 ---
-description: Every operator in an expression, from the loosest-binding to the tightest, with arithmetic, comparison chains, and/or/not and truth values, bitwise operators, is and in, the conditional expression, null-safe access and pipes.
-keywords: operator, operators, precedence, expression, and, or, not, in, not in, is, is not, ==, !=, <, >, <=, >=, +, -, /, //, %, **, ~, ^, <<, >>, |>, <|, :>, <:, pipe, atomic pipe, ?., ?[, null-safe, conditional expression, ternary, truth value, truthiness, chained comparison
+description: Every operator in an expression, from the loosest-binding to the tightest, with arithmetic, comparison chains, and/or/not and truth values, bitwise operators, is and in, the conditional expression, null-safe access, the None default ?? and pipes.
+keywords: operator, operators, precedence, expression, and, or, not, in, not in, is, is not, ==, !=, <, >, <=, >=, +, -, /, //, %, **, ~, ^, <<, >>, |>, <|, :>, <:, pipe, atomic pipe, ?., ?[, ??, null-safe, null coalescing, None default, conditional expression, ternary, truth value, truthiness, chained comparison
 grammar: expression, pipe, pipe_back, logical_or, logical_and, logical_not, compare, bitwise_or, bitwise_xor, bitwise_and, shift, arithmetic, term, factor, power, atomic_pipe, atomic_pipe_back, pipe_call, atomic_chain, attr_name, atom
 ---
 # Operators
@@ -22,7 +22,7 @@ right, except `**`, which groups right to left, and the comparisons, which chain
 | `by` | Delegation: what answers a `by` function, and a `visit` statement's chooser. Anywhere else it is E5090 | `neojac docs by`, [visit](visit.md#visit--by) |
 | `\|>` | Forward pipe | below |
 | `<\|` | Backward pipe | below |
-| `or` | Logical or | below |
+| `or` `??` | Logical or; a value or, where it is `None`, another | below |
 | `and` | Logical and | below |
 | `not` | Logical not | below |
 | `==` `!=` `<` `>` `<=` `>=` `in` `not in` `is` `is not` | Comparisons | below |
@@ -53,7 +53,7 @@ pipe ::= pipe_back ("|>" pipe_back)*
 
 pipe_back ::= logical_or ("<|" logical_or)*
 
-logical_or ::= logical_and ("or" logical_and)*
+logical_or ::= logical_and (("or" | "??") logical_and)*
 
 logical_and ::= logical_not ("and" logical_not)*
 
@@ -369,8 +369,48 @@ None None
 7 [8] 3
 ```
 
-A method call through `?.` (`n?.show()`) is refused today (E5090). So are the attribute operators
-`.>` and `<.`, and the form `x(= a=1)`, which the grammar takes.
+A call through `?.` is `None` where the object is, and the method's call otherwise:
+`n?.show(1)` calls `show` only on a node. Each `?.` guards its own step alone: `n?.next.val` is
+`(n?.next).val`, so write `n?.next?.val` to stop at the first `None`.
+
+## A value or a default: `??`
+
+`a ?? b` is `a`, unless `a` is `None`, and then `b`. `a` is evaluated once, and `b` only when it
+is needed. Its type is `a`'s without `None`, joined with `b`'s: an `int | None` and an `int` give
+an `int`. Unlike `or`, it keeps a value that is false but is not `None`: `0 ?? 5` is `0`, where
+`0 or 5` is `5`.
+
+`??` binds as `or` does, and the two group left to right: `a or b ?? c` is `(a or b) ?? c`.
+
+```jac
+obj User {
+    has name: str,
+        boss: User | None = None;
+
+    def title(prefix: str) -> str {
+        return prefix + self.name;
+    }
+}
+
+with entry {
+    ann = User(name="ann");
+    bo = User(name="bo", boss=ann);
+    print(bo.boss?.name ?? "none", ann.boss?.name ?? "none");
+    print(ann.boss?.title("Dr. ") ?? "no boss", bo.boss?.title("Dr. "));
+    count: int | None = 0;
+    total: int = count ?? 5;
+    print(total, count or 5);
+}
+```
+
+```output
+ann none
+no boss Dr. ann
+0 5
+```
+
+The attribute operators `.>` and `<.`, and the form `x(= a=1)`, which the grammar takes, are
+refused (E5090).
 
 ## Pipes
 
@@ -434,7 +474,7 @@ order. After `.` any word is taken, reserved or not (`r.type`); see
 | E1111 | `in` with something that is not a container on the right |
 | W3035 | `is` or `is not` against a literal |
 | E1175 | A conditional expression one of whose branches has no value |
-| E5090 | `?.` followed by a call, `.>`, `<.`, `x(= ...)`, a prefix `\|>` or `:>`, `@` on a type without `__matmul__` |
+| E5090 | `.>`, `<.`, `x(= ...)`, a prefix `\|>` or `:>`, `@` on a type without `__matmul__` |
 
 ```jac
 # expect: E1010 x2, E1110 x2, E1111, W3035, E1175

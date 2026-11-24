@@ -1,7 +1,7 @@
 ---
 description: The comptime keyword in every position it may appear (globals, locals, functions, if, for, assert, parameters, members, imports) and what each form does as the program compiles.
 keywords: comptime, compile-time, compile time, comptime def, comptime if, comptime for, comptime assert, comptime global, comptime local, unrolled loop
-grammar: comptime_element, comptime_global, comptime_stmt
+grammar: comptime_element, comptime_global, comptime_stmt, comptime_decls, decls_block, members_if, members_block
 ---
 # Compile-time evaluation
 
@@ -198,8 +198,171 @@ with entry {
 -1
 ```
 
-A `comptime if` is a statement: it stands in a function's body or in module
-code, not between declarations at module level.
+### Among declarations and members
+
+```ebnf
+comptime_decls ::= "comptime" "if" expression decls_block ("elif" expression decls_block)* ("else" decls_block)?
+
+decls_block ::= "{" element* "}"
+
+members_if ::= "comptime"? "if" expression members_block ("elif" expression members_block)* ("else" members_block)?
+
+members_block ::= "{" archetype_member* "}"
+```
+
+A `comptime if` also stands among a module's declarations, and among an
+archetype's members, where it picks the declarations a target has. A branch
+holds anything its place may: at module level imports, functions, classes,
+`glob`s, `with entry` blocks and nested `comptime if`s; in an archetype
+fields, methods, nested archetypes and nested `comptime if`s.
+
+An import in a branch is the target's alone: a target whose branch does not import a module does
+not load it. Under an `archwire.jac` an import of a project module stays in its branch, and the
+wire into the module admits it, as a wire admits [an import in a code
+body](modules.md#an-import-in-a-code-body): `plat.linux ++> main { name }` and
+`plat.darwin ++> main { name }` for a module whose branches import `name` from each. A module
+that only another target's branch imports is not loaded for this target, even where a space's
+pattern holds it (`plat.*`) and the wire names it: it is not checked or built there, so it may
+use what only its own target has.
+
+That holds whatever the import names: a Jac module, a Python file of the project, a C module, or
+an `include`'s names. In a `cpython` space a branch not taken makes no import as the module
+starts, so `import from kit.plat_py { WHERE }` under `comptime if target().os == "plan9"`, of a
+Python file that raises `ImportError` anywhere else, is never run on macOS. An item the taken
+branch imports too is this target's. The wire is still judged for every target: an item it names
+that no branch of any target uses is E1146, and one only another target's branch uses is no
+error.
+
+```jac
+import from jaclang.comptime { target }
+
+comptime if target().os == "windows" {
+    import from ntpath { join }
+
+    def sep -> str {
+        return "\\";
+    }
+} else {
+    import from posixpath { join }
+
+    def sep -> str {
+        return "/";
+    }
+}
+
+obj Probe {
+    has name: str = "probe";
+
+    comptime if target().os in ["linux", "darwin"] {
+        has posix: bool = True;
+
+        def kind -> str {
+            return "posix";
+        }
+    } else {
+        has posix: bool = False;
+
+        def kind -> str {
+            return "other";
+        }
+    }
+}
+
+with entry {
+    print(sep(), join("a", "b"), Probe().kind(), Probe().posix);
+}
+```
+
+```output
+/ a/b posix True
+```
+
+The output is a Linux or macOS build's.
+
+- **It is decided as the module is read**, before any name is bound, so its
+  condition tests what the build targets and nothing of the program:
+  `target()`'s fields (`os`, `arch`, `device`, `cpu`, `vector_bits`, from
+  [Compile-time values](compile-time-values.md#target)), literals (a bool, a
+  str, an int, a list or tuple of them), `==`, `!=`, `<`, `<=`, `>`, `>=`,
+  `in`, `not in`, `and`, `or` and `not`, and `hasattr(M, "name")` of a
+  module `M` this module imports ([below](#hasattr-of-a-module)). `target` is
+  imported from `jaclang.comptime` at the module's top, under any name. A
+  condition naming anything else (a `glob`, a compile-time global, another
+  call) is E2290, and one that is not a bool is E0108.
+- **Only the branch taken is declared.** The others are parsed and nothing
+  more: not bound, not checked, their imports not loaded, and no wire is
+  needed for them, so a branch may name a module or a function no other
+  target has.
+- **A name each branch declares is one declaration** on every target. A name
+  only one branch declares exists only on the targets that take it, and a use
+  of it on another is an unknown name there.
+- **Every host takes the branch the build's target picks**, a `cpython` or a
+  JavaScript space's as a native program's.
+
+This is the form for a few declarations that differ by target; a module that
+differs throughout may instead have a file per target (variants, in
+[Modules](modules.md#how-a-module-is-found)).
+
+Without `comptime`, an `if` among an archetype's members tests what only the
+running program knows. That is a class Python makes as its statement runs,
+which a `cpython` space has
+([Classes and decorators in a cpython space](../interop/python-classes.md#classes-python-makes)); in any
+other space it is E5175.
+
+### hasattr of a module
+
+`hasattr(M, "name")`, where `M` is a module of the program, is a compile-time `bool`: whether
+`M`, compiled for this target, binds `name`: its declarations (those of the `comptime if`
+branches its target takes), its imports and the names its wires give it, and `__name__`,
+`__file__` and `__doc__`, which every module has. A function made in `M`'s
+`with entry` code is no attribute of it, and is not counted. The value is folded wherever it
+stands, so a `comptime if` tests it in a body and among declarations, and the branch not taken may
+use what `M` lacks on this target: this is how a module asks what a module that differs by target
+gives, rather than repeating the other module's test of the target.
+
+```jac
+import os;
+
+comptime if hasattr(os, "getcwd") {
+    def where -> str {
+        return "getcwd";
+    }
+} else {
+    def where -> str {
+        return os.cwd_by_another_name();
+    }
+}
+
+def described -> str {
+    comptime if hasattr(os, "nothing_here") {
+        return os.nothing_here();
+    } else {
+        return "no nothing_here";
+    }
+}
+
+with entry {
+    print(where(), described(), hasattr(os, "getcwd"));
+}
+```
+
+```output
+getcwd no nothing_here True
+```
+
+- **Among declarations it is decided when the module is linked**, after `M` is loaded, where
+  a test of the target alone is decided as the module is read. Two modules whose `comptime if`s
+  among declarations each ask `hasattr` of the other wait on each other, and that is E2301.
+- **In a cpython space, where `M` is a Python module that stays**, `hasattr` is Python's own,
+  asked when the program runs.
+- **In a cpython space, a module the target chooses is read as Python reads it.** Where each
+  branch of a `comptime if` imports a module under one name (`import plat.osx as plat;` in one,
+  `import plat.linux as plat;` in another), `plat.x` of a name the chosen module lacks is
+  Python's read of the module object: `any`, an `AttributeError` where it runs, as Python's own
+  program would raise. A module bound by one name on every target keeps E1145 for a name it
+  lacks, and on every other host so does this one.
+- `hasattr` of a value that is not a module is Python's as everywhere: asked when the program
+  runs.
 
 ## comptime for
 
@@ -377,6 +540,8 @@ def h -> int {
 | E1126 | A compile-time int does not fit the type it is read as (a global is an `int`). |
 | E2197 | Code that runs assigns a compile-time name. |
 | E5090 | A `comptime def` inside a function, or as a method. |
+| E2290 | A `comptime if` among declarations whose condition names something other than `target()`'s fields and literals. |
+| E5175 | An `if` among an archetype's members, outside a `cpython` space. |
 | W0060 | A docstring stands before a `comptime assert`: a warning, which fails nothing. |
 
 ## Differences from Python and the reference design
@@ -386,7 +551,8 @@ def h -> int {
   and an error in it stops the build.
 - A `comptime if` is not an `if` on a constant. The branches it does not
   pick are never checked, so they may use names and types that do not
-  exist on this target.
+  exist on this target. Among declarations it stands where Python writes
+  `if sys.platform == "win32":` at module level or in a class body.
 - A compile-time int is exact, of any size, as Python's is, although a
   run-time `int` is 64 bits. See
   [Compile-time values](compile-time-values.md).

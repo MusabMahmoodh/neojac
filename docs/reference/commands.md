@@ -126,7 +126,7 @@ Several Jac programs are built into one executable that holds each of them and r
 
 In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's or a package's: the ones named, or every one, are each built into dist/, and where each one is is printed. A package (`package <name> { ship <space>; }`) of a space that holds a Python project is that project's wheel.
 
-A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it.
+A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. A Python project's wheel is built for this system alone. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it; with --target, for that platform, from the Jac its C module's files are ported to (an addon built from C and C++ is built on the system it is for).
 
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
@@ -303,20 +303,23 @@ Its guide: [toolchain/fmt](../toolchain/fmt.md) (`neojac docs toolchain/fmt`).
 Translate source in another language into Jac.
 
 ```sh
-neojac port [--check] [-o <out>] [<option>...] <path>...
+neojac port [--check [--json]] [-o <out>] [<option>...] <path>...
 neojac port --mapping <language>
 ```
 
 | Option | What it does |
 |---|---|
-| `--check` | Write nothing: report what would port and what is refused, and exit with status 1 if anything is |
-| `-o <out>` | Where to write: a .jac file for one source, else a directory (default: beside each source) |
+| `--check` | Write nothing: report what would port and what is refused, and in a project the plan, and exit with status 1 if anything is refused |
+| `--json` | With --check, print what would port and the plan as data |
+| `-o <out>` | Where to write, for sources outside a project: a .jac file for one source, else a directory (default: beside each source) |
 | `--mapping <language>` | Print what port makes of each construct of a language: c, c++, rust, python or javascript |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments.
 
-A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. The source is never changed, and an output that is already there is refused (E4003).
+A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. An output that is already there is refused (E4003).
+
+In a project, a path is read as the project says, and porting a file moves its module in one change: the Jac is written beside the source, the source is moved to replaced-by-neojac/, its imports of the project's modules become ++> wires and its tables in jac.toml are updated, all of it only if the project then checks (E4008). Outside a project, the source is never changed.
 
 | Example | What it does |
 |---|---|
@@ -507,11 +510,14 @@ neojac npx [<npx argument>...]
 
 The npm that Node ships, with its own command line. In a project it runs in an npm tree of jac.toml (the one whose directory it is run in or under, or the project's only one), and what it writes to the tree's package.json and package-lock.json is taken into jac.toml and jac.lock as it ends.
 
+Where some of the tree's sources are ported, `run`, `run-script`, `test` and `start`, and npx, run in the tree as its tools saw it: under .jac/test/spaces/, each ported source's place holds a file of its own name that gives the module, and what the tree's space emits is beside them.
+
 Its arguments, --help among them, are that program's own: `neojac npm --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac npm ls` |  |
+| `neojac npm run build` | The tree's own build, its ported sources too |
 
 Its guide: [interop/npm](../interop/npm.md) (`neojac docs interop/npm`).
 
@@ -523,15 +529,19 @@ Run neojac's CPython.
 
 ```sh
 neojac python [<python argument>...]
+neojac python <space directory> [-m <module> | -c <code>] [<argument>...]
 ```
 
 CPython 3.15, with its own command line. In a project with a virtual environment (.jac/venv), it is that environment's Python.
+
+A cpython space, as `neojac emit-py <space> -o <space directory>` writes it, is run by its directory: alone, its entry; with -m, a module run over its modules as `python -m` runs it (`-m pytest` runs a suite the space holds); with -c, code run over them as `python -c` runs it. A space with no entry takes -m or -c.
 
 Its arguments, --help among them, are that program's own: `neojac python --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac python -c 'import sys; print(sys.version)'` |  |
+| `neojac python py -m pytest tests --import-mode=importlib` | The suite of the cpython space emitted into py |
 
 Its guide: [interop/python](../interop/python.md) (`neojac docs interop/python`).
 
@@ -798,7 +808,7 @@ Its guide: [toolchain/inspect](../toolchain/inspect.md) (`neojac docs toolchain/
 Write a space's JavaScript, or its Python code.
 
 ```sh
-neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]]
+neojac emit-js <space> -o <dir> [<option>...]
 neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 ```
 
@@ -807,6 +817,7 @@ neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 | `-o <dir>` | The directory to write |
 | `--app <app>` | The space as that app's program of it, with its plan |
 | `--profile <profile>` | The app under that profile |
+| `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from a project's root: the modules of one space of its archwire, checked and written as an app's build would write them. emit-js is for a space on a JavaScript host (browser, node, hermes), emit-py for one on cpython.
