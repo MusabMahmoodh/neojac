@@ -279,7 +279,7 @@ features = ["python"]
 recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
-**An extension built from a C module or a Jac module exports its entry points and nothing else**, on every target, and every other definition in it is local to it: one under a `[pypi."<directory>"]` tree exports `PyInit_<name>` (`PyInit__tally` for `spamlib/_tally`), one under an `[npm."<directory>"]` tree Node-API's registration pair, `napi_register_module_v1` and `node_api_module_get_api_version_v1`, and one whose row has `exports` the names it lists. So the extension's own calls reach its own functions, those of the C modules its `links` names among them: on Linux a shared library's reference to a function it defines would otherwise bind to the function of that name its host gives, as Node gives libuv's `uv_version`.
+**An extension built from a C module or a Jac module exports its entry points and nothing else**, on every target, and every other definition in it is local to it: one under a `[pypi."<directory>"]` tree exports `PyInit_<name>` (`PyInit__tally` for `spamlib/_tally`), one under an `[npm."<directory>"]` tree Node-API's registration pair, `napi_register_module_v1` and `node_api_module_get_api_version_v1`, and one whose row has `exports` the names it lists. Each but Node-API's version entry must be defined (E5271): an addon that does not define `node_api_module_get_api_version_v1` is built without it, and Node takes it as Node-API version 8, its default. So the extension's own calls reach its own functions, those of the C modules its `links` names among them: on Linux a shared library's reference to a function it defines would otherwise bind to the function of that name its host gives, as Node gives libuv's `uv_version`.
 
 ```toml
 [extensions."test/plug"]

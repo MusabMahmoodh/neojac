@@ -759,7 +759,14 @@ neojac npx tsc --version
   build](../toolchain/packages.md#recording-a-build)). `neojac port` takes its C++ to Jac, native
   code that the C module holds and no npm tree's space takes, and the addon is then built from
   that Jac with the C that stays, exporting Node-API's entry points
-  ([port](../toolchain/port.md#in-a-project)).
+  ([port](../toolchain/port.md#in-a-project)). Built from the Jac, it builds for any target:
+  `neojac build package.json --target linux-aarch64` makes the tree's addons for that platform
+  from macOS, where an addon still built from C and C++ is built only on the system it is for
+  (E5090).
+- An addon neojac builds defines Node-API's entry, `napi_register_module_v1` (`NAPI_MODULE_INIT`
+  defines it). One that registers itself from a static constructor instead, as V8's
+  `NODE_MODULE`, NAN and older Node-API headers make one, is refused by name (E5090): neojac does
+  not build that form yet.
 - A C library a package vendors (`deps/sqlite3`, a C module of its own) is linked into the addon
   by the addon's row, `links = ["deps/sqlite3"]`, which the record writes, and never left to
   Node: Node exports libuv's functions, and an addon that left a vendored copy of one of them

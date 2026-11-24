@@ -471,7 +471,11 @@ dependencies = ["fastapi>=0.141"]
   release of it is fetched, and `jac.lock` pins none. The program imports the project as neojac
   builds it, one copy.
 - **`neojac cargo`** writes the project's manifests first, and takes back what cargo changed as it
-  ends (`cargo add`, `cargo update`).
+  ends (`cargo add`, `cargo update`): a crate's manifest, never another kind's.
+- **A C module's `cmodule.toml` beside a module `jac.toml` holds is `jac.toml`'s own copy.** No
+  tool but neojac writes one, so neojac writes it from the table and never takes it back: an
+  absorb, a record and `neojac cargo` write it again where it differs. A `cmodule.toml` a tree
+  has before `jac.toml` holds its directory is taken in as any manifest is.
 
 A program with no `jac.toml` above it keeps its manifests as files: a loose `main.jac` beside a
 `geom/cmodule.toml` builds as it did.
@@ -516,7 +520,13 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   for it, `<path>.node`: `neojac build <directory>/package.json` builds the tree's, and
   `neojac test` builds them before the tree's suite. It exports Node-API's entry points
   (`napi_register_module_v1`, `node_api_module_get_api_version_v1`), as one under a Python tree
-  exports `PyInit_<name>`, whatever it is built from, and nothing else (below).
+  exports `PyInit_<name>`, whatever it is built from, and nothing else (below). The version entry
+  is optional: an addon without it is Node-API version 8 to Node. An addon that registers itself
+  from a static constructor (V8's `NODE_MODULE`, NAN, older Node-API headers' `NAPI_MODULE`)
+  defines no entry and is refused by name (E5090); `NAPI_MODULE_INIT` defines the entry.
+  `--target <platform>` builds the tree's addons for a Linux or macOS platform, each from the Jac
+  its C module's files are ported to, which builds for any target; one built from C and C++ is
+  built on the system it is for (E5090), and its row must be recorded for the platform (E5172).
 - **A C module some of whose sources were ported is built from their Jac.** The extension module
   or the addon links the Jac its C module's `jac` lists with the sources that stay
   ([C modules](../interop/c-modules.md#the-manifest)), so a recorded addon whose C++ `neojac port`
@@ -796,8 +806,10 @@ Each ecosystem answers for its own:
   (`.gitignore`, `.git/info/exclude` and the global excludes, as git reads them) that holds a
   source file of a language neojac reads, a `build/` that a Python build copied the package
   into, is added to `[project] exclude`, and `absorb` says so ("what a build left: ...").
-  `node_modules`, `eco` and `replaced-by-neojac` are left to their own rules, and a repository
-  that is no git's gets none.
+  Nothing under `node_modules`, `eco`, `.jac` or `replaced-by-neojac`, at any depth, nor under
+  any directory whose name starts with `.`, is what a build left: an installed package, in a
+  tree's own `web/node_modules/` too, holds JavaScript, and git lists each ignored package by its
+  path once anything under `node_modules` is tracked. A repository that is no git's gets none.
 
 ### The archwire it writes
 
@@ -1116,7 +1128,10 @@ recorded
   recorded platform under its `[target.<os>]` table, so that the module's interface on each
   platform is what that platform's build compiled against (`arch/osx/init.h` on macOS, never
   `arch/aix/init.h`); a header of a C module inside it is that module's
-  ([C modules](../interop/c-modules.md#the-manifest)).
+  ([C modules](../interop/c-modules.md#the-manifest)). A header under another C module the link
+  took, or under a header library the build includes, is that module's, never the recorded
+  module's own: a record on a second platform writes the tables the first wrote, though git
+  tracks a header library's files there.
 - **A header library a recorded build includes is a C module of the project too**, from an
   installed package as from the project's own files (node-addon-api's `napi.h`): a
   `[c."<directory>"]` table with its `headers` and no sources, and `language = "c++"` where its
