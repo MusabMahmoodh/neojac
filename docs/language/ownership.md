@@ -75,6 +75,7 @@ ref ::=
     dyn_type
     | ("own" | "imm") await_expr
     | "&" ("mut" await_expr | await_expr)
+    | await_expr
 ```
 
 A prefix `&` is a borrow however it is spaced: `&x`, `& x` and `&(x)` are

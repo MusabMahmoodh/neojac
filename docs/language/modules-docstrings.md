@@ -6,7 +6,7 @@ grammar: docstring_target
 # Docstrings
 
 ```ebnf
-docstring_target ::= STRING (test_decl | enum_decl | type_alias | global_vars | comptime_element | impl_def | module_code | decorated)
+docstring_target ::= STRING (test_decl | enum_decl | type_alias | global_vars | comptime_element | impl_def | module_code | default_element | decorated)
 ```
 
 A docstring is a string literal written immediately before the declaration it documents.

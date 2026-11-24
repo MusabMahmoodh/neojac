@@ -1,6 +1,6 @@
 ---
 description: The graph spaces block of archwire.jac, which declares a project's spaces, their hosts and modules, its apps, its packages and its profiles.
-keywords: graph spaces, spaces, space, app, package, ship, wheel, profile, serve, module pattern
+keywords: graph spaces, spaces, space, app, package, ship, wheel, profile, run, serve, module pattern
 grammar: graph_spaces, space_decl, app_decl, package_decl, module_pattern, name_list
 ---
 # The archwire's spaces
@@ -29,8 +29,10 @@ app_decl ::= "app" NAME "{" (NAME "has" NAME ("." NAME)* ("," NAME ("." NAME)*)*
 module_pattern ::= "*" | wire_module_path ("." "*")?
 ```
 
-`spaces`, `space`, `app`, `package`, `run`, `serve` and `ship` are words only inside this block. They
-are not reserved: a program may still name a function `app` or a variable `space`.
+`spaces`, `space`, `app`, `package`, `run`, `serve` and `ship` are keywords in an `archwire.jac`, and
+names in every other file: a program may still name a function `app` or a variable `space`, and a
+wire carries such a name as it is written (`cli ++> main { run }`). A space, an app or a package is
+not named with one (E0013); a module is listed by its name whatever the word.
 In a space, `entry` is the entry clause only when a module path follows it: `entry;`
 and `entry | ui;` list a module named `entry`, as any other name is listed.
 
