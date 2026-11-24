@@ -413,7 +413,10 @@ as a call of a Jac generic method may ([Generics](../language/generics.md)): `o.
 - An instance the template does not take, or whose argument is no class or number type of C++, is
   E1620 where the program names another instance of the template that the build makes. Where it
   names none, the class has no member of that name, and the call is E1030 (`Counter has no field
-  'to'`).
+  'to'`). E1030 names the class as the program writes it, an instance by its template form:
+  `said.nothere[std_string, i8](i8(1))` of a `std_vector[std_string]` is
+  `std_vector[std_string] has no field 'nothere'`, and the type arguments after the name are not
+  judged.
 
 The header library `tally/tally.h`, a C module of the project with `language = "c++"`:
 
@@ -528,6 +531,13 @@ with entry {
 
 `Box[i32]` is the class `boxed` gives; `Box[Counter]` is an instance nothing in the C++ makes.
 An instance whose argument is no class or number type of C++ is refused by name.
+
+- **A member template of an instance only the program names is made for it too.** With `Box`
+  holding `static int keep(int v)` and `template <typename F> static int keep(int v, F f)`, which
+  makes a `Counter` of `v` and returns `f(c, 1)`, `Box[i16].keep(i32(4), bump_by)` is the
+  instance of `Box<short>::keep` for `bump_by` ([A Jac function C++ calls
+  back](#a-jac-function-c-calls-back)), though nothing in the C++ makes `Box<short>`, and
+  `Box[i32].keep(i32(3))` the static that is no template.
 
 - **Classes or class templates of one name in two namespaces** (napi's `AccessorCallbackData` in
   `Napi` and in `Napi::details`) are each named by their qualified name, its parts joined by
@@ -869,6 +879,12 @@ the ported `InitAll` given by its name.
   `h.on_done_T0_ptr_T1(noted, p)` with `p = hold(note)` makes `on_done` over `void *`, and the def
   takes a `ptr` (`def noted(p: ptr)`), which `held[Note](p)` reads back
   ([Pointers](pointers-and-native-memory.md)).
+- **The file's own object crosses such a `T *` as itself**: given `held_at(note)`, the address C
+  holds a `Note` at while `hold(note)` is in force, `h.on_done_T0_ptr_T1(note_kept, held_at(note))`
+  takes a hook that takes the `Note` (`def note_kept(note: Note)`), and C++ gives it the object.
+  The instance is still the one over `void *`: a template that needs the class complete (one
+  that copies `*arg`) has no instance for a Jac class, and giving it one is
+  [E1641](../reference/diagnostics/e16.md#e1641).
 
 <!-- example: not checked: needs the C++ header library whose Hooks has the member templates on_done and finish -->
 ```jac
@@ -878,6 +894,10 @@ obj Note {
 
 def noted(p: ptr) {
     held[Note](p).n += 5;
+}
+
+def note_kept(note: Note) {
+    note.n += 7;
 }
 
 def nothing_noted {
@@ -893,6 +913,8 @@ with entry {
     note = Note();
     p = hold(note);
     print(h.on_done(nothing_noted), h.on_done_T0_ptr_T1(noted, p), note.n);
+    h.on_done_T0_ptr_T1(note_kept, held_at(note));
+    print(note.n);
     release(p);
     print(Hooks.finish(fin, i32(3)));
 }
@@ -901,6 +923,7 @@ with entry {
 ```text
 hook of no arguments
 1 2 5
+12
 700
 ```
 
@@ -1002,7 +1025,10 @@ string longer than the small buffer holds
 
 An `own` owner given away while such a pointer is used is E1304, as with any borrow: with
 `p = l.text()` of a member marked `[[clang::lifetimebound]]`, `m: own Label = l` before `p`'s last
-use is `'l' is destroyed while still borrowed`. A member C++
+use is `'l' is destroyed while still borrowed`. A public field of class type read through such a
+loan carries it on, since the field is a place inside the object: with
+`e = v.op_index(u64(0))` of a `std_vector[std_pair[std_string, i32]]` and `f = e.first`, giving
+`v` away (`give(v)`, to a parameter `own`) before `f`'s last use is E1304 too. A member C++
 declares no such thing of gives its pointer under C++'s own contract, with no loan: a managed
 local's object goes at its last use, an `own` one's where its scope ends, and the pointer then
 dangles; keep the object in a local read after the pointer, or in an `own` local, as long as it
@@ -1026,7 +1052,13 @@ std_vector }`. A C module's interface names them rather than declaring its own, 
 module's function gives is the string another's takes.
 
 - **A class is named `std_` and its C++ name**: `std::string` is `std_string`, `std::mutex`
-  `std_mutex`.
+  `std_mutex`, and one of a namespace inside `std` with each `::` as `_`:
+  `std::chrono::system_clock` is `std_chrono_system_clock`. A header library's function that takes
+  a `std::chrono::system_clock::time_point` binds, and is given what the clock's members make:
+  `since_ms(std_chrono_system_clock.from_time_t(1000))`, `since_ms(std_chrono_system_clock.now())`.
+- **A class has its `std` name however a header spells it**: where a header writes
+  `std::basic_string<char>` before any `std::string`, a function of it taking one still takes a
+  `std_string`, and `import from libcxx { std_string }` binds.
 - **A class template is named by its template form**, as a program's own C++ template is:
   `std::vector<int>` is `std_vector[i32]`, `std::lock_guard<std::mutex>` is
   `std_lock_guard[std_mutex]`. libcxx makes each instance the program names, whether or not any
@@ -1057,7 +1089,10 @@ module's function gives is the string another's takes.
   ([Function templates](#function-templates)). Where the set has more than one template, each is
   named by all its parameters, one whose type is a type parameter of the template by its place,
   `T0`, `T1`: `std::min(a, b)` is `std_min_T0_T0[i32](a, b)`, beside `std_min_T0_T0_T1` (with a
-  comparator) and `std_min_std_initializer_list`, and `std::max` likewise. Two templates libc++
+  comparator) and `std_min_std_initializer_list`, and `std::max` likewise. The name the set
+  shares names none of them: `std_min[i32](3, 7)`, or `std_min(3, 7)`, is
+  [E1642](../reference/diagnostics/e16.md#e1642), which lists the members to write. The import is
+  the set's name, `std_min`. Two templates libc++
   declares alike but for their constraints (`std::copy_n`'s) are one Jac template,
   `std_copy_n_T0_T1_T2`.
 - **A `std` enumerator, and a `std` constant of an enum's type, have the enum's integer type**:
@@ -1356,35 +1391,51 @@ what binds it, under the module's own flags, so the instance has one home as eve
 has. A program still writes it with `libcxx`'s name, imported from `libcxx`:
 `std_unordered_map[i32, Box[i32]]`, its members those the module's reading gives.
 
-What binds today is an instance the module's own C++ reaches: one a function of its headers gives
-or takes. The program then makes it, copies it and calls its members:
+An instance binds whether the module's own C++ reaches it (one a function of its headers gives
+or takes) or only the program names it (`std_unordered_map[i32, Box[i16]]`), which the module's
+reading then makes. The program makes it, copies it and calls its members, its member templates
+and its iterators among them. With the header library `kit/kit.h` holding `Box<T>` and
+`std::unordered_map<int, Box<int>> boxes()`, which gives a map of one item, `{1: Box(10)}`:
 
-<!-- example: not checked: needs the C++ header library whose boxes() gives an unordered_map of Box<int> and counters() a vector of Counter -->
+<!-- example: not checked: needs the C++ header library kit whose boxes() gives an unordered_map of Box<int> -->
 ```jac
-import from libcxx { std_unordered_map, std_vector }
+import from libcxx { std_unordered_map, std_unordered_map_iterator }
 
 with entry {
     m: own std_unordered_map[i32, Box[i32]] = boxes();
     fresh: own std_unordered_map[i32, Box[i32]] = std_unordered_map[i32, Box[i32]]();
     fresh.op_assign(m);
-    print(fresh.size(), fresh.at(i32(1)).get(), m.contains(i32(2)));
-    cs: own std_vector[Counter] = counters(i32(2));
-    cs.push_back(Counter.make(i32(9)));
-    print(cs.size(), cs.at(u64(2)).value());
+    key = ptr[i32](__alloca(4));
+    key[0] = 3;
+    m.emplace[i32, Box[i32]](i32(2), Box[i32].make(i32(20)));
+    m.emplace[&mut i32, Box[i32]](key, Box[i32].make(i32(30)));
+    found: std_unordered_map_iterator[i32, Box[i32]] = m.find(i32(3));
+    print(m.size(), fresh.size(), found.op_ne(m.end_()), found.op_deref().second.get());
+    small: own std_unordered_map[i32, Box[i16]] = std_unordered_map[i32, Box[i16]]();
+    small.emplace[i32, Box[i16]](i32(1), Box[i16].make(i16(5)));
+    print(small.size(), small.at(i32(1)).get());
 }
 ```
 
 ```text
-2 10 True
-3 9
+3 1 True 30
+1 5
 ```
 
-**Not done.** An instance the module's C++ reaches nowhere is not made yet: naming one is
-[E5090](../reference/diagnostics/e50.md#e5090) (`neojac does not support std_unordered_map[i32,
-Box[i32]], an instance of a C++ standard library class template over a class of tally, which the
-reading of that module does not make yet`), and so is its iterator, `std_unordered_map_iterator[i32,
-Box[i32]]`, which `find`, `begin` and `end` give. A member template of such an instance
-(`m.emplace[i32, Box[i32]](...)`) is not bound yet either.
+- **`emplace` and `emplace_back` over the module's class are member templates** of the instance,
+  named by the types they forward ([Member function templates](#member-function-templates)):
+  `m.emplace[i32, Box[i32]](...)` takes the key by value, and
+  `m.emplace[&mut i32, Box[i32]](key, ...)` takes it as a place, the instance C++ makes for
+  `m.emplace(key, ...)` of an `int` local.
+- **A `std` member template's instance whose argument is a header library's class is that
+  library's**, though the container is `libcxx`'s own: with `kit.h` giving
+  `std::vector<kit_handle> handles()` and a class `Peg` that C++ converts to a `kit_handle`,
+  `rows.emplace_back[Peg](Peg.make(i32(2)))` of a `std_vector[ptr[kit_slot]]` is made in kit's
+  reading, which converts the `Peg` as C++ does.
+- **A container over a class that cannot be copied has no copy.** Of a `std_vector[Lone]`,
+  where `Lone`'s copy constructor and copy assignment are deleted, `ls.__copy__()` is E1030,
+  `std_vector[Lone] has no method '__copy__'`. With no copy assignment, its move assignment is
+  `op_assign`: `ls.op_assign(other)` moves, and leaves `other` empty.
 
 ## Wiring C modules
 
