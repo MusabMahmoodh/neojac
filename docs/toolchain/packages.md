@@ -516,7 +516,7 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   for it, `<path>.node`: `neojac build <directory>/package.json` builds the tree's, and
   `neojac test` builds them before the tree's suite. It exports Node-API's entry points
   (`napi_register_module_v1`, `node_api_module_get_api_version_v1`), as one under a Python tree
-  exports `PyInit_<name>`, whatever it is built from.
+  exports `PyInit_<name>`, whatever it is built from, and nothing else (below).
 - **A C module some of whose sources were ported is built from their Jac.** The extension module
   or the addon links the Jac its C module's `jac` lists with the sources that stay
   ([C modules](../interop/c-modules.md#the-manifest)), so a recorded addon whose C++ `neojac port`
@@ -589,8 +589,7 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   directory of its table: `links = ["deps/sqlite3"]` (`neojac absorb --record` writes it from the
   link it recorded). Each one's objects are made a library and given to the link, as a build
   system gives a static library, whether the extension is built from the C module's C and C++ or
-  from their Jac. What each exports is what its sources and its flags say, with nothing hidden on
-  neojac's account. The archwire's flows say which names move between files, not what is linked.
+  from their Jac. The archwire's flows say which names move between files, not what is linked.
   An extension that leaves undefined a symbol one of the project's C modules defines is refused
   after its link and removed (E5270): the process that loads it would resolve the symbol from its
   own copy, as Node gives libuv's.
@@ -599,6 +598,23 @@ recorded = ["linux-aarch64", "macos-aarch64"]
   [extensions."build/Release/kvstore"]
   c = "src"
   links = ["deps/sqlite3"]
+  ```
+
+- **It exports its entry points and nothing else**, on every
+  target, whether it is built from C and C++ or from Jac: `PyInit_<name>` under a Python tree,
+  Node-API's pair under an npm tree, or the names its row's `exports` lists. Every other
+  definition in it is local to it, those of the C modules its `links` names among them, whatever
+  their sources and flags would export: so each of its calls reaches its own function. On Linux a
+  shared library's reference to a function it defines would otherwise bind to the host's function
+  of that name: an addon vendoring a C library that defines `uv_version` would call Node's.
+  A library its host loads by its own convention, not as an extension module or an addon, names
+  what it gives in `exports`: a SQLite loadable extension in an npm tree, which SQLite looks up
+  by `sqlite3_extension_init`, or a library Python's `ctypes` opens.
+
+  ```toml
+  [extensions."test/plug"]
+  c = "test/plug"
+  exports = ["sqlite3_extension_init"]
   ```
 
 ## Building and testing a Python project
@@ -1088,6 +1104,12 @@ recorded
   be neojac's (on macOS node-gyp uses the machine's `libtool`). The extension's row lists each
   such module in `links`, in the order of the link; recording again on another platform keeps the
   modules the row listed already, first.
+- **A library loaded by its own convention is given its `exports`.** Where the library a recorded
+  run linked defines none of its tree's entry points (no `PyInit_<name>` under a Python tree, not
+  Node-API's pair under an npm tree), the row's `exports` lists the names the library exported
+  that its own C module's objects define (a SQLite loadable extension's
+  `["sqlite3_api", "sqlite3_extension_init"]`); recording again on another platform keeps the names
+  the row listed already, first.
 - **A C module's `headers` are the headers of its directory its build read**, written for each
   recorded platform under its `[target.<os>]` table, so that the module's interface on each
   platform is what that platform's build compiled against (`arch/osx/init.h` on macOS, never

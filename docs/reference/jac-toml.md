@@ -265,6 +265,7 @@ A module that a build makes from native code and an interpreter loads: a CPython
 | `extensions."<path>".features` | list of strings | The crate's features it is built with |
 | `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
 | `extensions."<path>".links` | list of strings | Only with `c`: the other C modules of the project its link takes, each by the directory of its `[c."<directory>"]` table, which `neojac absorb --record` writes from the link it records. The extension links its own C module and these, and no others; one that leaves undefined a symbol a C module of the project defines is refused (E5270). Absent, it links its own module alone |
+| `extensions."<path>".exports` | list of strings | Only with `c`: the C names the extension gives the program that loads it, for a library that program loads by its own convention (a SQLite loadable extension's `sqlite3_extension_init`), which `neojac absorb --record` writes where the library it recorded defines none of its tree's entry points. Absent, its tree's entry points, as below |
 | `extensions."<path>".jac` | string | The Jac module it is built from, by its file's path in the project (`native/eggs.jac`): its public functions and `obj`s are the extension module's |
 | `extensions."<path>".recorded` | list of strings | The platforms its build was recorded on (`macos-aarch64`, `linux-x86_64`, ...), which `neojac absorb --record` writes. It is built on those, and on every platform with no list. A project all of whose extension modules are recorded for other platforms is refused there (E5172) |
 
@@ -278,11 +279,19 @@ features = ["python"]
 recorded = ["linux-aarch64", "macos-aarch64"]
 ```
 
+**An extension built from a C module or a Jac module exports its entry points and nothing else**, on every target, and every other definition in it is local to it: one under a `[pypi."<directory>"]` tree exports `PyInit_<name>` (`PyInit__tally` for `spamlib/_tally`), one under an `[npm."<directory>"]` tree Node-API's registration pair, `napi_register_module_v1` and `node_api_module_get_api_version_v1`, and one whose row has `exports` the names it lists. So the extension's own calls reach its own functions, those of the C modules its `links` names among them: on Linux a shared library's reference to a function it defines would otherwise bind to the function of that name its host gives, as Node gives libuv's `uv_version`.
+
+```toml
+[extensions."test/plug"]
+c = "test/plug"
+exports = ["sqlite3_extension_init"]
+```
+
 An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). It is built with the Python project whose `[wheel]` its path is under ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
 
 | Code | Cause |
 |---|---|
-| E5158 | `extensions` is not a table of extension modules, or an entry names none of a crate, a C module and a Jac module, names more than one, names a crate or a C module `jac.toml` holds no table for or a Jac file the project does not have, has `features` without a crate, has `links` without a C module, lists in `links` something other than a directory of another `[c."<directory>"]` table (a module there is no table for, or the row's own), lists a platform neojac has no name for in `recorded`, or has another key |
+| E5158 | `extensions` is not a table of extension modules, or an entry names none of a crate, a C module and a Jac module, names more than one, names a crate or a C module `jac.toml` holds no table for or a Jac file the project does not have, has `features` without a crate, has `links` or `exports` without a C module, has `exports` that is not a list of at least one C name, lists in `links` something other than a directory of another `[c."<directory>"]` table (a module there is no table for, or the row's own), lists a platform neojac has no name for in `recorded`, or has another key |
 | E5270 | The extension, linked, leaves undefined a symbol that a C module of the project its row does not link defines |
 
 ## [wheel."\<directory\>"]

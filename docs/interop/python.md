@@ -180,6 +180,12 @@ pytest = "~=9.0"                # the project's own list, beside it
 - **The project itself is not installed**: its modules are the repository's source. A project
   `neojac absorb --record` recorded is asked for its requirements by its `[wheel]` table's
   metadata, and install builds nothing of it.
+- **Its extension modules call the C libraries they vendor.** One neojac builds from a C module
+  links the C modules its row's `links` names, and exports `PyInit_<name>` and nothing else, so
+  each of its calls reaches its own copy of a function the interpreter also exports. A name
+  another library must find in it by name, as `ctypes` finds a function of a library the package
+  opens, goes in the row's `exports`
+  ([Extension modules](../toolchain/packages.md#extension-modules)).
 - **Its dependency groups and its extras are installed where `jac.toml` names them**:
   `[install.pypi."<directory>"]`'s `groups` and `extras`, which `absorb` writes from what uv
   installs by default for a project uv describes, then `[test.pypi."<directory>"]`'s

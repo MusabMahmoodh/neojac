@@ -765,6 +765,11 @@ neojac npx tsc --version
   Node: Node exports libuv's functions, and an addon that left a vendored copy of one of them
   undefined would run on Node's. A build that leaves such a symbol undefined is refused (E5270)
   ([Extension modules](../toolchain/packages.md#extension-modules)).
+- The vendored library is the one the addon calls, on every system: an addon exports Node-API's
+  two entry points and nothing else, and every other function in it is local to it, so a call of
+  a vendored `uv_version` reaches the vendored one, where on Linux it would otherwise reach
+  Node's. A name another library must find in it goes in the row's `exports`, which then are all
+  it exports: a SQLite loadable extension in the tree gives `sqlite3_extension_init`.
 
 ```sh
 neojac c++ -std=c++20 -DNODE_GYP_MODULE_NAME=hello -bundle -undefined dynamic_lookup \
