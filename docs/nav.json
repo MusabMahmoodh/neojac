@@ -840,6 +840,10 @@
           "page": "toolchain/launch.md"
         },
         {
+          "title": "telemetry",
+          "page": "toolchain/telemetry.md"
+        },
+        {
           "title": "docs and skills",
           "page": "toolchain/docs.md"
         }
