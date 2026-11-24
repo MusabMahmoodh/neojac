@@ -61,9 +61,20 @@ A Jac file is checked as part of a program, and the server picks the program:
 | A target variant (`x.windows.jac`) | The variant as the main module of its own program, checked for its target (as `neojac check --target`) |
 | `archwire.jac` | A program it governs |
 
-When nothing else is asked of it, the server checks every program of the workspace folders once: each main module nothing else reaches, leaving out what `jac.toml`'s `[check] exclude` leaves out, and each space of an archwire that declares spaces. It keeps each program's diagnostics and a table of its references, and lets the program go. That index is what makes references, rename and workspace symbols reach files that are not open, and what tells the server that `core/clock.jac` belongs to the program of `main.jac`.
+The server has every program of the workspace folders indexed once: each main module nothing else reaches, leaving out what `jac.toml`'s `[check] exclude` leaves out, and each space of an archwire that declares spaces. The index of a program is its files, its diagnostics, the names it declares and a table of its references. It is what makes references, rename and workspace symbols reach files that are not open, and what tells the server that `core/clock.jac` belongs to the program of `main.jac`.
 
+- **Each program is indexed by a process of its own,** a [`neojac query index`](#query) the server starts, as many at a time as half the machine's processors. The server goes on answering meanwhile, and what a process checked is given back when it ends.
+- **What a process found is kept in the [build cache](cache.md),** with the size and time of every file the program read. A server started again takes each index whose files are as they were, and runs nothing for it.
+- **The index is of what is saved.** A program is indexed again when a file of it changes on disk. A document being edited is answered from the check of its own program, and what the index says of that file is left out until it is saved.
+- **The main modules and the spaces go first,** and the other files after them, so that a file a program already holds is not indexed as a program of its own.
+
+- **The server checks names and types, as the text is typed.** Its own check of a program reads every module and settles every declaration, with the documents as the editor holds them, and checks the bodies of functions file by file: those of the open documents at once, those of another file when an answer needs them (a reference into it, a parameter of one of its functions). That is what hover, completion, navigation and the diagnostics of syntax, names and types are answered from.
+- **The later phases are found of the program as it is saved.** Ownership, what a place provides, the lint rules and the other whole-program judgments are the full check's, which the process that indexes a program runs. Their diagnostics are published when that process ends: after a file is opened, and again each time one is saved. While a document differs from its saved file, the saved file's findings are not shown for it.
+- **An edit inside function bodies is answered from the check the server holds.** When what changed in a file is the bodies of its functions and nothing else, the file is read again, the bodies that changed are put in place of the old ones and checked, and the rest of the program stands: tens of milliseconds, whatever the program's size. An edit that changes a declaration, an import, or a body the compiler runs or copies (a `comptime` function, a generic one, a kernel) is a check of the program again.
 - **A check gives way to typing.** A check is abandoned when a newer edit arrives, and starts again once the edits pause (150 ms by default).
+- **The server is two processes.** The one an editor starts keeps the documents, the workspace's index and every file of the checked program parsed and untouched. It forks a second, which checks the program and answers; a fork shares the first's memory until it writes to it, so the second starts with those trees at no cost and changes only its own copy.
+- **An edit that needs the program checked again ends the second process and forks another.** Nothing is read or parsed again but the files that changed, and the memory of the old check goes with its process: there is no pause while it is freed. A request that was waiting is asked again of the new one.
+- **When a check stands that the edit did not touch, or a command the server started is still running,** the program is checked again in the same process instead, and the superseded check is freed when the server is idle (0.4 s after the last message; when two wait, before the next check). On Windows, where a process is not forked, this is every edit.
 - **A check keeps going past errors.** `neojac check` stops at the first phase that finds errors; the server reports every phase's, so a syntax error in one file does not hide a type error in another. Inside a statement the parser had to skip, only the syntax error is reported.
 - **A check runs what a build's check runs.** A program with C or Rust modules has them compiled the first time, from the [build cache](cache.md) afterwards.
 - **At most four checked programs are kept** in memory, the least recently used let go first.
@@ -72,7 +83,7 @@ When nothing else is asked of it, the server checks every program of the workspa
 
 | Request | Answer |
 |---|---|
-| Diagnostics, pushed or pulled, for a document and for the workspace | Every error and warning of every phase, in every file of a checked program, with its code linked to its page of the reference |
+| Diagnostics, pushed or pulled, for a document and for the workspace | Every error and warning, in every file of a checked program, with its code linked to its page of the reference: those of syntax, names and types as the text is typed, those of the later phases as the file is saved |
 | Definition | Where the name is defined: for a declaration with an `impl`, the `impl` |
 | Declaration | The declaration itself: the `def` in the module |
 | Implementation | A function's `impl`; the overrides below a method; the subclasses of a class; for a walker, `spawn` or `visit`, the abilities that fire; for a node or an edge, the abilities it triggers |
@@ -151,6 +162,7 @@ The server reads the `neojac` section of the editor's settings, through `workspa
 
 ```sh
 neojac query <what> <file>[:<line>[:<column>]]
+neojac query index <program> [--no-lint]
 ```
 
 `neojac query` checks the file as the server does, in the program it belongs to, and prints one answer. Lines and columns count from 1. It is for scripts and for agents that have no editor.
@@ -164,6 +176,21 @@ neojac query <what> <file>[:<line>[:<column>]]
 | `signature` | The signature being called and the parameter at the cursor |
 | `diagnostics` | The diagnostics of the file's program |
 | `arch` | The JSON of the architecture picture the document is in ([arch](arch.md)): a module's file gives its module, the line of a `layer` in `archwire.jac` that layer, anywhere else there the project |
+| `index` | The JSON of a whole program's index, as the server keeps it. The program is its main module, or `archwire.jac#<space>` for a space |
+
+A program's index holds:
+
+| Member | What it is |
+|---|---|
+| `main` | The program |
+| `stamps` | Every file the program read, with its size and time: the index stands while they do |
+| `files`, `owned` | The files of the program, and those of them that are its own |
+| `found` | Each file's diagnostics |
+| `names` | What a reference can be to, each as `<kind>:<file>:<line>:<column>` of its declaration |
+| `paths`, `at` | The references: seven lists of one length, a reference's file (a place in `paths`), line, column, length, role (0 a read, 1 a write, 2 a declaration, 3 an impl), what it is to and what it is within (places in `names`, -1 for nothing) |
+| `named` | The declarations: name, kind, detail, file, line, column |
+
+`--no-lint` leaves the project's lint rules out, as a server whose `lint` setting is off asks.
 
 ```sh
 neojac query definition main.jac:12:9
