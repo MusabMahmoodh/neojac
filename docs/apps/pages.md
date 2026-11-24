@@ -306,7 +306,10 @@ What `sign_in()` shows is the plugin's:
 - **A form,** for a plugin that asks for something: the standard `accounts` plugin's has a
   username, an email and a password, with `Sign in` and `Create account`
   ([Serving a space](server.md#the-accounts-plugin)). It is shown over the page, says what the
-  plugin refused a try with, and goes when the caller is signed in or cancels.
+  plugin refused a try with, and goes when the caller is signed in or cancels. Where the plugin
+  mails a link that sets a password, it has `Forgot your password?` too, which asks for one for
+  the account the username names and says that it was mailed
+  ([Serving a space](server.md#checked-addresses-and-new-passwords)).
 - **A place to go,** for a plugin that signs callers in elsewhere, or for one of a form's
   buttons that does (`Continue with GitHub`): the page leaves for it, and the caller comes back
   signed in, to the page they left from.
@@ -315,8 +318,9 @@ What `sign_in()` shows is the plugin's:
 The form is the runtime's own, built of plain elements whatever the space's `ui` plugin, so one
 page works under every auth plugin. Its parts carry classes a project's style sheet styles:
 `jac-sign-in` (what covers the page), `jac-sign-in-form`, `jac-sign-in-field`,
-`jac-sign-in-input`, `jac-sign-in-error`, `jac-sign-in-actions`, `jac-sign-in-action` and
-`jac-sign-in-cancel`. Its own rules are written with `:where()`, so any rule of the project's
+`jac-sign-in-input`, `jac-sign-in-error`, `jac-sign-in-told` (what it says in that place when
+nothing was refused), `jac-sign-in-actions`, `jac-sign-in-action`, `jac-sign-in-cancel` and
+`jac-sign-in-forgot`. Its own rules are written with `:where()`, so any rule of the project's
 wins over them.
 
 The session's token is kept in the browser's `localStorage` (under `jac_token`) and sent with
@@ -324,8 +328,9 @@ every crossing; the name the plugin gave with it is kept beside it (under `jac_n
 
 **On a phone** (a `hermes` space) the same call shows the same form, drawn by the `react_native`
 plugin with React Native's own views over the app: a field for each the plugin asks for, a button
-for each way of signing in that answers in place, and Cancel. A way of signing in that leaves for
-a page (GitHub) is not offered there: a page has no way back into the app. Where the plugin offers
+for each way of signing in that answers in place, `Forgot your password?` where the plugin mails
+such links (the link is opened in a browser), and Cancel. A way of signing in that leaves for
+a page (GitHub, Google) is not offered there: a page has no way back into the app. Where the plugin offers
 only such ways, `sign_in()` raises `RemoteRejected`.
 
 ## The app's arrangement

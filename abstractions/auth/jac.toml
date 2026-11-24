@@ -14,7 +14,7 @@ archwire = false
 # another: it is in this directory.
 [abstraction]
 interface = "auth.contract.Auth"
-interface_ver = 2
+interface_ver = 3
 per = "project"
 picked = "start"
 standard = "accounts"

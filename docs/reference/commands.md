@@ -852,3 +852,24 @@ neojac version
 ```
 
 Prints the release's version, the platform it runs on and the commit it was built from; `neojac --version` and `neojac -V` do the same. A neojac built from source says so.
+
+### `neojac telemetry`
+
+Show what neojac records of its use, or turn it off.
+
+```sh
+neojac telemetry
+neojac telemetry off
+neojac telemetry on
+```
+
+A release of neojac counts what it is used for: the commands run, how long each took and whether it failed, the options each was given by name, the codes of the diagnostics they reported, the kinds of program built and the platforms they were built for, and where in neojac an internal error was raised. Nothing a command was given, a file's name or its source among it, is recorded. A week's counts are one report, with a random ID made for that week; the first run on a machine says so on stderr.
+
+Alone, says whether recording is on and what decided that, then prints what is recorded and not yet sent: each week's report as it is sent. `off` stops recording and deletes what is recorded; `on` starts it again. NEOJAC_TELEMETRY=off or DO_NOT_TRACK=1 keeps it off wherever it is set, and a neojac built from source records nothing until `neojac telemetry on`.
+
+| Example | What it does |
+|---|---|
+| `neojac telemetry` | What is recorded on this machine |
+| `neojac telemetry off` | Stop recording, and delete what is recorded |
+
+Its guide: [toolchain/telemetry](../toolchain/telemetry.md) (`neojac docs toolchain/telemetry`).

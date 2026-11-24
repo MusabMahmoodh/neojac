@@ -224,10 +224,12 @@ form a caller signs in by:
 | `boot` | The module whose `startApp` starts a routed app (`"@jac/runtime"`): what gives a space file routes |
 
 A plugin whose host has no page to draw on shows the sign-in form itself: its runtime calls
-`__showSignIn(show)` of `session.js`, and `show(asks, answer)` is then given what the app's auth
-asks for (its fields and its ways of signing in) and `answer(action, given)`, which tries one way
-and gives `{ok: true}` or `{ok: false, detail}`. It gives a promise of whether the caller signed
-in, or `null` to leave the form to the page. `abstractions/ui/react_native/runtime.js` is one.
+`__showSignIn(show)` of `session.js`, and `show(asks, answer, forgot)` is then given what the
+app's auth asks for (its fields, its ways of signing in, and `forgot`, the field a password's link
+is asked for by), `answer(action, given)`, which tries one way and gives `{ok: true}` or
+`{ok: false, detail}`, and `forgot(name)`, which asks for a link that sets a new password and gives
+`{ok, detail}`, what to tell the caller. It gives a promise of whether the caller signed in, or
+`null` to leave the form to the page. `abstractions/ui/react_native/runtime.js` is one.
 
 A plugin's `jac.toml` with no `[ui]` table, or one that is not at the path `[packages]` gives, is
 E2216.

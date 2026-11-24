@@ -1,6 +1,6 @@
 ---
-description: The server's words - the built-in decorators that give a function a path of its own, a schedule, a limit or make it a job, what a job's handle offers, and JobFailed, consume_limit and static_file, which a program imports from stdjac - with each name's signature; and the contracts a plugin for auth, jobs, schedules or limits conforms to, with what each asks of the program that runs it.
-keywords: restspec, HTTPMethod, schedule, job, Job, JobNote, JobFailed, limit, consume_limit, stdjac.server, auth.contract, jobs.contract, schedule.contract, limits.contract, Auth, AuthHost, SignIn, SignInField, SignInAction, Session, Rejected, bearer_token, Jobs, JobsHost, JobState, Scheduler, Scheduled, Limits, static_file
+description: The server's words - the built-in decorators that give a function a path of its own, a schedule, a limit or make it a job, what a job's handle offers, and JobFailed, consume_limit, address_checked and static_file, which a program imports from stdjac - with each name's signature; and the contracts a plugin for auth, jobs, schedules, limits or mail conforms to, with what each asks of the program that runs it.
+keywords: restspec, HTTPMethod, schedule, job, Job, JobNote, JobFailed, limit, consume_limit, address_checked, stdjac.server, auth.contract, jobs.contract, schedule.contract, limits.contract, mail.contract, Auth, AuthHost, SignIn, SignInField, SignInAction, Session, DeviceSignIn, Rejected, bearer_token, Jobs, JobsHost, JobState, Scheduler, Scheduled, Limits, Mailer, MailNotSent, static_file
 ---
 # The server's words
 
@@ -34,9 +34,9 @@ function that carries one. Nothing is registered as a module starts, so no `with
 `restspec`, `HTTPMethod`, `schedule`, `limit`, `job`, `JobNote` and `Job` are built in, and a
 name of the program's own with the same spelling is the one the program means. So are `File`
 and `accepts`, which have a page of their own ([Files](files.md)). `consume_limit`,
-`JobFailed` and `static_file` ([below](#static_file)) are imported from `stdjac`:
-`import from stdjac { JobFailed, consume_limit }`. A built-in word that is imported, or one of
-the three imported from a module of stdjac, is E2234.
+`address_checked`, `JobFailed` and `static_file` ([below](#static_file)) are imported from
+`stdjac`: `import from stdjac { JobFailed, consume_limit }`. A built-in word that is imported, or
+one of the four imported from a module of stdjac, is E2234.
 
 | Name | Signature | Does |
 |---|---|---|
@@ -45,6 +45,7 @@ the three imported from a module of stdjac, is E2234.
 | `schedule` | `@schedule(interval: float)` | A server runs the function, one of no parameters, every `interval` seconds, the first time as it starts |
 | `limit` | `@limit(uses: int, per: float)` | A caller may call the endpoint `uses` times in each `per` seconds |
 | `consume_limit` | `consume_limit(scope: str, actor: str, limit: int, seconds: int) -> int` | Counts a use of `scope` by `actor`: 0 while it is within `limit` uses in `seconds`, else the seconds to wait |
+| `address_checked` | `address_checked() -> bool` | Whether the app may take the caller's address to be theirs: checked, vouched for by another service, or an app that checks none ([Serving a space](server.md#checked-addresses-and-new-passwords)) |
 | `job` | `@job` | The function, one of its input and a `JobNote`, runs apart: `flow f(x)` starts it |
 | `JobNote` | `Callable[[str, str], None]` | What a job says how it goes with: `note(phase, text)` |
 | `Job` | `Job[R]`: `done() -> bool`, `notes() -> list[tuple[str, str]]` | A job started, whose result is an `R`: `wait j` gives it |
@@ -68,8 +69,9 @@ class conforms to it, and a program never names it.
 
 | Interface | Contract | Methods |
 |---|---|---|
-| `Auth` | `auth.contract` | `open(host: dyn AuthHost)`; `caller(headers: dict[str, str]) -> str \| None`, who a request's caller is; `asks(headers) -> SignIn`, what signing in takes; `answer(action: str, given: dict[str, str], client: str) -> Session`, a caller signed in, or `Rejected`; `leave(headers)`, a session ended; and the three steps of signing in a program that shows no page ([Serving a space](server.md#a-program-that-shows-no-page)), each `Rejected` by a plugin that signs none in: `device(client: str) -> DeviceSignIn`, one begun; `device_answer(headers, code: str, allow: bool)`, the answer of a request's caller for the program showing `code`; `device_session(secret: str) -> Session \| None`, the program's session, once, and `None` while no one has answered |
+| `Auth` | `auth.contract` | `open(host: dyn AuthHost)`; `caller(headers: dict[str, str]) -> str \| None`, who a request's caller is; `asks(headers) -> SignIn`, what signing in takes; `answer(action: str, given: dict[str, str], client: str) -> Session`, a caller signed in, or `Rejected`; `leave(headers)`, a session ended; and the three steps of signing in a program that shows no page ([Serving a space](server.md#a-program-that-shows-no-page)), each `Rejected` by a plugin that signs none in: `device(client: str) -> DeviceSignIn`, one begun; `device_answer(headers, code: str, allow: bool)`, the answer of a request's caller for the program showing `code`; `device_session(secret: str) -> Session \| None`, the program's session, once, and `None` while no one has answered; `checked(user: str) -> bool`, whether the account's address is checked, and `mails() -> bool`, whether the plugin mails links at all; and the steps of the links it mails ([Serving a space](server.md#checked-addresses-and-new-passwords)), each `Rejected` by a plugin that mails none: `mail_check(headers, address: str)`, a link that checks a request's caller's address mailed to it (`address` is the one an account with none gives itself); `check(token: str, client: str)`, the address the link was mailed to checked; `forgot(name: str, client: str)`, a link that sets a new password mailed to the account `name` names, answered the same whether or not there is one; `reset(token: str, password: str, client: str) -> Session`, the password set and the caller signed in |
 | `Limits` | `limits.contract` | `open(host: dyn Host)`; `consume(scope: str, actor: str, limit: int, seconds: int) -> int` |
+| `Mailer` | `mail.contract` | `open(host: dyn Host)`; `sends() -> bool`, whether it sends mail at all; `send(to: str, subject: str, text: str)`, a letter of plain text sent once, or `MailNotSent` |
 | `Scheduler` | `schedule.contract` | `open(host: dyn Host)`; `start(work: list[Scheduled], on_loop: Callable[[Callable[[], None]], None])`: run each of `work` when it is due, from now on |
 | `Jobs` | `jobs.contract` | `open(host: dyn JobsHost)`; `start(name: str, input: any) -> str`, a job started, by what names its run; `read(id: str) -> JobState`, what it has said since it was last read and whether it has ended; `work() -> bool`, asked as a program starts: run the job this process was started for, if any |
 
@@ -81,12 +83,13 @@ What they are given and give:
 
 | Type | Fields |
 |---|---|
-| `SignIn` | `fields: list[SignInField]`, `actions: list[SignInAction]`, `redirect: str`, `session: Session \| None`: a form, or a place to go, or the session of a caller known already |
+| `SignIn` | `fields: list[SignInField]`, `actions: list[SignInAction]`, `redirect: str`, `session: Session \| None`: a form, or a place to go, or the session of a caller known already; and `forgot: str`, the field whose value a page gives `forgot` (`""` where the plugin mails no such link) |
 | `SignInField` | `name`, `label`, `secret: bool`, `choices: list[str]` |
 | `SignInAction` | `name`, `label`, `needs: list[str]` (the fields it takes), `redirect: str` (for one done elsewhere), `keeps: dict[str, str]` (what the page that leaves for it keeps, given to `answer` beside what the caller comes back with) |
 | `Session` | `user: str`, `token: str`, `name: str` (what they are called, where that is not who they are) |
 | `DeviceSignIn` | `code: str` (what the program shows), `secret: str` (what it collects with), `lasts: int`, `every: int` (seconds: how long it may wait, and what it leaves between asking) |
 | `Rejected` | An exception: `detail: str`, `retry_after: int` |
+| `MailNotSent` | An exception: `detail: str`, why a letter was not taken, for whoever runs the program |
 | `Scheduled` | `name: str`, `every: float`, `run: Callable[[], None]` |
 | `JobState` | `notes: list[tuple[str, str]]`, `done: bool`, `result: any`, `failed: str` |
 
@@ -99,6 +102,8 @@ What a plugin asks of the program, through the host its `open` was given:
 | `Host` | `upgraded(what: str)` | Has the program say, as it starts, what the plugin did to data it keeps |
 | `AuthHost` | `windowed() -> bool` | Whether the app shows itself in a window of its own |
 | `AuthHost` | `consume_limit(scope: str, actor: str, limit: int, seconds: int) -> int` | Counts a use with the project's `limits`: 0 within the limit, else the seconds to wait |
+| `AuthHost` | `sends_mail() -> bool` | Whether the project's `mail` sends mail where the program runs |
+| `AuthHost` | `send_mail(to: str, subject: str, text: str)` | Sends a letter with the project's `mail`. One not sent is said on the program's standard error, and the plugin is told nothing different |
 | `JobsHost` | `command() -> list[str]` | The command that runs the program again, before its arguments |
 | `JobsHost` | `owner() -> str` | The space whose jobs the program's are, to a copy started for one: `""` for its own |
 | `JobsHost` | `run(name: str, input: any, note: Callable[[str, str], None]) -> any` | Runs the program's job `name` and gives its result as JSON's values |

@@ -19,11 +19,23 @@ alone: the book keeps its SHA-256.
   there. The caller is sent to GitHub and comes back to
   `/__jac/auth/github`, which is what the OAuth app registers as its
   callback.
+- **With a Google OAuth client's ID and secret, and `origin`,** a caller may
+  also sign in through Google: an account whose provider is `google`, known
+  by Google's ID for the person and called by their address. The caller
+  comes back to `/__jac/auth/google` at `origin`, which is what the client
+  registers as its redirect URI.
 - **A program that shows no page** is signed in by someone at one: it shows
   a code of eight letters, and whoever is signed in at the app's page and
   gives the page that code says whether the program is theirs. It then
   collects a session of its own, with a secret it alone holds, of which the
-  book keeps the SHA-256. A program waits ten minutes."""
+  book keeps the SHA-256. A program waits ten minutes.
+- **Where the program sends mail and `origin` says where the app is
+  reached,** an account is made only with an address, and a link mailed to
+  it checks it; one who forgot their password is mailed a link that sets
+  another. A link is `origin`'s, its token in its fragment, and the book
+  keeps the token's SHA-256: a check link lasts a day, a reset link an hour,
+  and each is followed once. An account another service vouches for
+  (GitHub, Google) is checked as it is."""
 
 import base64;
 import hashlib;
@@ -34,7 +46,8 @@ import re;
 import secrets;
 import time;
 import urllib.request;
-import from urllib.parse { urlencode }
+import from urllib.error { HTTPError }
+import from urllib.parse { urlencode, urlsplit }
 import from auth.contract {
     Auth,
     AuthHost,
@@ -74,7 +87,28 @@ glob USERNAME: str = "[a-z0-9][a-z0-9._-]{2,31}",
      DEVICE_LENGTH: int = 8,
      # What one the app does not know is told where they may not make
      # themselves an account.
-     CLOSED: str = "this app makes no new accounts: ask whoever runs it for one";
+     CLOSED: str = "this app makes no new accounts: ask whoever runs it for one",
+     # Who writes the ID token Google's token endpoint gives: the two ways it
+     # writes itself
+     # (https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken).
+     GOOGLE_ISSUERS: list[str] = ["https://accounts.google.com", "accounts.google.com"],
+     # The services whose accounts' addresses are checked as they are: each
+     # says only an address that is someone's.
+     VOUCHING: list[str] = ["github", "google"],
+     # How long a link mailed to check an address lasts, and one that sets a
+     # password, in seconds; how many links one account is mailed in each
+     # LIMIT_SECONDS; how many asks for a password's link one client address
+     # makes, and how many links it follows (each a password's hash, for a
+     # reset).
+     CHECK_SECONDS: int = 86400,
+     RESET_SECONDS: int = 3600,
+     MAIL_PER_USER: int = 3,
+     FORGOT_PER_CLIENT: int = 10,
+     FOLLOW_PER_CLIENT: int = 30,
+     # What a step that mails is refused with where nothing is mailed.
+     NO_MAIL: str = "this app mails no links",
+     # What a link that is not one, is used or is too old is refused with.
+     NO_LINK: str = "this link was followed already, or is too old: ask for another";
 
 """Where accounts are kept, as `AccountsAuth` asks it. Each method is one
 step, done whole whoever else is at the book: the calls a server answers at
@@ -109,7 +143,21 @@ as `time.time` counts them.
 - `collect` is what was said of the one that collects with `key`: whether
   anything was, and the user ("" for one turned away); None for none that
   waits. One something was said of is dropped as it is collected, so it is
-  collected once."""
+  collected once.
+- `address` is the address of the account `user` and whether it is
+  checked: ("", False) for one with none, and for no account.
+- `give_address` gives the account `user`, which has no address, the
+  address `email`, unless another account has it: whether it was given.
+- `link` keeps a link mailed for `purpose` ("check" or "reset") for the
+  account `user`, which `key` (its token's SHA-256) follows until
+  `expires`, and drops the links that ended by `now`.
+- `check` follows the check link `key`, while it lasts at `now`: its
+  account's address is checked, and its check links are dropped. The user,
+  or "" for a key that names no such link.
+- `reset` follows the reset link `key`, while it lasts at `now`: its
+  account's password is `password` (as it is kept), its address is
+  checked, and its sessions and its links are dropped. The user, or "" for
+  a key that names no such link."""
 obj Book {
     def session(key: str) -> tuple[str, float] | None abst;
     def begin(key: str, user: str, expires: float, now: float) abst;
@@ -123,6 +171,11 @@ obj Book {
     def expect(code: str, key: str, expires: float, now: float) -> bool abst;
     def decide(code: str, user: str, now: float) -> bool abst;
     def collect(key: str, now: float) -> tuple[bool, str] | None abst;
+    def address(user: str) -> tuple[str, bool] abst;
+    def give_address(user: str, email: str) -> bool abst;
+    def link(key: str, user: str, purpose: str, expires: float, now: float) abst;
+    def check(key: str, now: float) -> str abst;
+    def reset(key: str, password: str, now: float) -> str abst;
 }
 
 """An `auth` plugin's class, but for `open_book`, which the plugin gives: its
@@ -151,9 +204,17 @@ obj AccountsAuth(Auth) {
         # Where GitHub is, and its API: another for GitHub Enterprise.
         github: str = "https://github.com",
         github_api: str = "https://api.github.com",
+        # A Google OAuth client's ID and secret: signing in through Google
+        # is offered where both are given, and `origin`.
+        google_id: Secret = Secret(variable="SSO_GOOGLE_CLIENT_ID"),
+        google_secret: Secret = Secret(variable="SSO_GOOGLE_CLIENT_SECRET"),
+        # Where Google signs a caller in, and where its tokens are had.
+        google: str = "https://accounts.google.com",
+        google_api: str = "https://oauth2.googleapis.com",
         # Where callers reach the app (`https://example.org`), for the place
         # another service sends them back to. Not said, they are sent to the
-        # callback the service has registered.
+        # callback the service has registered: GitHub's has one, and
+        # Google is not offered.
         origin: str = "";
 
     # Where the accounts are kept, once it is opened.
@@ -163,10 +224,14 @@ obj AccountsAuth(Auth) {
     has host: dyn AuthHost | None postinit;
     has data_dir: str postinit;
     has windowed: bool postinit;
-    # The GitHub OAuth app's client ID and secret, as the program gives
-    # them: "" for one it gives none of.
+    # The GitHub OAuth app's and the Google OAuth client's IDs and secrets,
+    # as the program gives them: "" for one it gives none of.
     has github_client: str postinit;
     has github_client_secret: str postinit;
+    has google_client: str postinit;
+    has google_client_secret: str postinit;
+    # Whether the program sends mail, as it said when it was opened.
+    has sending: bool postinit;
 
     def postinit {
         self.book = None;
@@ -175,6 +240,9 @@ obj AccountsAuth(Auth) {
         self.windowed = False;
         self.github_client = "";
         self.github_client_secret = "";
+        self.google_client = "";
+        self.google_client_secret = "";
+        self.sending = False;
     }
 
     """The book the accounts are kept in, made ready in the program `host`:
@@ -188,6 +256,9 @@ obj AccountsAuth(Auth) {
         self.windowed = host.windowed();
         self.github_client = host.secret(self.github_id);
         self.github_client_secret = host.secret(self.github_secret);
+        self.google_client = host.secret(self.google_id);
+        self.google_client_secret = host.secret(self.google_secret);
+        self.sending = host.sends_mail();
         self.book = self.open_book(host);
     }
 
@@ -280,16 +351,26 @@ obj AccountsAuth(Auth) {
         if self.github_offered() {
             actions.append(self.github_action());
         }
+        if self.google_offered() {
+            actions.append(self.google_action());
+        }
         return SignIn(
             fields=[
                 SignInField(name="username", label="Username"),
                 SignInField(
-                    name="email", label="Email" if self.email_required else "Email (optional)"
+                    name="email", label="Email" if self.needs_address() else "Email (optional)"
                 ),
                 SignInField(name="password", label="Password", secret=True),
             ],
             actions=actions,
+            forgot="username" if self.mails() else "",
         );
+    }
+
+    """Whether an account is made only with an address: where it is said
+    to be, and where an address is checked."""
+    def needs_address -> bool {
+        return self.email_required or self.mails();
     }
 
     """Whether a caller may sign in through GitHub: where the program runs
@@ -304,39 +385,82 @@ obj AccountsAuth(Auth) {
         return self.origin.rstrip("/") + "/__jac/auth/github" if self.origin != "" else "";
     }
 
-    """What signs a `state` that lasts until `expires` for the page that
-    keeps `verifier`, with the book's key."""
-    def away_mark(expires: int, verifier: str) -> str {
-        said = (str(expires) + "." + verifier).encode("utf-8");
+    """Whether a caller may sign in through Google: where the program runs
+    gives the OAuth client's ID and its secret, and the app says where it is
+    reached, which Google is told to send them back to."""
+    def google_offered -> bool {
+        return self.google_client != "" and self.google_client_secret != "" and self.origin != "";
+    }
+
+    """Where Google sends a caller back to: its client's redirect URI."""
+    def google_back -> str {
+        return self.origin.rstrip("/") + "/__jac/auth/google";
+    }
+
+    """What signs a `state` of the way `way` that lasts until `expires` for
+    the page that keeps `verifier`, with the book's key."""
+    def away_mark(way: str, expires: int, verifier: str) -> str {
+        said = (way + "." + str(expires) + "." + verifier).encode("utf-8");
         return hmac.new(self.kept().away_key(), said, hashlib.sha256).hexdigest();
     }
 
-    """Signing in through GitHub: the place to go, with a `state` only the
-    book's key makes, and a verifier the page that leaves keeps. GitHub is
-    given the verifier's hash now and the verifier when the caller is back
-    (PKCE), and the state is signed over it: so the session is given to the
-    page that left, and never to one that was only handed the way back."""
-    def github_action -> SignInAction {
+    """Signing in by `way` at another service: its page `place` with
+    `query`, a `state` only the book's key makes, and a verifier the page
+    that leaves keeps. The service is given the verifier's hash now and the
+    verifier when the caller is back (PKCE), and the state is signed over
+    it: so the session is given to the page that left, and never to one that
+    was only handed the way back."""
+    def away(way: str, label: str, place: str, query: dict[str, str]) -> SignInAction {
         verifier = secrets.token_urlsafe(48);
         expires = int(time.time()) + AWAY_SECONDS;
-        challenge = base64.urlsafe_b64encode(
+        query["state"] = str(expires) + "." + self.away_mark(way, expires, verifier);
+        query["code_challenge"] = base64.urlsafe_b64encode(
             hashlib.sha256(verifier.encode("ascii")).digest()
         ).decode("ascii").rstrip("=");
-        query: dict[str, str] = {
-            "client_id": self.github_client,
-            "state": str(expires) + "." + self.away_mark(expires, verifier),
-            "code_challenge": challenge,
-            "code_challenge_method": "S256",
-        };
+        query["code_challenge_method"] = "S256";
+        return SignInAction(
+            name=way,
+            label=label,
+            redirect=place + "?" + urlencode(query),
+            keeps={"verifier": verifier},
+        );
+    }
+
+    """The verifier the page that left by `way` kept, where `given`, what the
+    caller came back from `service` with, shows that page is theirs and was
+    left long enough ago; Rejected otherwise, and where they were turned
+    away there."""
+    def came_back(way: str, service: str, given: dict[str, str]) -> str {
+        if given.get("error", "") != "" {
+            raise Rejected(detail=f"signing in through {service} was turned away there");
+        }
+        verifier = given.get("verifier", "");
+        (expires_said, dot, mark) = given.get("state", "").partition(".");
+        if dot == ""
+            or not expires_said.isdigit()
+            or verifier == ""
+            or not hmac.compare_digest(mark, self.away_mark(way, int(expires_said), verifier))
+        {
+            raise Rejected(detail="this sign-in was not begun here: try again");
+        }
+        if int(expires_said) < time.time() {
+            raise Rejected(detail="this sign-in took too long: try again");
+        }
+        return verifier;
+    }
+
+    """Signing in through GitHub, at its OAuth app's page."""
+    def github_action -> SignInAction {
+        query: dict[str, str] = {"client_id": self.github_client};
         back = self.github_back();
         if back != "" {
             query["redirect_uri"] = back;
         }
-        return SignInAction(
-            name="github",
-            label="Continue with GitHub",
-            redirect=self.github.rstrip("/") + "/login/oauth/authorize?" + urlencode(query),
-            keeps={"verifier": verifier},
+        return self.away(
+            "github",
+            "Continue with GitHub",
+            self.github.rstrip("/") + "/login/oauth/authorize",
+            query,
         );
     }
 
@@ -344,21 +468,7 @@ obj AccountsAuth(Auth) {
     the `code` and `state` GitHub sent them back with, and the `verifier`
     their page kept."""
     def github_answer(given: dict[str, str]) -> Session {
-        if given.get("error", "") != "" {
-            raise Rejected(detail="signing in through GitHub was turned away there");
-        }
-        verifier = given.get("verifier", "");
-        (expires_said, dot, mark) = given.get("state", "").partition(".");
-        if dot == ""
-            or not expires_said.isdigit()
-            or verifier == ""
-            or not hmac.compare_digest(mark, self.away_mark(int(expires_said), verifier))
-        {
-            raise Rejected(detail="this sign-in was not begun here: try again");
-        }
-        if int(expires_said) < time.time() {
-            raise Rejected(detail="this sign-in took too long: try again");
-        }
+        verifier = self.came_back("github", "GitHub", given);
         exchange: dict[str, str] = {
             "client_id": self.github_client,
             "client_secret": self.github_client_secret,
@@ -398,6 +508,77 @@ obj AccountsAuth(Auth) {
         return self.external("github", str(me["id"]), str(me.get("login", "")));
     }
 
+    """Signing in through Google, at its page that asks the person which of
+    their accounts, and their address (OpenID Connect's code flow)."""
+    def google_action -> SignInAction {
+        return self.away(
+            "google",
+            "Continue with Google",
+            self.google.rstrip("/") + "/o/oauth2/v2/auth",
+            {
+                "client_id": self.google_client,
+                "redirect_uri": self.google_back(),
+                "response_type": "code",
+                "scope": "openid email",
+            },
+        );
+    }
+
+    """The session of the Google account a caller came back as: `given`
+    holds the `code` and `state` Google sent them back with, and the
+    `verifier` their page kept. Who they are is the ID token Google's token
+    endpoint gives for the code: read as it comes, over TLS straight from
+    Google, which stands for its signature (OpenID Connect Core 1.0,
+    3.1.3.7), and held to this client, to Google and to its time."""
+    def google_answer(given: dict[str, str]) -> Session {
+        verifier = self.came_back("google", "Google", given);
+        exchange: dict[str, str] = {
+            "client_id": self.google_client,
+            "client_secret": self.google_client_secret,
+            "code": given.get("code", ""),
+            "code_verifier": verifier,
+            "grant_type": "authorization_code",
+            "redirect_uri": self.google_back(),
+        };
+        try {
+            got = asked_json(
+                self.google_api.rstrip("/") + "/token",
+                {"Accept": "application/json"},
+                urlencode(exchange).encode("utf-8"),
+            );
+            parts = str(got.get("id_token", "")).split(".");
+            if len(parts) != 3 {
+                raise Rejected(detail="Google did not accept the sign-in");
+            }
+            said: any = json.loads(
+                base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)).decode("utf-8")
+            );
+        } except HTTPError {
+            # (A code it does not take is a 400 of Google's.)
+            raise Rejected(detail="Google did not accept the sign-in");
+        } except OSError {
+            raise Rejected(detail="Google could not be reached: try again");
+        } except ValueError {
+            raise Rejected(detail="Google's answer could not be read: try again");
+        }
+        if not isinstance(said, dict) {
+            raise Rejected(detail="Google's answer could not be read: try again");
+        }
+        token: dict[str, any] = said;
+        expires: any = token.get("exp", 0);
+        if str(token.get("iss", "")) not in GOOGLE_ISSUERS
+            or str(token.get("aud", "")) != self.google_client
+            or not isinstance(expires, (int, float))
+            or float(expires) < time.time()
+        {
+            raise Rejected(detail="Google's answer was not for this app: try again");
+        }
+        if str(token.get("sub", "")) == "" {
+            raise Rejected(detail="Google did not say who signed in");
+        }
+        return self.external("google", str(token["sub"]), str(token.get("email", "")));
+    }
+
     def answer(action: str, given: dict[str, str], client: str) -> Session {
         name = given.get("username", "");
         retry = 0;
@@ -432,6 +613,8 @@ obj AccountsAuth(Auth) {
         } elif action == "github" and self.github_offered() {
             # (Each costs two requests of GitHub.)
             retry = self.tried("github", client, LOGIN_PER_CLIENT, LIMIT_SECONDS);
+        } elif action == "google" and self.google_offered() {
+            retry = self.tried("google", client, LOGIN_PER_CLIENT, LIMIT_SECONDS);
         } else {
             raise Rejected(detail=f"no way of signing in is '{action}'");
         }
@@ -443,6 +626,9 @@ obj AccountsAuth(Auth) {
         }
         if action == "github" {
             return self.github_answer(given);
+        }
+        if action == "google" {
+            return self.google_answer(given);
         }
         return self.register(name, given.get("email", ""), given.get("password", ""));
     }
@@ -536,21 +722,173 @@ obj AccountsAuth(Auth) {
             );
         }
         e = email.strip().lower();
-        if e == "" and self.email_required {
+        if e == "" and self.needs_address() {
             raise Rejected(detail="an account needs an email address");
         }
-        if e != "" and (len(e) > 254 or re.fullmatch(r"[^@\s]+@[^@\s]+", e) is None) {
-            raise Rejected(detail="that isn't an email address");
-        }
-        if len(password) < 8 {
-            raise Rejected(detail="a password has at least 8 characters");
+        if e != "" {
+            an_address(e);
         }
         # (Hashed before the book is asked: it takes a while, by design.)
-        record = password_record(password, self.rounds);
+        record = self.password_kept(password);
         if not self.kept().add(u, e, record, time.time()) {
             raise Rejected(detail="that username or email is taken");
         }
+        if self.mails() {
+            self.mail_link(u, e, "check");
+        }
         return Session(user=u, token=self.token_for(u));
+    }
+
+    """`password` as the book keeps it: Rejected for one that is too short."""
+    def password_kept(password: str) -> str {
+        if len(password) < 8 {
+            raise Rejected(detail="a password has at least 8 characters");
+        }
+        return password_record(password, self.rounds);
+    }
+
+    """Whether links are mailed here: where the program sends mail, and the
+    app says where it is reached, which a link names. Never to the people
+    at an app's machine, who have no address."""
+    def mails -> bool {
+        return self.sending and self.origin != "" and not self.local();
+    }
+
+    def checked(user: str) -> bool {
+        (provider, colon, rest) = user.partition(":");
+        if colon != "" {
+            return provider in VOUCHING;
+        }
+        return self.kept().address(user)[1];
+    }
+
+    """Mail `email`, the address of the account `user`, a link for
+    `purpose` ("check" or "reset"), which lasts as long as such a link
+    does. A letter not sent is the program's to say: the caller is told
+    nothing different."""
+    def mail_link(user: str, email: str, purpose: str) {
+        token = secrets.token_hex(32);
+        now = time.time();
+        lasts = CHECK_SECONDS if purpose == "check" else RESET_SECONDS;
+        self.kept().link(token_key(token), user, purpose, now + lasts, now);
+        site = self.origin.rstrip("/");
+        place = urlsplit(site).netloc or site;
+        link = f"{site}/__jac/auth/{purpose}#{token}";
+        if purpose == "check" {
+            self.mailed().send_mail(
+                email,
+                f"Check your address at {place}",
+                f"Follow this link within a day to check that this address is yours, for the account {user} at {site}:\n\n{link}\n\nIf you made no such account, do nothing.\n",
+            );
+        } else {
+            self.mailed().send_mail(
+                email,
+                f"Set a new password at {place}",
+                f"Follow this link within an hour to set a new password for the account {user} at {site}:\n\n{link}\n\nIf you did not ask for one, do nothing: the password stays as it is.\n",
+            );
+        }
+    }
+
+    """The program it was opened in, which sends its mail."""
+    def mailed -> dyn AuthHost {
+        host = self.host;
+        if host is None {
+            raise RuntimeError("accounts was asked before it was opened");
+        }
+        return host;
+    }
+
+    """The caller's address is mailed a link that checks it; one with none
+    gives itself `address` first."""
+    def mail_check(headers: dict[str, str], address: str) {
+        if not self.mails() {
+            raise Rejected(detail=NO_MAIL);
+        }
+        who = self.caller(headers);
+        if who is None {
+            raise Rejected(detail="sign in first");
+        }
+        if ":" in who {
+            raise Rejected(
+                detail="this account is one another service vouches for, and has no address to check here",
+            );
+        }
+        retry = self.tried("mail", "user " + who, MAIL_PER_USER, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        (email, ok) = self.kept().address(who);
+        given = address.strip().lower();
+        if ok {
+            raise Rejected(detail="this account's address is checked already");
+        }
+        if email == "" {
+            if given == "" {
+                raise Rejected(detail="this account has no address: give it one");
+            }
+            an_address(given);
+            if not self.kept().give_address(who, given) {
+                raise Rejected(detail="that email is taken");
+            }
+            email = given;
+        } elif given != "" and given != email {
+            raise Rejected(detail="this account has an address already");
+        }
+        self.mail_link(who, email, "check");
+    }
+
+    def check(token: str, client: str) {
+        if not self.mails() {
+            raise Rejected(detail=NO_MAIL);
+        }
+        retry = self.tried("follow", client, FOLLOW_PER_CLIENT, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        if self.kept().check(token_key(token), time.time()) == "" {
+            raise Rejected(detail=NO_LINK);
+        }
+    }
+
+    """The account `name` names (its username or its address) is mailed a
+    link that sets a new password, where it has an address and was mailed
+    no more than its share of links lately. What the caller sees is the same
+    in every case. (That an address has an account a registration says,
+    which refuses it.)"""
+    def forgot(name: str, client: str) {
+        if not self.mails() {
+            raise Rejected(detail=NO_MAIL);
+        }
+        retry = self.tried("forgot", client, FORGOT_PER_CLIENT, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        found = self.kept().account(name.strip().lower());
+        if found is None {
+            return;
+        }
+        user = found[0];
+        email = self.kept().address(user)[0];
+        if email == "" or self.tried("mail", "user " + user, MAIL_PER_USER, LIMIT_SECONDS) > 0 {
+            return;
+        }
+        self.mail_link(user, email, "reset");
+    }
+
+    def reset(token: str, password: str, client: str) -> Session {
+        if not self.mails() {
+            raise Rejected(detail=NO_MAIL);
+        }
+        retry = self.tried("follow", client, FOLLOW_PER_CLIENT, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        record = self.password_kept(password);
+        user = self.kept().reset(token_key(token), record, time.time());
+        if user == "" {
+            raise Rejected(detail=NO_LINK);
+        }
+        return Session(user=user, token=self.token_for(user));
     }
 
     """A session for the account `username` (or its email) names, if
@@ -613,7 +951,14 @@ def asked_json(url: str, headers: dict[str, str], body: bytes | None = None) -> 
     return made;
 }
 
-"""What a book keeps of a session's token."""
+"""`email`, an address an account may have: Rejected for one that is none."""
+def an_address(email: str) {
+    if len(email) > 254 or re.fullmatch(r"[^@\s]+@[^@\s]+", email) is None {
+        raise Rejected(detail="that isn't an email address");
+    }
+}
+
+"""What a book keeps of a session's token, and of a link's."""
 def token_key(token: str) -> str {
     return hashlib.sha256(token.encode("utf-8")).hexdigest();
 }

@@ -46,6 +46,22 @@ the session. The session is kept for the commands that follow, on this machine a
 The file holds the address, the account's name and the session's token, and only its owner can
 read it. Every other command of `launch` says `you are not signed in` until there is one.
 
+### An account, and its console
+
+An account is made at the page `login` opens, or beforehand at `https://neojac.dev/signup`, which
+also says what to run next. Where the platform offers them, the same pages sign in through GitHub or
+Google, and such an account has no password of its own.
+
+**Where the platform mails its accounts, an account launches once its address is checked.** A link
+is mailed to the address the account was made with; following it and choosing `Check my address`
+is the check, and `deploy` says so until then. An account made through GitHub or Google is checked
+by them. The same pages mail a link that sets a new password (`Forgot your password?`).
+
+`https://launch.neojac.dev/console` is the account in a browser: its apps and how each one's latest
+launch went, what each said, its secrets' names, its domains with the records to make, deleting one,
+and the account's address with the link mailed again. It does what the commands here do, and
+launches nothing: an app is launched from its source, by `neojac launch deploy`.
+
 ## Launching an app
 
 `neojac launch deploy <app>`, run in a project, launches the app of that name, one the project's
@@ -127,6 +143,10 @@ answers nothing, and `deploy` and `logs` say why (`'shop' is held: ...`). What i
 stays. It is held until its owner deletes it, or whoever runs the platform gives it more; launching
 it again once it is under its bound brings it back. An app over what its instances share may read
 and delete there, and not write, until it is under.
+
+**Whoever runs the platform may stop an app, or an account,** and says why: the app is held the
+same way, `deploy`, `logs` and the console say what they said, and a stopped account
+launches nothing. It answers again once they let it go.
 
 ## Secrets
 
@@ -210,6 +230,8 @@ from anywhere.
 | `the package '...' is at ..., outside the project` | A package declared by a path that leaves the project's directory |
 | `launch <n> of <name> failed` | Its build failed, or the app did not start: what was printed above says why |
 | `you have no app called '...'` | No app of that name is this account's |
+| `your account's address is not checked yet` | The platform mails its accounts, and this one has not followed its link: have it mailed again at the console, and follow it |
+| `the platform's operator stopped this account` | Whoever runs the platform stopped it, and says why |
 | `an account has at most 3 apps` | Delete one to launch another: `neojac launch delete` |
 | `an account launches at most 10 times an hour` | It says how long to wait |
 | `... launches wait for a build already` | The platform's builds are full: launch again in a while |

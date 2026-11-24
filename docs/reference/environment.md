@@ -1,6 +1,6 @@
 ---
 description: Every environment variable neojac reads, sets for the programs it runs, or that a program it built reads - NEOJAC_*, the names an app may not take, color and terminal variables, SDKROOT and the installer's - with what reads each and what it does.
-keywords: environment variables, NEOJAC_LIB_DIR, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_HOME, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
+keywords: environment variables, NEOJAC_LIB_DIR, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_TELEMETRY, DO_NOT_TRACK, CI, HOME, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_HOME, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
 ---
 # Environment variables
 
@@ -18,6 +18,10 @@ neojac needs no environment variable: an installed release finds its runtime, it
 | `NEOJAC_CONFIG_DIR` | `launch` | The directory the session `neojac launch login` keeps is in, instead of the per-user configuration directory ([launch](../toolchain/launch.md#signing-in)) |
 | `XDG_CONFIG_HOME` | `launch`, on Linux | Where the per-user configuration directory is, when `NEOJAC_CONFIG_DIR` is unset (else `~/.config`) |
 | `APPDATA` | `launch`, on Windows | Where it is there (else `~\AppData\Roaming`) |
+| `NEOJAC_TELEMETRY` | Every command | `off` (or `0`, `false`, `no`): the run records nothing of its use, prints no notice about it and writes nothing, whatever `neojac telemetry on` chose ([telemetry](../toolchain/telemetry.md#turning-it-off)) |
+| `DO_NOT_TRACK` | Every command | Set to anything but empty, `0` or `false`: the same as `NEOJAC_TELEMETRY=off` |
+| `CI`, `GITHUB_ACTIONS`, `GITLAB_CI`, `BUILDKITE`, `CIRCLECI`, `JENKINS_URL`, `TF_BUILD`, `TEAMCITY_VERSION`, `CODEBUILD_BUILD_ID` | Every command that records its use | Any of them set to anything but empty, `0` or `false`: the run is counted as one in CI ([telemetry](../toolchain/telemetry.md#turning-it-off)) |
+| `HOME` | Every command that records its use, and `telemetry` | The home directory, whose `.neojac/telemetry/` holds what is recorded ([telemetry](../toolchain/telemetry.md#where-it-is-kept)) |
 | `NEOJAC_PROGRESS_TO` | Every command that shows a status line | A file to append each step to, one line each (`<step>` or `<step> · <detail>`), instead of drawing a status line ([Projects](../toolchain/projects.md#neojac_progress_to)) |
 | `NEOJAC_RECORD_TO` | `cc`, `c++`, `clang`, `ar`, the linkers and `cargo` | A file to append one line to for each run, a JSON object: the tool, the directory it ran in, its arguments, and for `cc` and `c++` the inputs and the output ([C and C++](../interop/c-and-cpp.md#recording-what-a-build-ran)) |
 | `NO_COLOR` | Every command | Set to anything but empty: no color, wherever the output goes. It wins over `FORCE_COLOR` |
@@ -37,6 +41,7 @@ The tools neojac carries read their own variables as they always do: `neojac pyt
 | Variable | Set by | What it is |
 |---|---|---|
 | `NEOJAC` | `neojac test`, an app's build | The path of the neojac that is running, for a test or a build step that runs the compiler itself |
+| `NEOJAC_TELEMETRY` | Every command, for everything it runs | `off`: a neojac that one runs (a build's own steps, what `neojac test` or `neojac npm` runs) is part of its run, and records nothing of its own ([telemetry](../toolchain/telemetry.md#what-a-run-is)) |
 | `PYTHON_CPU_COUNT` | `neojac test -j <jobs>` | `<jobs>`: the processors each build and runner is told it has (`os.cpu_count()` and `os.process_cpu_count()`), so a test that runs commands of its own runs as many at once as `-j` allows |
 | `NEOJAC_PROGRESS_TO` | An app's build | The file the build steps of each program it runs are reported to, which the app's build shows as `<step> · <inner step>` |
 | `NEOJAC_DIAGNOSTICS_TO` | A neojac running another | The file the inner one appends its diagnostics to, for the outer one to show. A program removes it from its environment as it starts, so programs it runs report for themselves |
@@ -73,6 +78,8 @@ A program reads `JAC_GC` and `JAC_THREADS` from the environment it was started w
 | `JAC_LLM_MODEL` (the model `by llm(...)` asks), `ANTHROPIC_API_KEY` (the key the `anthropic` plugin sends), `JAC_LLM_ADDRESS` (a gateway to the API, in place of `https://api.anthropic.com`) | [by and sem](../language/by-and-sem.md) |
 | `JAC_<ABSTRACTION>` (which of the plugins it was built with a program runs with: `JAC_STORE`), `JAC_<ABSTRACTION>_<FIELD>` (a setting of that plugin: `JAC_STORE_PATH`), and `JAC_<SPACE>_<ABSTRACTION>` with `JAC_<SPACE>_<ABSTRACTION>_<FIELD>` for a space bound on its own. `ui` and `bundler` have none: they are picked as a space is built | [Plugins](../apps/plugins.md#picking-a-plugin-where-the-program-runs) |
 | `SSO_GITHUB_CLIENT_ID`, `SSO_GITHUB_CLIENT_SECRET` (a GitHub OAuth app's, with which the `accounts` plugin offers signing in through GitHub) | [Servers](../apps/server.md#signing-in-through-github) |
+| `SSO_GOOGLE_CLIENT_ID`, `SSO_GOOGLE_CLIENT_SECRET` (a Google OAuth client's, with which the `accounts` plugin offers signing in through Google) | [Servers](../apps/server.md#signing-in-through-google) |
+| `SMTP_PASSWORD` (the password the `smtp` plugin gives the server it hands mail to) | [Servers](../apps/server.md#the-mail-an-app-sends) |
 | `JAC_<APP>_LISTEN`, `JAC_TICKS_OFF` | [Servers](../apps/server.md) |
 | `JAC_<APP>_DATA`, `JAC_FRESH` | [An app's data](../apps/data.md) |
 | `JAC_<APP>_ARRANGEMENT` (which arrangement an app is, of those its artifact holds) | [Building apps](../apps/building.md#several-arrangements-in-one-artifact) |
