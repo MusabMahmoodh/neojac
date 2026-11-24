@@ -145,7 +145,7 @@ it again once it is under its bound brings it back. An app over what its instanc
 and delete there, and not write, until it is under.
 
 **Whoever runs the platform may stop an app, or an account,** and says why: the app is held the
-same way, `deploy`, `status`, `logs` and the console say what they said, and a stopped account
+same way, `deploy`, `logs` and the console say what they said, and a stopped account
 launches nothing. It answers again once they let it go.
 
 ## Secrets
