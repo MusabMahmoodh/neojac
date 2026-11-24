@@ -55,13 +55,19 @@ A Jac file is checked as part of a program, and the server picks the program:
 
 | The file | Its program |
 |---|---|
-| A module | The largest program the server knows that holds it; otherwise the module as its own program, as `neojac check <module>` checks it |
+| A module | The module as its own program: it and what it imports, as `neojac check <module>` checks it |
+| A module of the runtime that is no program itself (`rt/core.jac`) | The largest program the server knows that holds it |
 | An impl annex (`impl/x.impl.jac`) or a test annex (`x.test.jac`) | Its module's. A test annex is checked with its module as the main module, so its tests are checked |
 | A module of a project whose `archwire.jac` declares spaces | The program of the space that places it, on that space's host (as `neojac check --space <space>`) |
 | A target variant (`x.windows.jac`) | The variant as the main module of its own program, checked for its target (as `neojac check --target`) |
 | `archwire.jac` | A program it governs |
 
-The server has every program of the workspace folders indexed once: each main module nothing else reaches, leaving out what `jac.toml`'s `[check] exclude` leaves out, and each space of an archwire that declares spaces. The index of a program is its files, its diagnostics, the names it declares and a table of its references. It is what makes references, rename and workspace symbols reach files that are not open, and what tells the server that `core/clock.jac` belongs to the program of `main.jac`.
+A module is checked as its own program so that an edit to it costs a check of what it imports, and not of everything that imports it. What only a larger program can say of the module comes in two ways:
+
+- **Its uses.** References, rename, implementations, and the call and type hierarchies are answered from the largest program the server knows that holds the module. That program is checked when one of them is asked for, and the index answers for the programs beyond it.
+- **Its diagnostics.** What the check of a larger program finds in the file comes from the index, of the file as saved.
+
+The server has every program of the workspace folders indexed once: each main module nothing else reaches, leaving out what `jac.toml`'s `[check] exclude` leaves out, and each space of an archwire that declares spaces. The index of a program is its files, its diagnostics, the names it declares and a table of its references. It is what makes references, rename and workspace symbols reach files that are not open, and what tells the server that the program of `main.jac` holds `core/clock.jac`.
 
 - **Each program is indexed by a process of its own,** a [`neojac query index`](#query) the server starts, as many at a time as half the machine's processors. The server goes on answering meanwhile, and what a process checked is given back when it ends.
 - **What a process found is kept in the [build cache](cache.md),** with the size and time of every file the program read. A server started again takes each index whose files are as they were, and runs nothing for it.
