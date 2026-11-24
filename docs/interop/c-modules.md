@@ -358,6 +358,7 @@ Nothing needs to be `extern "C"`.
 | An overload set | One function a member, named by its parameters' interface types: `scaled(double)` is `scaled_f64`, `scaled(int, int)` `scaled_i32_i32`, a second constructor `make_i32`; a name with one member keeps it. A member's bare name where it is overloaded (`s.compare(t)`) is E5133, whose reason lists the overloads by their names |
 | A method that hides a base's method of its Jac name, with other parameters | Named by its parameters, as an overload is, so that the base's stays reachable: `Rect`'s copy assignment, which hides `Figure`'s, is `r.op_assign_Rect(other)` beside the inherited `op_assign`; one of no parameters is named `_none` |
 | An operator, a conversion | A method named `op_` and the operator's word: `c[i]` is `c.op_index(i)`, `a == b` `a.op_eq(b)`, `s += t` `s.op_iadd(t)`, `c = d` `c.op_assign(d)`; a conversion `op_to_` and its type, `operator int()` `c.op_to_i32()`. Overloads are named apart as any member's. A class with a copy and a move assignment binds the move beside the copy as `op_assign_move`: `a = std::move(b)` is `a.op_assign_move(b)`. Jac's own `a == b` or `a != b` of two values of C++ classes is E1624: it would compare the Jac objects |
+| An overload taking `T&&` beside one taking `const T&` | The rvalue one is the member's name and `_move`, the other keeps the name: `v.push_back(x)` copies `x`, `v.push_back_move(x)` moves it, as `a = std::move(b)` is `op_assign_move` |
 | A non-member operator template | A function of the module named `op_` and the operator's word, its instance named at the call ([below](#function-templates)): `box + 2` is `op_add[i32](box, 2)`. A non-member operator that is no template is not bound |
 | A parameter whose default is a constant | Optional to a Jac caller, the default C++'s: `s.find_i8_uword(c)` is `s.find(c)` from position 0, and `s.substr(u64(1))` leaves `substr`'s `n = npos` to the member. Only a trailing run of such parameters; a default that is no constant (`int then = seed()`) leaves its parameter, and those before it, required |
 | A result by value | Owned by Jac; a result by reference is borrowed |
@@ -366,11 +367,12 @@ Nothing needs to be `extern "C"`.
 | A pointer parameter or result | Typed as C++ types it: `int *` is `ptr[i32]`, `napi_value` (`struct napi_value__ *`) `ptr[napi_value__]`, `X **` `ptr[ptr[X]]`; a C record no header of the module declares is declared by the interface (`obj napi_value__;`), one type across the program with C's |
 | A parameter that is a reference to a class (`const C&`, `C&`) | A borrow, `c: &C`: the Jac object is lent for the call, and an assignment through the reference is `op_assign` |
 | A record C could declare (a C struct, or a record of an `extern "C"` block), by value, by const or rvalue reference, or by pointer | The C record, one type across the program by its tag and members, given and taken by value as C passes it, and `ptr[R]` by pointer. By non-const reference it is not bound: Jac would copy it, where C++ writes through |
-| A pointer to a function of C++ types (`int (*f)(Counter &, int)`) | Its Jac form, `Callable[[Counter, i32], i32]`, given a def or a static method by its name, for a member's parameter or a free function's ([below](#a-jac-function-c-calls-back)) |
+| A pointer to a function of C++ types (`int (*f)(Counter &, int)`) | Its Jac form, `Callable[[Counter, i32], i32]`, given a def or a static method by its name, for a member's parameter or a free function's ([below](#a-jac-function-c-calls-back)); a pointer to a function of C types (`int (*f)(int)`) the same, `h.scaled(plus_one, i32(5))` |
 | A pointer to a member function of the class a Jac class derives (`int (T::*m)(int)`) | A method of the Jac class by its class, `Drop.plus_size` ([below](#a-jac-method-c-calls-through-a-pointer-to-a-member-function)) |
 | `std::initializer_list<E>`, by value or `const &` | A Jac list, `list[E]`, its items made into `E`s one by one as braces make them: `total(std::initializer_list<int>)` is `total([i32(1), i32(2)])`. Where `E` has exactly one constructor from one class or C record, the list holds those (`list[R]`); an `explicit` one raises `ValueError` when the call runs. The overload is named `list` among its set's (`define_ptr_i8_list_ptr`). A `const std::vector<E> &` stays `&std_vector[E]` |
 | A pointer to a record no header gives the members of (`napi_value`) | C's opaque handle, as a C function's is ([above](#what-jac-binds-from-the-headers)): a member taking or giving one is bound |
 | `std::string`, `std::vector<int>`, `std::lock_guard<std::mutex>` | `std_string`, `std_vector[i32]`, `std_lock_guard[std_mutex]`: libc++'s classes, of the module `libcxx` ([below](#the-c-standard-librarys-classes)) |
+| A pointer as a template's argument (`std::vector<Vt *>`) | `ptr[T]`: `std_vector[ptr[Vt]]`, `emplace_back[ptr[Vt]]`, a C record behind it the same type as C's |
 | A thrown exception | A Jac exception: `std::out_of_range` is `IndexError` |
 | A member function template | `o.m[A, B](args)`, the instance `m<A, B>`, made for the program ([below](#member-function-templates)) |
 | A function template of a header library | `f_[A, B](args)`, the instance `f<A, B>`, made for the program ([below](#function-templates)) |
@@ -846,6 +848,57 @@ call of its `RegisterModule(env, exports, InitAll)`, given the module's own func
 [`neojac port`](../toolchain/port.md) writes the addon's Node-API entry points over that call, with
 the ported `InitAll` given by its name.
 
+- **Where C++ calls the function with an rvalue of a copyable class** (`fin(Counter(start), 4)`,
+  as napi's `Buffer<T>::NewOrCopy` calls its finalizer with `Env(env)`), the instance takes the
+  class by value, and the def's `c: Counter` is the callback's own copy for the length of the
+  call. Where the instance by reference compiles too, it is the one taken.
+- **Two patterns of one name that differ only in parameters a template argument makes**
+  (`template <typename Hook> int on_done(Hook)` and `template <typename Hook, typename Arg> int
+  on_done(Hook, Arg *)`, as napi's `AddCleanupHook(hook)` and `AddCleanupHook(hook, arg)`) are
+  named apart by those parameters' pieces: the first keeps `on_done`, the second is
+  `on_done_T0_ptr_T1`. Only names that would collide change.
+- **A `T *` the function given does not deduce is `void` where the argument is a Jac `ptr`**:
+  `h.on_done_T0_ptr_T1(noted, p)` with `p = hold(note)` makes `on_done` over `void *`, and the def
+  takes a `ptr` (`def noted(p: ptr)`), which `held[Note](p)` reads back
+  ([Pointers](pointers-and-native-memory.md)).
+
+<!-- example: not checked: needs the C++ header library whose Hooks has the member templates on_done and finish -->
+```jac
+obj Note {
+    has n: int = 0;
+}
+
+def noted(p: ptr) {
+    held[Note](p).n += 5;
+}
+
+def nothing_noted {
+    print("hook of no arguments");
+}
+
+def fin(c: Counter, k: i32) -> i32 {
+    return c.value() + k;
+}
+
+with entry {
+    h = Hooks.make(i32(1));
+    note = Note();
+    p = hold(note);
+    print(h.on_done(nothing_noted), h.on_done_T0_ptr_T1(noted, p), note.n);
+    release(p);
+    print(Hooks.finish(fin, i32(3)));
+}
+```
+
+```text
+hook of no arguments
+1 2 5
+700
+```
+
+`on_done` calls the hook with no argument or with the one it is given, and gives `1` or `2`;
+`Hooks::finish(fin, start)` gives `fin(Counter(start), 4) * 100`.
+
 ### A Jac method C++ calls through a pointer to a member function
 
 A class template the Jac class derives may take a pointer to a member function of its argument,
@@ -970,7 +1023,10 @@ module's function gives is the string another's takes.
   `std::vector<int>` is `std_vector[i32]`, `std::lock_guard<std::mutex>` is
   `std_lock_guard[std_mutex]`. libcxx makes each instance the program names, whether or not any
   C++ of the program reaches it. A class a program imports and never names makes nothing:
-  `import from libcxx { std_unique_lock }` with no use is no error.
+  `import from libcxx { std_unique_lock }` with no use is no error. A template argument may be a
+  pointer, `ptr[T]`, a pointer to a C record among them: `std::vector<Vt *>` is
+  `std_vector[ptr[Vt]]`, the record the same type as C's.
+- **A `std` class over a class of a C++ module is that module's** ([below](#a-std-class-over-a-modules-class)).
 - **Its members are bound as a C++ class's are**: overloads by their parameters' types, so a
   `std::vector`'s default constructor is `make_()`, which `std_vector[i32]()` calls; `at` past the
   end raises `IndexError`, and `v.at_set(i, x)` and `v.op_index_set(i, x)` store as `v.at(i) = x`
@@ -985,7 +1041,10 @@ module's function gives is the string another's takes.
   of its own (`std::signbit`) among them: `std_to_string` is `std::to_string`, an overload set a
   program imports by that name and calls by its member's, named by its parameters as every C++
   overload set is (`std_to_string_i32(i32(420))`). A C function `std` gives again
-  (`std::printf`) is C's, imported from `c`.
+  (`std::printf`) is C's, imported from `c`, and so is one libc++ gives as `const` overloads that
+  differ from it only in a pointee's constness (`std::strrchr`, `strchr`, `strstr`, `strpbrk`,
+  `memchr` and their wide forms): a call C++ resolves to one of them is a call of the C function,
+  as [`neojac port`](port-cxx.md) writes it.
 - **A function template of `std` is called by its instance**, as a header library's is
   ([Function templates](#function-templates)). Where the set has more than one template, each is
   named by all its parameters, one whose type is a type parameter of the template by its place,
@@ -1001,8 +1060,12 @@ module's function gives is the string another's takes.
   is `s.find(c)`, from position 0, and `s.substr(u64(1))` is the rest of the string from 1, its
   `n = npos` C++'s.
 - **A class's public number and `bool` fields are properties**, read and, unless `const`, written
-  as Jac's: a `std_pair[i32, i32]`'s `p.first` and `p.second`. A field of any other type is not
-  bound, and the interface says why.
+  as Jac's: a `std_pair[i32, i32]`'s `p.first` and `p.second`. **A public field of a class type**
+  is read as a getter that gives the field itself, not a copy, so what a program does to it the
+  object keeps: `pr.second.op_assign_ptr_i8("three")` of a `std_pair[i32, std_string]` writes the
+  pair's string, and `hd.c.bump(i32(2))` the `Counter` a header library's `struct Holder { Counter
+  c; }` holds. It has no setter: assign through the field's own `op_assign`. A field of any other
+  type is not bound, and the interface says why.
 - A name `std` does not have, or a member of an overload set imported by its own name
   (`std_to_string_i32`), is E1145 of the import. A type argument a template does not take does not
   compile in libcxx: E5200.
@@ -1118,7 +1181,13 @@ the example takes it after the vector has its size.
 - **`emplace_back` and `emplace` are member templates** ([above](#member-function-templates)),
   named with the types of the arguments they forward to the item's constructor:
   `duos.emplace_back[i32, i32](i32(1), i32(2))` makes a `std_pair[i32, i32]` in place, and
-  `ups.emplace_back[u32](u32(8))` a number.
+  `ups.emplace_back[u32](u32(8))` a number. A string is made in place from a temporary,
+  `said.emplace_back[std_string](std_to_string_i32(i32(42)))`, and a pointer from a pointer,
+  `words.emplace_back[ptr[i8]](p)`. The instance `emplace_back[std_string]` takes its argument
+  as C++'s `std::string &&`, so given a local string it moves the local's value out, as
+  `std::move(s)` would, and the local is left empty; `push_back(s)` copies it.
+- **`push_back` of a temporary is `push_back_move`**, the overload taking `T&&`, beside
+  `push_back`, the one taking `const T&`, which copies.
 - **A member's `const char *` result is a `ptr[i8]`**, the pointer into the string: `told.c_str()`
   and `tail.data()` are the same address. `str(p)` copies its text and `print(p)` prints it; the
   string is kept while the pointer is used ([A pointer into an object](#a-pointer-into-an-object)),
@@ -1131,6 +1200,33 @@ the example takes it after the vector has its size.
   parameters, the string as `std_basic_string` and the character pointer as `ptr_T0`, and called
   with `std::basic_string`'s type arguments. Jac's own `told == other` is E1624, whose fix names
   them.
+
+```jac
+import from libcxx { std_random_device, std_string, std_to_string, std_vector }
+
+with entry {
+    said: own std_vector[std_string] = std_vector[std_string].make_();
+    said.emplace_back[std_string](std_to_string_i32(i32(42)));
+    said.push_back_move(std_to_string_i32(i32(7)));
+    words: own std_vector[ptr[i8]] = std_vector[ptr[i8]]();
+    words.emplace_back[ptr[i8]](ptr[i8]("first"));
+    words.push_back(ptr[i8]("second"));
+    print(str(said.at(u64(0)).c_str()), str(said.at(u64(1)).c_str()), said.size());
+    print(str(words.at(u64(1))), words.size());
+    rd: own std_random_device = std_random_device.make_();
+    drawn = [rd.op_call() for _ in range(4)];
+    print(len(set(drawn)) > 1, rd.entropy() >= 0.0);
+}
+```
+
+```output
+42 7 2
+second 2
+True True
+```
+
+`std::random_device` is made by its constructor of no arguments, `make_()`, and drawn from by
+its `operator()`, `op_call()`.
 
 **A container's iterator is a class the library keeps to itself** (`std::__wrap_iter`,
 `std::__hash_map_iterator`), and a program has it under the public name its container gives it:
@@ -1239,6 +1335,45 @@ with entry {
 30
 MemoryError
 ```
+
+#### A `std` class over a module's class
+
+An instance of a `std` class template whose template arguments name, at any depth, a class of a
+C++ module of the program is that module's: `std::unordered_map<int, tally::Box<int>>` is
+tally's. The module's reading reaches it, its interface declares it, and its C++ unit compiles
+what binds it, under the module's own flags, so the instance has one home as every `std` class
+has. A program still writes it with `libcxx`'s name, imported from `libcxx`:
+`std_unordered_map[i32, Box[i32]]`, its members those the module's reading gives.
+
+What binds today is an instance the module's own C++ reaches: one a function of its headers gives
+or takes. The program then makes it, copies it and calls its members:
+
+<!-- example: not checked: needs the C++ header library whose boxes() gives an unordered_map of Box<int> and counters() a vector of Counter -->
+```jac
+import from libcxx { std_unordered_map, std_vector }
+
+with entry {
+    m: own std_unordered_map[i32, Box[i32]] = boxes();
+    fresh: own std_unordered_map[i32, Box[i32]] = std_unordered_map[i32, Box[i32]]();
+    fresh.op_assign(m);
+    print(fresh.size(), fresh.at(i32(1)).get(), m.contains(i32(2)));
+    cs: own std_vector[Counter] = counters(i32(2));
+    cs.push_back(Counter.make(i32(9)));
+    print(cs.size(), cs.at(u64(2)).value());
+}
+```
+
+```text
+2 10 True
+3 9
+```
+
+**Not done.** An instance the module's C++ reaches nowhere is not made yet: naming one is
+[E5090](../reference/diagnostics/e50.md#e5090) (`neojac does not support std_unordered_map[i32,
+Box[i32]], an instance of a C++ standard library class template over a class of tally, which the
+reading of that module does not make yet`), and so is its iterator, `std_unordered_map_iterator[i32,
+Box[i32]]`, which `find`, `begin` and `end` give. A member template of such an instance
+(`m.emplace[i32, Box[i32]](...)`) is not bound yet either.
 
 ## Wiring C modules
 
