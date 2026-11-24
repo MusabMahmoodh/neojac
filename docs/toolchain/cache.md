@@ -52,7 +52,7 @@ Deleting the cache when no build is running is safe: the next build makes it aga
 | `sweep.lock`, `trash/` | The lock of the one build deleting what is over the cache's size, and what it has taken out of `objects/` and is deleting |
 | `claims/` | An empty file for each Rust crate and build script's run a build has made here, which a build locks while it makes that one |
 | `compilers` | Each neojac's identity, remembered by its executable's size and time so that it is computed once |
-| `pystubs/`, `jsstubs/`, `typescript/` | What a build learned of Python packages' and npm packages' types, and the TypeScript neojac reads npm types with |
+| `pystubs/`, `jsstubs/`, `typescript/` | What a build learned of Python packages' and npm packages' types, and the TypeScript neojac reads npm types and a project's TypeScript with. The TypeScript is one entry: placed whole, deleted whole, and fetched again by the next command that needs it |
 
 A compiled Jac module is kept under a hash of the code generator (LLVM, and neojac's use of it to compile a unit), the target and the module's content, so a module that no edit touched is never compiled twice, by any build of neojac with that code generator: a neojac built from an edited compiler compiles again only the units whose code it generates differently. A C file is kept under the Clang that compiles it, its command line and every file it read, so it is compiled once for every copy of a project, every install of the same release, and every neojac with the same Clang. A program's C files are looked up together first: when no file any of them read has another size or time than at the last build, each one's object is the one that build found.
 
@@ -78,7 +78,7 @@ NEOJAC_CACHE_SIZE=20G neojac build main.jac -o main
 
 ## Builds running at once
 
-Builds share the cache. Each holds the cache's lock, shared, while it runs, and entries are taken out only by a build that holds it alone, so no build deletes what another is using. When a build dies, the operating system releases its lock.
+Builds share the cache. Every command that uses it (a build, a check, a port, an absorb) holds the cache's lock, shared, from its start to its end, and a step inside a command (a port's check of what it writes, a reading of TypeScript) runs within the command's hold, never between two of its own. Entries are taken out only by a command that holds the lock alone, so none deletes what another is using, nor what a step of its own is about to read. When a command dies, the operating system releases its lock.
 
 - Builds starting at the same moment into a cache that does not exist yet all succeed: the directory is made whole under a name of its own, with its tag, and moved into place.
 - Builds that compile Rust crates run side by side, in one cache as in two. A build claims a crate, or a build script's run, while it makes it (a file of `claims/` it holds a lock on, which the system releases if the build is killed). Another build that needs the same one leaves it and does its other work; with nothing else to do it waits, and says so: `neojac: waiting for the crates another build is compiling`. Then it reads what the first made, or makes it itself if the first failed.
