@@ -6,7 +6,7 @@ description: Use when neojac check, build or test reports an error such as error
 
 ## When to use this
 
-Use it when `neojac check`, `neojac build` or `neojac test` prints `error[...]`, when a built program ends with a traceback, or when neojac itself fails. It assumes the loop of `writing-jac`. Errors from the lint rules a project selects are covered in more depth by `testing-and-formatting`, and errors from moving the reference design code by `porting-from-the-reference-design`.
+Use it when `neojac check`, `neojac build` or `neojac test` prints `error[...]`, when a built program ends with a traceback, or when neojac itself fails. It assumes the loop of `writing-jac`. Errors from the lint rules a project keeps are covered in more depth by `testing-and-formatting`, and errors from moving the reference design code by `porting-from-the-reference-design`.
 
 ## Before you start
 
@@ -88,7 +88,7 @@ W3001, W3004, W3005, W3007, W3009, W3013, W3039, W3043, E0155 to E0163 and E2084
 
 ### 6. A lint finding
 
-(`[rule-name]` at the end) comes from a rule the project selected in `jac.toml`. Most have a fix: `neojac fmt --fix <file>`. `neojac docs toolchain/lint` says which.
+(`[rule-name]` at the end) comes from a rule the project keeps: `"clean"`, which every project keeps, or one its `jac.toml` adds. Most have a fix: `neojac fmt --fix <file>`. `neojac docs toolchain/lint` says which. A comment or a docstring (W3050, W3051) is moved by the fix into the module's notes annex, `notes/<module>.md`, under its declaration's heading: write notes there, not in the source, and never add `human_mode = true` or `kind = "fixtures"` to `jac.toml` to quiet a rule.
 
 ### 7. An error whose location is not your code
 

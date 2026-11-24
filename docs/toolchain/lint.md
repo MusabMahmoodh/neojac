@@ -1,6 +1,6 @@
 ---
-description: The lint rules a project selects in jac.toml's [check.lint], every rule by name with what it reports and whether neojac fmt --fix applies it, and the spellings and probable mistakes neojac always rejects.
-keywords: lint, lint rules, combine-has, combine-glob, simplify-ternary, unnecessary-else-after-return, nested-if-to-elif, simplify-return-bool, unnecessary-none-return, too-many-params, no-print, strip-comments, strip-docstrings, separate-impls, impls-in-annex, precommit
+description: The lint rules every project keeps and those jac.toml's [check.lint] adds, human_mode and projects of fixtures, every rule by name with what it reports and whether neojac fmt --fix applies it, the notes annex that holds what comments and docstrings said, and the spellings and probable mistakes neojac always rejects.
+keywords: lint, lint rules, combine-has, combine-glob, simplify-ternary, unnecessary-else-after-return, nested-if-to-elif, simplify-return-bool, unnecessary-none-return, too-many-params, no-print, strip-comments, strip-docstrings, separate-impls, impls-in-annex, precommit, human_mode, notes annex
 ---
 # Lint rules
 
@@ -8,40 +8,40 @@ neojac holds source to rules of three kinds:
 
 | Kind | Reported | Configured |
 |---|---|---|
-| [Spellings the language rejects](#spellings-neojac-always-rejects): where Jac had two ways to write one thing, neojac accepts one | By `check`, `build` and `test`, always | No |
-| [Probable mistakes](#probable-mistakes): code that cannot be what was meant | By `check`, `build` and `test`, always | No |
-| [Selected rules](#the-rules): style and policy, `"clean"` unless a project chooses otherwise | By `check` only, and only when selected | `jac.toml`'s `[check.lint]` |
+| [Spellings the language rejects](#spellings-neojac-always-rejects): where Jac had two ways to write one thing, neojac accepts one | By `check`, `build`, `run` and `test`, always | No |
+| [Probable mistakes](#probable-mistakes): code that cannot be what was meant | By `check`, `build`, `run` and `test`, always | No |
+| [The rules](#the-rules): style and policy, `"clean"` in every project | By `check`, `build`, `run` and `test`, in the project's own modules | `jac.toml`'s `[check.lint]` adds rules; only a project written by hand takes any away |
 
 Every finding is an error with a code, like any other diagnostic ([check](check.md)). [`neojac fmt --fix`](#fmt---fix) rewrites most of them.
 
-**A project is held to `"clean"` unless it selects other rules, and that is intended.** Jac source
-carries no comments and no docstrings, and a module reads as its declarations, with every body in
-an `impl` in its annex. What a comment would say goes in the commit message, when it is why the
-code is as it is, and in the project's README or docs, when it is what a reader must know; a
-docstring's content goes in the README or docs too. `neojac fmt --fix` applies all of it: it
-deletes the comments and docstrings and moves the bodies. A project that wants other rules says so
-in `[check.lint]` ([below](#selecting-rules)).
+**Every project is held to `"clean"`, and that is intended.** Jac source carries no comments and
+no docstrings, and a module reads as its declarations, with every body in an `impl` in its annex.
+What a comment or a docstring would say goes in the module's notes annex, `notes/<module>.md`,
+under the declaration it is about ([The notes annex](#the-notes-annex)). `neojac fmt --fix`
+applies all of it: it moves the comments and docstrings into the notes annex and the bodies into
+the impl annex. The rules are judged by every command that loads a program, so a comment in a
+project's module stops its build as a type error does. A project adds rules in `[check.lint]`,
+and takes none away unless it is written by hand ([below](#selecting-rules)).
 
 ## Selecting rules
 
 ```toml
 [check.lint]
-select = ["style", "separate-impls"]   # rules by name, and the groups "style" and "clean"
-ignore = ["combine-glob"]              # taken out of what select chose
-exclude = ["tests/*/reject/*"]         # files left alone
+select = ["no-print"]   # rules added to what the project keeps
 ```
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `select` | list of strings | `["clean"]` | The rules to report: rule names, `"style"` for the style rules, and `"clean"` for every rule but `no-print` and `too-many-params` |
-| `ignore` | list of strings | `[]` | Rules taken out of what `select` chose. Names and groups, as in `select` |
-| `exclude` | list of strings | `[]` | fnmatch patterns of file paths, relative to the project's root, that no selected rule judges |
+| `select` | list of strings | `[]` | Rules added to what the project keeps: rule names, `"style"` for the style rules, and `"clean"` for every rule but `no-print` and `too-many-params`. In a project of fixtures, the only rules that judge it |
+| `ignore` | list of strings | `[]` | Only with `human_mode = true`: rules taken out of what the project keeps. Names and groups, as in `select` |
+| `exclude` | list of strings | `[]` | Only with `human_mode = true`: fnmatch patterns of file paths, relative to the project's root, that no rule judges |
 
-- **A project that names no rules gets `"clean"`**: one with no `select`, with no `[check.lint]`, and a file in no project. `select = []` selects none.
-- A rule that is not selected is never reported.
-- `neojac check` reports each selected rule as an error, at the code it judges: a finding in a body written in an annex is at the annex's line (`impl/simplify_ternary.impl.jac:2:13`), not at the declaration. `neojac build` and `neojac test` do not judge selected rules.
+- **Every project keeps `"clean"`**, but one [of fixtures](#a-project-of-fixtures): one with no `[check.lint]`, and one whose `select` names other rules. `select` adds to it and never replaces it, so `select = []` adds nothing. Only a project written by hand takes rules out of it ([human_mode](#human_mode)).
+- **A program in no project is judged by no rule**: one with no `jac.toml` at or above its main module, which needs no `archwire.jac` either. `fmt --fix` rewrites only its old spellings there.
+- What `select` adds is the rules in no group, `no-print` and `too-many-params`: `select = ["no-print"]`. A name in `select` that the project is held to already (`"style"`, `"clean"`, `"strip-comments"`, in a project that is not of fixtures) is error E3058, at its place in `jac.toml`.
 - Rules are selected by name, not by code. A name in `select` or `ignore` that is no rule is error E3057, at its place in `jac.toml`.
-- **Under `"clean"`, `neojac fmt --fix` deletes every comment and docstring** of the files the rules judge, since `strip-comments` and `strip-docstrings` are among them, and moves every body into its module's annex. That is so in a project that names no rules. `exclude` names the files to leave alone, and `ignore` the rules to leave out: `ignore = ["strip-comments", "strip-docstrings"]` keeps them.
+- A rule's finding is an error at the code it judges, in every command that loads the program: `neojac check`, `neojac build`, `neojac run` and `neojac test`. A finding in a body written in an annex is at the annex's line (`impl/simplify_ternary.impl.jac:2:13`), not at the declaration.
+- **`neojac fmt --fix` moves every comment and docstring** of the files the rules judge into their module's notes annex, since `strip-comments` and `strip-docstrings` are among the rules every project keeps, and moves every body into its module's impl annex.
 - **A module of a `cpython` space keeps its docstrings and its `-> None`.** There a docstring is
   the program's, the `__doc__` Python reads ([Classes and decorators in a cpython space](../interop/python-classes.md#doc-strings)),
   and `-> None` is the function's annotation, `f.__annotations__["return"]`, so neither
@@ -50,13 +50,75 @@ exclude = ["tests/*/reject/*"]         # files left alone
   `import from __future__ { annotations }` is Python's too, and stays.
 
 ```text
-jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is no rule a project selects
- 5 | select = ["style", "no-such-rule"]
-   |                      ^
+jac.toml:5:23: error[E3057]: [check.lint] select names 'no-such-rule', which is no rule a project selects
+ 5 | select = ["no-print", "no-such-rule"]
+   |                       ^
 
 1 error
 `neojac docs E3057` explains an error by its code.
 ```
+
+```text
+jac.toml:5:11: error[E3058]: [check.lint] select names 'style', which the project is held to already: `select` adds a rule to those it keeps
+ 5 | select = ["style", "no-print"]
+   |           ^
+
+1 error
+`neojac docs E3058` explains an error by its code.
+```
+
+### human_mode
+
+```toml
+[project]
+name = "notebook"
+human_mode = true
+
+[check.lint]
+ignore = ["strip-comments", "strip-docstrings"]
+exclude = ["drafts/*"]
+```
+
+`human_mode = true` under `[project]` says the project is written by hand. It is the one
+permission to choose among the rules. By itself it changes nothing: it makes `ignore` and
+`exclude` legal, and a project that says it is still held to every rule it does not name there.
+`ignore = ["clean"]` takes every rule of `"clean"` out.
+
+Without it, `ignore` and `exclude` are error E3059, each at its line of `jac.toml`. A project
+`shop` whose `[check.lint]` holds `exclude = ["drafts/*"]` alone gets:
+
+```text
+jac.toml:5:1: error[E3059]: [check.lint] exclude takes rules off a project's source, which only a project written by hand may: one whose jac.toml says `human_mode = true` under [project]
+ 5 | exclude = ["drafts/*"]
+   | ^
+
+1 error
+`neojac docs E3059` explains an error by its code.
+```
+
+`human_mode` is a statement about who writes the project, and the person who writes it by hand is
+the one who makes it. A project whose code a tool or an agent writes does not say it, and keeps
+the rules whole.
+
+### A project of fixtures
+
+```toml
+[project]
+name = "corpus"
+kind = "fixtures"
+
+[check.lint]
+select = ["style"]
+```
+
+`kind = "fixtures"` under `[project]` says the project's programs are written to exercise a
+compiler: a compiler's test corpus, programs that must fail to compile. No rule judges a project
+of fixtures unless its `select` names rules, and there `select` is the whole of them: under
+`select = ["style"]`, the style rules judge it and no others. It needs no `archwire.jac`
+([Projects](projects.md#a-project-of-fixtures)), and no project declares it as a package.
+
+A project is not made one of fixtures to be rid of the rules: its programs are a compiler's tests,
+not a program anyone runs.
 
 ## The rules
 
@@ -71,23 +133,18 @@ jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is 
 | `unnecessary-none-return` | W3037 | `-> None` on a function that returns no value | `style`, `clean` | yes |
 | `too-many-params` | W3030 | A signature with more than 7 parameters | none | no |
 | `no-print` | E3012 | A call of the builtin `print` | none | no |
-| `strip-comments` | W3050 | Every comment | `clean` | yes: deletes it |
-| `strip-docstrings` | W3051 | Every docstring, and every string written as a statement | `clean` | yes: deletes it |
+| `strip-comments` | W3050 | Every comment | `clean` | yes: moves it to notes |
+| `strip-docstrings` | W3051 | Every docstring, and every string written as a statement | `clean` | yes: moves it to notes |
 | `separate-impls` | W3055 | A body written inline that an `impl` could hold | `clean` | yes: moves it |
 | `impls-in-annex` | W3056 | An `impl` in its module, or an annex beside its module instead of in `impl/` | `clean` | yes: moves it |
 
-`style` is the style rules. `clean` is `style` and the policies for a project's layout and its comments: no comment, no docstring, every body in an `impl` in its module's annex. `fmt --fix` applies each rule of both, so selecting either never leaves work the fixer cannot do. The two rules in no group need their author, and are selected by name: `select = ["clean", "no-print", "too-many-params"]` is every rule.
+`style` is the style rules. `clean` is `style` and the policies for a project's layout and its comments: no comment, no docstring, every body in an `impl` in its module's annex. `fmt --fix` applies each rule of both, so the rules a project keeps never leave work the fixer cannot do. The two rules in no group need their author, and are added by name: a project that says `select = ["no-print", "too-many-params"]` is held to every rule.
 
-neojac's own `jac.toml` names no rules, so its compiler, its runtime and its toolchain's build are held to `"clean"`: their source holds no comment or docstring and every body is in an annex. It names only the files the rules leave alone:
-
-```toml
-[check.lint]
-exclude = ["tests/*", "examples/*", "scripts/*"]
-```
+neojac's own `jac.toml` has no `[check.lint]` table, so its compiler, its runtime and its toolchain's build are held to `"clean"`, as every project is: their source holds no comment or docstring, what their comments said is in each module's notes annex, and every body is in an impl annex.
 
 ### The style group, in one program
 
-This program compiles and runs. Under `select = ["style"]`, `neojac check` reports seven findings in it:
+This program compiles and runs. In the project of fixtures [above](#a-project-of-fixtures), which `select = ["style"]` holds to the style rules alone, `neojac check` reports seven findings in it; in any other project the policies of `"clean"` report its inline bodies too:
 
 ```jac
 glob width: int = 1;
@@ -157,7 +214,7 @@ style.jac:40:22: error[W3037]: '-> None' on 'log' is unnecessary: a function tha
 `neojac docs W3003` explains an error by its code.
 ```
 
-(Each diagnostic also shows its source line; they are left out here.) The message of a selected rule ends with the rule's name in brackets. `neojac fmt --fix style.jac` rewrites the file to:
+(Each diagnostic also shows its source line; they are left out here.) The message of a rule's finding ends with the rule's name in brackets. `neojac fmt --fix style.jac` rewrites the file to:
 
 ```jac
 glob width: int = 1,
@@ -244,7 +301,7 @@ That is what `--fix` makes of `k` written with an `else` after each `return`.
 
 ### Layout policies
 
-`separate-impls` and `impls-in-annex` together keep every body out of a module's own file: the module declares, and `impl/<module>.impl.jac` implements. `fmt --fix` moves each body, with the comments inside it, into that annex, creating it when it is not there. See [Projects](projects.md#impl-annexes) for where annexes go.
+`separate-impls` and `impls-in-annex` together keep every body out of a module's own file: the module declares, and `impl/<module>.impl.jac` implements. `fmt --fix` moves each body into that annex, creating it when it is not there. The comments inside a body go to the module's notes annex ([below](#the-notes-annex)), or, in a project written by hand that keeps its comments, with the body. See [Projects](projects.md#impl-annexes) for where annexes go.
 
 A function declared in a branch of a [`comptime if`](../language/compile-time.md#among-declarations-and-members), at a module's top or among a class's members, keeps its declaration in that branch, and its body moves into the annex under the same branches, with the `jaclang.comptime` import their conditions read:
 
@@ -272,6 +329,121 @@ comptime if target().os == "windows" {
         return "/";
     }
 }
+```
+
+### The notes annex
+
+`strip-comments` and `strip-docstrings` keep prose out of a module's source. What a comment or a
+docstring would say goes in the module's notes annex, `notes/<module>.md`, beside `impl/`:
+Markdown, written by a person or by `fmt --fix`, and read by people. Nothing in the compiler
+reads it.
+
+- It opens with a title line, `# <module>`, and the module's own notes: its docstring, and a comment set apart from any declaration by a blank line.
+- Each declaration a note is about has a heading, `## <declaration>`, in dotted form: `## Cart` for a class, `## Cart.add` for a method, `## Cart.owner` for a field, `## TTL` for a global, `## with entry` for an entry block, `## test adds` for `test "adds"`.
+- A comment directly above a declaration, one at the end of its line and one inside its body all go under that declaration, each a paragraph with its `#` taken off. A line that would start with `#` is written `\#`, so that Markdown does not read it as a heading. A string written as a statement in a body goes there too.
+- A module has one notes file, and its annexes' comments go to it: an impl annex's under the declaration each `impl` is of, and a test annex's (`cart.test.jac` beside the module or in `test/`) under `## test <name>`.
+- A notes file that is there already is merged into: what `fmt --fix` moves is added under its declaration's heading, and a heading the file does not have is added at its end.
+
+A module of the project `shop`, `cart.jac`:
+
+```jac
+"""A shopping cart, and what it costs."""
+
+# Prices are in cents, so no sum is rounded.
+
+# How long a cart is kept, in seconds.
+glob TTL: int = 3600;
+
+obj Cart {
+    has owner: str,  # the account's name
+        items: list[int] = [];
+
+    """Add one item at its price."""
+    def add(price: int) {
+        # A price of 0 is a gift, and is still counted.
+        self.items.append(price);
+    }
+}
+
+with entry {
+    c = Cart(owner="ada");
+    c.add(250);
+    print(len(c.items), TTL);
+}
+```
+
+`neojac check cart.jac` reports seven findings (each diagnostic's source line is left out here):
+
+```text
+cart.jac:1:1: error[W3051]: a docstring: what is said of a declaration goes in the module's notes annex, notes/<module>.md, not in the source, by design; `neojac fmt --fix` moves it there [strip-docstrings]
+cart.jac:3:1: error[W3050]: a comment: Jac source carries none, by design; what it says goes in the module's notes annex, notes/<module>.md, under the declaration it is about; `neojac fmt --fix` moves it there [strip-comments]
+cart.jac:5:1: error[W3050]: a comment: Jac source carries none, by design; what it says goes in the module's notes annex, notes/<module>.md, under the declaration it is about; `neojac fmt --fix` moves it there [strip-comments]
+cart.jac:9:22: error[W3050]: a comment: Jac source carries none, by design; what it says goes in the module's notes annex, notes/<module>.md, under the declaration it is about; `neojac fmt --fix` moves it there [strip-comments]
+cart.jac:12:5: error[W3051]: a docstring: what is said of a declaration goes in the module's notes annex, notes/<module>.md, not in the source, by design; `neojac fmt --fix` moves it there [strip-docstrings]
+cart.jac:13:5: error[W3055]: the body of 'add' belongs in an impl: a module reads as its declarations, by design; `neojac fmt --fix` moves the body to the module's impl annex [separate-impls]
+cart.jac:14:9: error[W3050]: a comment: Jac source carries none, by design; what it says goes in the module's notes annex, notes/<module>.md, under the declaration it is about; `neojac fmt --fix` moves it there [strip-comments]
+7 errors
+`neojac docs W3051` explains an error by its code.
+```
+
+`neojac fmt --fix --check .` lists the files `--fix` would write:
+
+```text
+cart.jac
+impl/cart.impl.jac
+notes/cart.md
+```
+
+`neojac fmt --fix .` leaves `cart.jac` as its declarations:
+
+<!-- example: not checked: the module after fmt --fix, whose body is in the annex below -->
+```jac
+glob TTL: int = 3600;
+
+obj Cart {
+    has owner: str,
+        items: list[int] = [];
+    def add(price: int);
+}
+
+with entry {
+    c = Cart(owner="ada");
+    c.add(250);
+    print(len(c.items), TTL);
+}
+```
+
+`impl/cart.impl.jac` with the body:
+
+<!-- example: not checked: the annex impl/cart.impl.jac of the module above -->
+```jac
+impl Cart.add(price: int) {
+    self.items.append(price);
+}
+```
+
+and `notes/cart.md` with what the comments and docstrings said:
+
+```text
+# cart
+
+A shopping cart, and what it costs.
+
+Prices are in cents, so no sum is rounded.
+
+## TTL
+
+How long a cart is kept, in seconds.
+
+## Cart.owner
+
+the account's name
+
+## Cart.add
+
+Add one item at its price.
+
+A price of 0 is a gift, and is still counted.
 ```
 
 ## Spellings neojac always rejects
@@ -414,12 +586,12 @@ neojac fmt --fix --check .    # list what would change; write nothing
 
 `neojac fmt --fix <path>...` rewrites what can be rewritten, then formats ([fmt](fmt.md)):
 
-- every old spelling in the table above, whatever the project selects;
-- of the rules the file's project selects, all but `too-many-params` and `no-print`.
+- every old spelling in the table above, in every project;
+- of the rules the file's project keeps, all but `too-many-params` and `no-print`.
 
 How it works:
 
-- A module and its annexes are fixed together. A body or an `impl` moves into `impl/<module>.impl.jac` with the comments inside it.
+- A module and its annexes are fixed together. A body or an `impl` moves into `impl/<module>.impl.jac`, and a comment or a docstring into `notes/<module>.md`, under the declaration it is about ([The notes annex](#the-notes-annex)).
 - Nothing is written until every file the run would write parses. A file that does not parse is reported and nothing of its module is changed.
 - An `impl` whose signature differs from its declaration's gets the declaration's signature, when both name the same parameters. One naming other parameters is left for its author.
 - The `hasattr` and `getattr` fixes (W3007, W3039) depend on types, so they are made only once the program has no other errors: run `fmt --fix` again after the first run has cleared the rest.
@@ -438,7 +610,7 @@ neojac precommit --install       # git's hooks, once in a clone
 
 `neojac precommit` is `fmt --fix` and `check` together, for a commit:
 
-- It runs `neojac fmt --fix` on the `.jac` files staged (a module with its annexes), then checks each module as `neojac check` does, under the rules its project selects.
+- It runs `neojac fmt --fix` on the `.jac` files staged (a module with its annexes), then checks each module as `neojac check` does, under the rules its project keeps.
 - It exits with status 1 when a check fails, when `--verify` finds a file to fix, or when it rewrote a staged file, which is then to stage again.
 - `--verify` refuses a staged file that has changes that are not staged: what would be committed is not what is on disk.
 - `--install` writes git's `pre-commit` hook, which runs `neojac precommit --verify`, and a `commit-msg` hook that refuses a commit naming an AI as its author. A hook neojac did not install is kept unless `--force`, which saves it as a `.bak` file.
@@ -467,11 +639,11 @@ One of the runtime's own modules is checked as any module is. Named as a program
 
 ## Which files the rules judge
 
-Selected rules judge the project's own modules as their author wrote them:
+The rules judge the project's own modules as their author wrote them:
 
-- modules under the project's root (the directory of the `jac.toml`), but not what `[check.lint] exclude` names;
+- modules under the project's root (the directory of the `jac.toml`), but not what `[check.lint] exclude` names in a project that says `human_mode = true`;
 - the runtime's modules only where the runtime stands in the project's own tree, as neojac's does: an installed toolchain's are outside it, and belong to the toolchain;
 - not the modules of a library or a plugin the project declares, which are their package's own wherever its directory is: one installed in the project's `eco/jac/`, or one declared by a directory inside the project's tree;
 - not code the compiler writes into a module.
 
-A program outside any project (no `jac.toml` at or above its main module) has no selected rules.
+A program outside any project (no `jac.toml` at or above its main module) is judged by no rule, in every command, and `fmt --fix` rewrites only its old spellings. A project of fixtures is judged only by the rules its `select` names.

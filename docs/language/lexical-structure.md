@@ -54,6 +54,11 @@ with entry {
 A string is never a comment. A string that documents a declaration is a docstring; see
 [Modules](modules.md).
 
+A project's own modules carry no comments and no docstrings, unless the project is written by hand
+and takes those rules out: what they would say goes in the module's notes annex,
+`notes/<module>.md`, and `neojac fmt --fix` moves them there
+([Lint rules](../toolchain/lint.md#the-notes-annex)).
+
 ## Names
 
 A name starts with a letter or `_` and continues with letters, digits and `_`. Case matters: `Total`

@@ -119,7 +119,9 @@ True
 
 ### Comments
 
-Comments stay where they were written, in order. None is dropped or moved past code.
+Comments stay where they were written, in order. None is dropped or moved past code. In a project,
+whose source carries no comments, `--fix` moves them into the module's notes annex
+([--fix](#--fix)); a format alone keeps them where they are.
 
 - A comment on a line of its own stays on a line of its own, at the indentation of the code it precedes.
 - A comment after code stays at the end of that code's line, two spaces after it.
@@ -180,12 +182,12 @@ neojac fmt --check .
 `--fix` rewrites what has a mechanical fix, then formats:
 
 - every old spelling the language rejects (`def f()` with empty parentheses, `def __init__`, `@staticmethod`, a stray `;`, and the rest), always;
-- each lint rule the file's project selects in `jac.toml`'s `[check.lint]` that has a fix;
+- each lint rule the file's project keeps that has a fix: a comment or a docstring moves into the module's notes annex, `notes/<module>.md`, under the declaration it is about, and a body into its impl annex ([Lint rules](lint.md#the-notes-annex));
 - in an `archwire.jac`, the [declared wires](../language/modules-wiring.md#declared-wires---) of the project's files in other languages, mended to what each file's source writes as its own language reads it: a wire is written for an import no wire declares (E1575), and a wire or a name of one that no source writes is removed (E1147). It changes no `++>` wire and no source file. To read what each file imports, the mends stand the project up as `jac.toml` says (a C module's `cmodule.toml`, a crate's `Cargo.toml`, an npm tree's `package.json`, their locks and ignore lines), and put each such file back as it was when they are done.
 
-A format writes nothing but the Jac files it formats and the `archwire.jac` it mends: no manifest, lock or ignore file of the project is left changed by it.
+A format writes nothing but the Jac files it formats, the `archwire.jac` it mends and the notes annexes `--fix` moves comments and docstrings into: no manifest, lock or ignore file of the project is left changed by it.
 
-A module and its annexes are fixed together, because some fixes move code between them, so `--fix` of a module reads its annexes too, given or not. Nothing is written unless every file the run would write parses: an annex that does not parse is reported once, as any file that does not parse is, the run writes nothing, and the exit status is 1. `--fix --check` lists the files `--fix` would change and writes none.
+A module and its annexes are fixed together, because some fixes move code between them, so `--fix` of a module reads its annexes too, given or not. Nothing is written unless every file the run would write parses: an annex that does not parse is reported once, as any file that does not parse is, the run writes nothing, and the exit status is 1. `--fix --check` lists the files `--fix` would change, a notes annex it would write among them, and writes none.
 
 [Lint rules](lint.md) (`neojac docs toolchain/lint`) lists every rule, which have fixes, and what each fix writes.
 

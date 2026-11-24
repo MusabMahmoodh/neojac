@@ -1,12 +1,12 @@
 ---
 name: testing-and-formatting
-description: Use when writing or running tests for Jac code, reading a failing neojac test run, formatting Jac source with neojac fmt, or selecting and fixing lint rules in jac.toml: test blocks, neojac test with -k, fmt, fmt --check, fmt --fix and [check.lint].
+description: Use when writing or running tests for Jac code, reading a failing neojac test run, formatting Jac source with neojac fmt, or satisfying the lint rules a project keeps: test blocks, neojac test with -k, fmt, fmt --check, fmt --fix, the notes annex and [check.lint].
 ---
 # Testing and formatting
 
 ## When to use this
 
-Use it to add tests to Jac code, to run them and read what failed, to format what you changed, and to turn on or satisfy a project's lint rules. It assumes `writing-jac`; a project with no `jac.toml` yet starts in `starting-a-project`.
+Use it to add tests to Jac code, to run them and read what failed, to format what you changed, and to satisfy a project's lint rules. It assumes `writing-jac`; a project with no `jac.toml` yet starts in `starting-a-project`.
 
 ## Before you start
 
@@ -118,14 +118,17 @@ neojac fmt --check prices.jac      # lists files that would change, exit 1 if an
 
 There are no layout options. `fmt` never changes meaning, keeps every comment, and refuses to write a file that does not parse (exit 1, with the diagnostics). Do not run it over a whole tree you did not change.
 
-### 4. Select lint rules, and satisfy them
+### 4. Satisfy the lint rules
 
-Lint rules are chosen in `jac.toml` and reported by `neojac check` only (not by `build` or `test`). With none named they are `"clean"`: the `"style"` rules, every body in an `impl` in `impl/`, and no comment or docstring. A project names what it wants instead:
+Every project keeps the `"clean"` rules: the `"style"` rules, every body in an `impl` in `impl/`, and no comment and no docstring. `neojac check`, `build`, `run` and `test` all report them, so a comment stops a build. A program in no project (no `jac.toml` above it) is judged by none.
+
+- What a comment or a docstring would say goes in the module's notes annex, `notes/<module>.md`, under a heading for the declaration it is about, in dotted form (`## Cart.add`, `## Cart.owner` for a field, `## test adds` for a test), with the module's own notes under its title line, `# <module>`. Write notes there, never as comments or docstrings.
+- `[check.lint] select` only adds the two rules in no group: `select = ["no-print"]`. A name the project keeps already (`"style"`, `"clean"`) is E3058.
+- Never write `human_mode = true` under `[project]`: it states that a person writes the project by hand, and only that person makes it. Without it `[check.lint] ignore` and `exclude` are E3059. Never mark a project `kind = "fixtures"` to get out of the rules: that is for a compiler's test programs.
 
 ```toml
 [check.lint]
-select = ["style", "no-print"]
-exclude = ["tests/*/reject/*"]
+select = ["no-print"]
 ```
 
 A finding names its rule in brackets:
@@ -135,12 +138,12 @@ calc.jac:3:5: error[W3002]: a `has` after one with the same modifiers belongs in
 calc.jac:23:5: error[E3012]: print() is not allowed in this project [no-print]
 ```
 
-`neojac fmt --fix <files>` rewrites every finding that has a fix (every rule of the `clean` group) and every old spelling the language rejects, then formats. `no-print` and `too-many-params` need you. `neojac fmt --fix --check <files>` lists what `--fix` would change, writing nothing.
+`neojac fmt --fix <files>` rewrites every finding that has a fix (every rule of the `clean` group) and every old spelling the language rejects, then formats: it moves bodies into `impl/<module>.impl.jac`, and comments and docstrings into `notes/<module>.md` under their declarations' headings, adding to what is there. `no-print` and `too-many-params` need you. `neojac fmt --fix --check <files>` lists what `--fix` would change, the notes annex among them, writing nothing.
 
 ## What a correct result looks like
 
 ```sh
-neojac check prices.jac            # quiet, status 0: types, the module's tests, lint
+neojac check prices.jac            # quiet, status 0: types, the module's tests, the lint rules
 neojac test prices.jac             # "N passed", "1 of 1 module passed", status 0
 neojac fmt --check prices.jac      # quiet, status 0
 ```
@@ -154,8 +157,10 @@ neojac fmt --check prices.jac      # quiet, status 0
 | Status 5, `no tests found` | No module under the paths has a test, or `-k` matched nothing | Name the module; check `[test] directories` |
 | A test's print is missing | Output is shown only for a failing test | Assert on the value instead |
 | The program's own work runs during `neojac test` | Its main code is in a plain `with entry` | Move it into `with entry:__main__` |
-| Lint findings in `check` but not in `test` | Selected rules are judged by `check` only | Run `neojac check` |
-| E3057 | A name in `select` or `ignore` that is no rule | Use a rule name from `neojac docs toolchain/lint` |
+| W3050 `[strip-comments]`, W3051 `[strip-docstrings]` | A comment or a docstring in a project's source | `neojac fmt --fix <files>`, which moves it into `notes/<module>.md`; write notes there from then on |
+| E3057 | A name in `select` that is no rule | Use a rule name from `neojac docs toolchain/lint` |
+| E3058 | `select` names a rule the project keeps already | Remove it |
+| E3059 | `[check.lint]` has `ignore` or `exclude` | Remove the key and satisfy the rules; `human_mode` is not yours to write |
 | `internal error: neojac fmt would change the syntax tree` | A formatter defect; the file is left as it was | Report it with the file (`resolving-diagnostics`) |
 | A test annex's errors not shown by `check main.jac` | Only the main module's tests are checked | `neojac check <module>.jac`, or `neojac test` |
 
@@ -167,5 +172,5 @@ neojac fmt --check prices.jac      # quiet, status 0
 | `neojac test`, `[test]` keys | `neojac docs toolchain/test`, `neojac docs test.directories` |
 | `assert` | `neojac docs assert` |
 | The layout `fmt` writes | `neojac docs toolchain/fmt` |
-| Every lint rule and its fix | `neojac docs toolchain/lint` |
+| Every lint rule and its fix, the notes annex | `neojac docs toolchain/lint` |
 | `[check.lint]` keys | `neojac docs check.lint.select` |

@@ -65,8 +65,11 @@ with entry:__main__ {
 }
 ```
 
-- **The Jac is in neojac's one layout**, as [`neojac fmt`](fmt.md) writes it, with the source's
-  comments and docstrings at the declarations and statements they belong to.
+- **The Jac is in neojac's one layout**, as [`neojac fmt`](fmt.md) writes it. Outside a project
+  the source's comments and docstrings are in it, at the declarations and statements they belong
+  to. A project's source carries none, so there they are in the module's notes annex,
+  `notes/<module>.md`, under the declarations they belong to ([The notes annex](lint.md#the-notes-annex)),
+  but the docstrings of a module of a `cpython` space, which are the `__doc__` Python reads.
 - **It is checked before it is written.** Port runs everything [`neojac check`](check.md) runs on
   what it made, and writes it only when that finds nothing: outside a project, a Python file's
   Jac as a module of a `cpython` space and a `.tsx` or `.jsx` file's as one of a browser space,
@@ -189,8 +192,10 @@ together.
 
 **A step is one change.** Porting a file in a project:
 
-- writes its Jac beside it, under its name, laid out as the project's lint wants it (under
-  `separate-impls`, the declarations in the module and the bodies in its annex, `impl/`);
+- writes its Jac beside it, under its name, laid out as the project's lint rules want it: the
+  declarations in the module, the bodies in its annex, `impl/`, and what its comments and
+  docstrings say in its notes annex, `notes/<module>.md`, whole (a module of a `cpython` space
+  keeps its docstrings);
 - moves the source to `replaced-by-neojac/`, at its path in the project;
 - writes its imports of the project's modules as wires in `archwire.jac`: a module that
   `shop/use.py` imported, `from .mathx import gcd`, is the wire `shop.mathx ++> shop.use { gcd }`,

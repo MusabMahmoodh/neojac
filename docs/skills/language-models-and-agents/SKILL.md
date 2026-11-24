@@ -33,8 +33,9 @@ neojac docs crossings       # how a page reads a stream: "Calling a stream"
    gives an `Expense`, decoded and checked, or raises `ByError` (from `stdjac`). The model is
    sent the arguments and the result's schema, and its instructions are the `sem`s: the
    function's (`sem read_expense = "...";`), its parameters' (`sem read_expense.receipt = "...";`)
-   and the result's fields' (`sem Expense.currency = "Its ISO code, such as EUR.";`). A docstring
-   is for the code's reader; the model never sees it. The result's type needs a JSON schema,
+   and the result's fields' (`sem Expense.currency = "Its ISO code, such as EUR.";`). A note for
+   the code's reader goes in the module's notes annex, `notes/<module>.md`; the model never sees
+   it. The result's type needs a JSON schema,
    which an `obj` of fields that have one, an enum (each member's `sem` says what that choice
    means), a `list`, a `str`, a number and a `bool` have.
 

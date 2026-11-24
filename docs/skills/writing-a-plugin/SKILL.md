@@ -89,7 +89,6 @@ import from common.contract { Host }
 import from limits.contract { Limits }
 
 obj WindowLimits(Limits) {
-    """How many seconds a refused caller is told to wait, at most."""
     has longest_wait: int = 3600;
     has began: dict[str, float] postinit;
     has used: dict[str, int] postinit;
@@ -99,7 +98,6 @@ obj WindowLimits(Limits) {
         self.used = {};
     }
 
-    """Nothing to open: it keeps its counts in memory."""
     def open(host: dyn Host) {}
 
     def consume(scope: str, actor: str, limit: int, seconds: int) -> int {
@@ -118,6 +116,12 @@ obj WindowLimits(Limits) {
 }
 ```
 
+   - **The package keeps the lint rules, as every project does.** The class is written whole
+     here to be read at once; `neojac fmt --fix` moves its bodies into `impl/limits.impl.jac`.
+     What is said of it goes in `notes/limits.md`, under a heading for each declaration
+     (`## WindowLimits.longest_wait`: how many seconds a refused caller is told to wait, at most;
+     `## WindowLimits.open`: nothing to open, since it keeps its counts in memory), never in a
+     comment or a docstring.
    - **A field is a setting.** `longest_wait` is what a project's `[limits.window_limits]` may
      give, and what `JAC_LIMITS_LONGEST_WAIT` overrides where the program runs. Give each a
      default unless a project must say it (an API's address): a field with none that is given no

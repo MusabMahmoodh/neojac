@@ -35,7 +35,7 @@ Look up, do not guess: `neojac docs lambda`, `neojac docs glob`, `neojac docs in
 ## Steps
 
 1. **Find the project's root.** The nearest directory at or above your file that holds `jac.toml`. Its settings (lint rules, test directories, memory profile) apply to your code. `neojac docs toolchain/projects`.
-2. **Write the code** by the rules below. Annotate every parameter and field, and the return type of every function that returns a value.
+2. **Write the code** by the rules below. Annotate every parameter and field, and the return type of every function that returns a value. In a project, write no comment and no docstring: what one would say goes in the module's notes annex, `notes/<module>.md`, under a heading for the declaration (`## Point.norm`); and every body goes in an `impl` in `impl/<module>.impl.jac`. `neojac fmt --fix` moves both there, and every command reports them until it does (`testing-and-formatting`).
 3. **Check it.** `neojac check <main.jac>` checks that module, everything it imports, and the main module's own tests. It prints nothing and exits 0 when the program is right.
 4. **Resolve every error**, first to last, with `neojac docs <code>` for each code you do not know. Run `check` again until it is quiet. The skill `resolving-diagnostics` has the method.
 5. **Format what you changed:** `neojac fmt <files>`. Never hand-format; `fmt` decides all spacing.

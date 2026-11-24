@@ -284,7 +284,7 @@ neojac fmt [--check] [--fix] <path>...
 | Option | What it does |
 |---|---|
 | `--check` | Change nothing: list the files that would change, and exit with status 1 if any would |
-| `--fix` | First rewrite what has a fix: each old spelling the language rejects, and each lint rule the file's project selects in jac.toml's [check.lint] |
+| `--fix` | First rewrite what has a fix: each old spelling the language rejects, and each rule the file's project keeps; what a comment or a docstring said goes to the module's notes annex, notes/<module>.md |
 
 Rewrites the .jac files the paths name in neojac's one layout. A directory means every .jac file under it, but those its jac.toml's [fmt] exclude patterns name.
 
@@ -315,7 +315,7 @@ neojac port --mapping <language>
 | `--mapping <language>` | Print what port makes of each construct of a language: c, c++, rust, python or javascript |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
-Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments.
+Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments: in the Jac outside a project, and in a project in the module's notes annex, notes/<module>.md.
 
 A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. An output that is already there is refused (E4003).
 
@@ -345,7 +345,7 @@ neojac precommit --install [--force]
 | `--install` | Install git's pre-commit hook, which runs `neojac precommit --verify`, and a commit-msg hook that refuses a commit naming an AI as its author |
 | `--force` | With --install, replace a hook neojac did not install, keeping it as a .bak file |
 
-Runs `neojac fmt --fix` on the .jac files staged for a commit (a module with its annexes), then checks each module as `neojac check` does, under the rules its project's jac.toml selects in [check.lint].
+Runs `neojac fmt --fix` on the .jac files staged for a commit (a module with its annexes), then checks each module as `neojac check` does, under the rules its project keeps.
 
 A module is checked as a program of its own, so one that is no program is fixed and not checked: a file that is another target's variant, and one that jac.toml's `[check] exclude` names. `neojac check <main> --target <platform>` checks a variant in the program it is part of.
 

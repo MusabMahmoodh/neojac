@@ -148,7 +148,7 @@ The server reads the `neojac` section of the editor's settings, through `workspa
 
 | Key | Default | Meaning |
 |---|---|---|
-| `lint` | `true` | Check the lint rules `jac.toml` selects |
+| `lint` | `true` | Check the lint rules the project keeps |
 | `index` | `true` | Check the programs of the workspace that are not open |
 | `programs` | `4` | How many checked programs are kept in memory |
 | `settle` | `150` | Milliseconds without an edit before a check starts |

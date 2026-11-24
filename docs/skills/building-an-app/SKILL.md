@@ -25,11 +25,15 @@ neojac docs crossings         # access tags, what crosses, remote spaces
 `jac.toml` marks the project's root; `archwire.jac` beside it holds the spaces. Read an existing
 archwire before adding to it: `neojac build` with no app builds every app it declares.
 
-A `jac.toml` with no `[check.lint]` holds the code to the `"clean"` rules, and that is intended:
-they report every comment, every docstring and every body written inline (W3050, W3051, W3055),
-and `neojac fmt --fix` rewrites the code to them. The steps below write bodies inline: run
-`neojac fmt --fix` before `check`, or select the style rules alone, `select = ["style"]` under
-`[check.lint]`, or lay the project out as `starting-a-project` does.
+Every project is held to the `"clean"` rules, and that is intended: `check`, `build`, `run` and
+`test` report every comment, every docstring and every body written inline (W3050, W3051, W3055),
+and `neojac fmt --fix` rewrites the code to them, moving bodies into `impl/<module>.impl.jac` and
+what comments and docstrings said into `notes/<module>.md`, under each declaration's heading. The
+steps below write bodies inline to be short: run `neojac fmt --fix` before `check`, or lay the
+project out as `starting-a-project` does. Write notes in `notes/<module>.md`, never as comments
+or docstrings. Never write `human_mode = true` or `kind = "fixtures"` to get out of the rules: the
+first is a statement only the person who writes the project by hand makes, and the second is for a
+compiler's test programs.
 
 ## Steps
 
