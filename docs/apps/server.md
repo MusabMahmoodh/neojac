@@ -284,10 +284,17 @@ def:pub sell -> bool {
 
 - **The graph's store and the accounts file are used by one thread at a time.** A program needs no
   lock of its own for them.
+- **A write that another instance's got ahead of stops the calls that would start** until every
+  call in flight has ended, and then runs those in flight again, each on what the other wrote
+  ([Several instances on one store](data.md#several-instances-on-one-store)). A call that waits
+  long holds them long; a call that calls its own server over HTTP meanwhile waits for its
+  request's timeout. A call made from within a call (through a space the app runs in its process,
+  or by a thread the call started) is part of that call, and never waits for it.
 - **The loop** is the thread the program started on. It takes connections, reads each request and
   hands it to its call's thread, and runs [scheduled functions](#scheduled-functions-schedule) between
   requests. While a scheduled function runs, the calls already being answered go on, and no new
-  request is read.
+  request is read. It never waits for a refused write to be put back: a scheduled function due
+  meanwhile runs at its next turn.
 
 ## Signing in
 
@@ -302,6 +309,10 @@ Who a caller is, and how one signs in, is the project's `auth` plugin's to say
 | `GET /__jac/auth/me` | `{"user": ...}`, or 401 for a caller no one knows |
 | `POST /__jac/auth/logout` | `null`; the caller's session is ended |
 | `GET /__jac/auth/<action>?...` | Not JSON: the page a caller comes back to from the place an action sent them, below |
+| `POST /__jac/auth/device`, `{}` | A program that shows no page begins to be signed in: the `code` it shows, the `secret` it collects with, the `page` to send the person to, and `lasts` and `every`, in seconds ([below](#a-program-that-shows-no-page)) |
+| `GET /__jac/auth/device` | Not JSON: the page at which someone signs such a program in |
+| `POST /__jac/auth/device/allow`, `POST /__jac/auth/device/refuse`, `{"code": ...}` from a signed-in caller | `null`; the program showing the code is the caller's, or is turned away |
+| `POST /__jac/auth/device/session`, `{"secret": ...}` | The program's session, once; `null` while no one has answered |
 
 A sign-in the plugin refuses is 400 `rejected` with its reason, and 429 with a `Retry-After`
 header for one made too often.
@@ -312,6 +323,41 @@ that leaves keeps in its tab. The other service sends the caller back to
 was kept, to `POST /__jac/auth/<action>`, keeps the session, and goes back to the page the caller
 left from. So a plugin can tell the caller who left from one who was only handed the way back:
 the second kept nothing.
+
+### A program that shows no page
+
+A command in a terminal, or any program of the app's that has no page to show a form on, is
+signed in by someone at a page of the app. The app serves all of it: there is no code of the
+project's, and the form is the plugin's, as a page's `sign_in()` shows it.
+
+1. **The program begins,** with `POST /__jac/auth/device`. It is answered a code, a secret, and a
+   page:
+
+   ```text
+   {"ok": true, "data": {"code": "WRQB-NRZQ", "secret": "<64 hex digits>",
+                         "page": "/__jac/auth/device?code=WRQB-NRZQ", "lasts": 600, "every": 2}}
+   ```
+
+2. **It sends the person to the page,** at the app's address, and shows them the code. The page
+   signs them in, by whatever the plugin takes (an account made there, where the app makes
+   accounts), shows the code, and asks whether the program is theirs: `Sign it in` or
+   `Turn it away`.
+3. **It asks for its session** every `every` seconds, with
+   `POST /__jac/auth/device/session` and its secret: `null` until the person has answered, then
+   `{"user": ..., "token": ..., "name": ...}`, once. One turned away is 400 `rejected`
+   (`this sign-in was turned away`), and so is one that waited longer than `lasts` seconds
+   (`this sign-in waited too long, or was never begun: begin again`).
+
+The session is the program's own: ending the page's session leaves it, and ending it leaves the
+page's. The secret never leaves the program, and the code alone signs no one in: it names the
+program to a caller who is signed in already. So the page says what the answer means, and a
+person sent to it by someone else turns the program away.
+
+The page is sent with headers that keep it out of another site's frame
+(`Content-Security-Policy: frame-ancestors 'none'`, `X-Frame-Options: DENY`), and it loads
+nothing from anywhere but the app.
+
+A plugin that signs no such program in refuses each step (`rejected`, with its reason).
 
 ### The accounts plugin
 
@@ -341,6 +387,11 @@ curl -X POST http://127.0.0.1:8000/__jac/spawn/api/notes/MyNotes -H "Authorizati
 - **Attempts are limited** in each 15 minutes, by the project's limits: 5 sign-ins for one
   username from one client address, 30 sign-ins from one client address, 10 registrations from
   one client address.
+- **A program that shows no page** waits ten minutes to be signed in, and asks every two seconds.
+  Its code is eight letters in two halves (`WRQB-NRZQ`), of twenty that are not taken for one
+  another, and is given in either case, with or without the hyphen. 30 programs may begin from
+  one client address in each 15 minutes, and one account may answer 10 codes
+  (`too many attempts: try again later`). The plugin keeps the SHA-256 of a program's secret.
 
 Its settings, in `[auth.accounts]`:
 
@@ -403,9 +454,35 @@ def:pub post(text: str) -> str {
 ```
 
 - A signed-in caller's calls are counted for them, and a caller no one knows by the address they
-  call from.
+  call from ([below](#the-address-a-caller-calls-from)).
 - The program's own calls, and those of the deployment's other apps, are not counted.
 - A function's route (`@restspec`) is counted with its endpoint.
+
+### The address a caller calls from
+
+A request's client is the address its connection came from. Behind a gateway that is the
+gateway's, for every caller, and what is counted by client is then counted for everyone together:
+the sign-in attempts of the `accounts` plugin, and a `@limit` for a caller no one knows.
+
+The `http` transport is told the gateway in front of it by the one header that gateway writes each
+request's client into, in `[transport.http]`:
+
+```toml
+[transport.http]
+client_header = "x-envoy-external-address"
+```
+
+or `JAC_TRANSPORT_CLIENT_HEADER` where the program runs. A request's client is then the address
+that header holds. A request that carries none, or more than one address under it, is its
+connection's: the probe of whatever runs the program is such a request.
+
+- **Name a header only the gateway can set:** one it writes over whatever a caller sent under that
+  name. An Envoy that takes a connection's address for its client
+  (`use_remote_address`) writes `x-envoy-external-address` so. `X-Forwarded-For` and `Forwarded`
+  are not such headers: a caller writes what they like at their head, and each proxy on the way
+  adds to them.
+- **Name one only where nothing but the gateway reaches the server.** Whoever else reaches it says
+  what client they like.
 
 `consume_limit(scope, actor, limit, seconds)` counts something that is no endpoint's caller: it
 returns 0 while `actor` is within `limit` uses of `scope` in `seconds`, else the seconds to wait.

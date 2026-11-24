@@ -186,7 +186,7 @@ Giving one a value in `jac.toml` is E1053.
 |---|---|---|
 | `sqlite` | `store`: a space's graph, as rows in a SQLite file, which the programs of one machine may keep together | `path`, the file: `graph.db` in the app's data directory |
 | `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; and signing in through GitHub, where the program runs with an OAuth app's ID and secret | `path`, `rounds`, `session_seconds`, `local_users`, `email_required`, `origin`, `github`, `github_api`, and the secrets `github_id` and `github_secret` ([Serving a space](server.md#the-accounts-plugin)) |
-| `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | None ([Serving a space](server.md#what-the-server-will-and-will-not-read)) |
+| `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | `client_header`, the header a gateway in front of it writes each request's client address into ([Serving a space](server.md#the-address-a-caller-calls-from)) |
 | `anthropic` | `llm`: a model behind Anthropic's Messages API | `model`, `address`, `timeout`, `retries`, and the secret `key` ([By and sem](../language/by-and-sem.md#the-anthropic-plugin)) |
 | `process_jobs` | `jobs`: each job in a copy of the program | `dir`, where a job's input and what it says are kept while it runs: `jobs` in the app's data directory |
 | `loop_schedule` | `schedule`: each scheduled function run by the thread that listens, when it is due | `tick`, how often its clock looks for one that is due, in seconds: `0.25` |
@@ -347,11 +347,12 @@ so only a plugin of `auth` declares it.
   and gives `open_book(host)`, the `Book` it keeps them in. The library's settings are the
   plugin's, beside its own: `accounts` adds `path`
   ([Serving a space](server.md#the-accounts-plugin)).
-- **A `Book` is nine methods, each one step done whole:** a session by its token's hash, one
+- **A `Book` is twelve methods, each one step done whole:** a session by its token's hash, one
   begun and one ended, an account found by its username or email, one made unless either is
   taken, the user an identity of another service names (as it is known, and made where it is
-  not), that service's identities, and `away_key()`, the key that signs what a caller carries
-  to another service and back.
+  not), that service's identities, `away_key()`, the key that signs what a caller carries
+  to another service and back, and a program that shows no page kept waiting under its code
+  (`expect`), said to be someone's or turned away (`decide`), and collected once (`collect`).
 - **What is taken is an answer, not an error:** `add` says whether the account was made. So a
   book over a database several programs reach is a statement or two for each method, and holds
   no transaction open.

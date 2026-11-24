@@ -10,6 +10,7 @@ where it waits. Its loop accepts and reads requests, and runs what the
 program has for it between them."""
 
 import http.client;
+import ipaddress;
 import re;
 import select;
 import socket;
@@ -154,6 +155,23 @@ def respond(handle: Callable[[Request], Response], req: Request) -> Response {
     }
 }
 
+"""Where a request with `headers` came from, when its connection came from
+`peer`: the one address the header `named` holds, for a server a gateway
+writes it for, and `peer` where no header is named, or the request carries
+none, or what it carries is not one address. A request the gateway did not
+carry (the probe of whatever runs the program) carries none, and is its
+peer's."""
+def client_of(headers: dict[str, str], peer: str, named: str) -> str {
+    if named == "" or named not in headers {
+        return peer;
+    }
+    try {
+        return str(ipaddress.ip_address(headers[named].strip()));
+    } except ValueError {
+        return peer;
+    }
+}
+
 """A connection a client is waiting on: a stream being sent, or a call
 that has not been answered yet (`interim`). Its connection, what holds it
 while something is written to it, and when something last was."""
@@ -180,6 +198,9 @@ obj Calls {
     # (Given a call's connection, its request, and whether its client reads
     # interim replies.)
     has answer: Callable[[any, Request, bool], None],
+        # The header a gateway writes each request's client into
+        # (HttpTransport's setting), its name lowercased.
+        client_header: str = "",
         turn: any = threading.Condition(),
         # Each call waiting for a thread: its descriptor, then its ticket.
         queued: list[int] = [],
@@ -253,7 +274,9 @@ obj Calls {
                 req = parse_request(self.held[ticket]);
                 interim = reads_interim(self.held[ticket]);
                 if req is not None {
-                    req.client = str(conn.getpeername()[0]);
+                    req.client = client_of(
+                        req.headers, str(conn.getpeername()[0]), self.client_header
+                    );
                 }
             } except Exception as e {
                 # (The loop read it as a whole request: this is not reached.)
@@ -406,6 +429,16 @@ obj Bound(Claim) {
 }
 
 obj HttpTransport(Transport) {
+    """The header a gateway in front of this server writes each request's
+    client address into, having taken out what any caller sent under that
+    name: an Envoy that takes a connection's own address for its client
+    writes `x-envoy-external-address`. A request's client is then what that
+    header holds, and limits count callers apart. It is named only where
+    nothing but such a gateway reaches the server: whoever else does says
+    what client they like. "", the default: a request's client is the
+    address its connection came from."""
+    has client_header: str = "";
+
     # Work for the loop to do on its own thread, the one the program started
     # on, and the pair of sockets that wakes the loop for it, once it listens.
     has work: list[Callable[[], None]] postinit;
@@ -527,6 +560,7 @@ obj HttpTransport(Transport) {
             answer=lambda (conn: any, req: Request, interim: bool) {
                 answer_on(conn, req, interim, handle, sending, answering[0])
             },
+            client_header=self.client_header.strip().lower(),
         );
         answering.append(calls);
         now = time.time();

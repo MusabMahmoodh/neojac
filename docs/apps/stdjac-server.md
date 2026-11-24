@@ -68,7 +68,7 @@ class conforms to it, and a program never names it.
 
 | Interface | Contract | Methods |
 |---|---|---|
-| `Auth` | `auth.contract` | `open(host: dyn AuthHost)`; `caller(headers: dict[str, str]) -> str \| None`, who a request's caller is; `asks(headers) -> SignIn`, what signing in takes; `answer(action: str, given: dict[str, str], client: str) -> Session`, a caller signed in, or `Rejected`; `leave(headers)`, a session ended |
+| `Auth` | `auth.contract` | `open(host: dyn AuthHost)`; `caller(headers: dict[str, str]) -> str \| None`, who a request's caller is; `asks(headers) -> SignIn`, what signing in takes; `answer(action: str, given: dict[str, str], client: str) -> Session`, a caller signed in, or `Rejected`; `leave(headers)`, a session ended; and the three steps of signing in a program that shows no page ([Serving a space](server.md#a-program-that-shows-no-page)), each `Rejected` by a plugin that signs none in: `device(client: str) -> DeviceSignIn`, one begun; `device_answer(headers, code: str, allow: bool)`, the answer of a request's caller for the program showing `code`; `device_session(secret: str) -> Session \| None`, the program's session, once, and `None` while no one has answered |
 | `Limits` | `limits.contract` | `open(host: dyn Host)`; `consume(scope: str, actor: str, limit: int, seconds: int) -> int` |
 | `Scheduler` | `schedule.contract` | `open(host: dyn Host)`; `start(work: list[Scheduled], on_loop: Callable[[Callable[[], None]], None])`: run each of `work` when it is due, from now on |
 | `Jobs` | `jobs.contract` | `open(host: dyn JobsHost)`; `start(name: str, input: any) -> str`, a job started, by what names its run; `read(id: str) -> JobState`, what it has said since it was last read and whether it has ended; `work() -> bool`, asked as a program starts: run the job this process was started for, if any |
@@ -85,6 +85,7 @@ What they are given and give:
 | `SignInField` | `name`, `label`, `secret: bool`, `choices: list[str]` |
 | `SignInAction` | `name`, `label`, `needs: list[str]` (the fields it takes), `redirect: str` (for one done elsewhere), `keeps: dict[str, str]` (what the page that leaves for it keeps, given to `answer` beside what the caller comes back with) |
 | `Session` | `user: str`, `token: str`, `name: str` (what they are called, where that is not who they are) |
+| `DeviceSignIn` | `code: str` (what the program shows), `secret: str` (what it collects with), `lasts: int`, `every: int` (seconds: how long it may wait, and what it leaves between asking) |
 | `Rejected` | An exception: `detail: str`, `retry_after: int` |
 | `Scheduled` | `name: str`, `every: float`, `run: Callable[[], None]` |
 | `JobState` | `notes: list[tuple[str, str]]`, `done: bool`, `result: any`, `failed: str` |

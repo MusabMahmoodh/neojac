@@ -18,7 +18,12 @@ alone: the book keeps its SHA-256.
   `github`, known by GitHub's ID for the user and called by their login
   there. The caller is sent to GitHub and comes back to
   `/__jac/auth/github`, which is what the OAuth app registers as its
-  callback."""
+  callback.
+- **A program that shows no page** is signed in by someone at one: it shows
+  a code of eight letters, and whoever is signed in at the app's page and
+  gives the page that code says whether the program is theirs. It then
+  collects a session of its own, with a secret it alone holds, of which the
+  book keeps the SHA-256. A program waits ten minutes."""
 
 import base64;
 import hashlib;
@@ -33,6 +38,7 @@ import from urllib.parse { urlencode }
 import from auth.contract {
     Auth,
     AuthHost,
+    DeviceSignIn,
     Rejected,
     Session,
     SignIn,
@@ -55,6 +61,17 @@ glob USERNAME: str = "[a-z0-9][a-z0-9._-]{2,31}",
      # long that service is waited for, in seconds.
      AWAY_SECONDS: int = 600,
      SERVICE_SECONDS: float = 20.0,
+     # A program that shows no page: how long it waits to be signed in, and
+     # how long it leaves between asking whether it is, in seconds; how many
+     # may begin from one client address in each LIMIT_SECONDS, and how many
+     # codes one account may answer; and the letters of a code, which are
+     # the consonants no one takes for another or reads a word in.
+     DEVICE_SECONDS: int = 600,
+     DEVICE_EVERY: int = 2,
+     DEVICE_PER_CLIENT: int = 30,
+     DEVICE_PER_USER: int = 10,
+     DEVICE_LETTERS: str = "BCDFGHJKLMNPQRSTVWXZ",
+     DEVICE_LENGTH: int = 8,
      # What one the app does not know is told where they may not make
      # themselves an account.
      CLOSED: str = "this app makes no new accounts: ask whoever runs it for one";
@@ -81,7 +98,18 @@ as `time.time` counts them.
 - `identities` are the IDs `provider` has for the ones it knows, in the
   order each was first asked for.
 - `away_key` signs what a caller carries to another service and back: one
-  key, for every program that may be the one the caller comes back to."""
+  key, for every program that may be the one the caller comes back to.
+- `expect` keeps a program that shows no page waiting under `code`, to be
+  collected with `key` (its secret's SHA-256) until `expires`, and drops the
+  ones that waited until `now`: whether it was kept, which it is not under
+  a code another waits under.
+- `decide` says of the one waiting under `code` that it is `user`'s, or,
+  with "" for `user`, that it is turned away: whether one waited there that
+  nothing was said of yet.
+- `collect` is what was said of the one that collects with `key`: whether
+  anything was, and the user ("" for one turned away); None for none that
+  waits. One something was said of is dropped as it is collected, so it is
+  collected once."""
 obj Book {
     def session(key: str) -> tuple[str, float] | None abst;
     def begin(key: str, user: str, expires: float, now: float) abst;
@@ -92,6 +120,9 @@ obj Book {
     def identity(provider: str, external_id: str, user: str, now: float) -> str abst;
     def identities(provider: str) -> list[str] abst;
     def away_key -> bytes abst;
+    def expect(code: str, key: str, expires: float, now: float) -> bool abst;
+    def decide(code: str, user: str, now: float) -> bool abst;
+    def collect(key: str, now: float) -> tuple[bool, str] | None abst;
 }
 
 """An `auth` plugin's class, but for `open_book`, which the plugin gives: its
@@ -414,6 +445,67 @@ obj AccountsAuth(Auth) {
             return self.github_answer(given);
         }
         return self.register(name, given.get("email", ""), given.get("password", ""));
+    }
+
+    """A program that shows no page begins to be signed in: its code, of
+    letters alone and shown in two halves, and its secret."""
+    def device(client: str) -> DeviceSignIn {
+        retry = self.tried("device", client, DEVICE_PER_CLIENT, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        now = time.time();
+        secret = secrets.token_hex(32);
+        # (A code is one of 25 thousand million; one that another program
+        # waits under is not kept, and another is tried.)
+        for attempt in range(8) {
+            code = "".join([secrets.choice(DEVICE_LETTERS) for k in range(DEVICE_LENGTH)]);
+            if self.kept().expect(code, token_key(secret), now + DEVICE_SECONDS, now) {
+                half = DEVICE_LENGTH // 2;
+                return DeviceSignIn(
+                    code=code[:half] + "-" + code[half:],
+                    secret=secret,
+                    lasts=DEVICE_SECONDS,
+                    every=DEVICE_EVERY,
+                );
+            }
+        }
+        raise Rejected(detail="no code could be made: try again");
+    }
+
+    """The caller's answer for the program showing `code`, as they typed it:
+    in either case, with or without what parts its halves. What one account
+    may answer is counted, so no one finds a code by trying them."""
+    def device_answer(headers: dict[str, str], code: str, allow: bool) {
+        who = self.caller(headers);
+        if who is None {
+            raise Rejected(detail="sign in first");
+        }
+        retry = self.tried("device code", "user " + who, DEVICE_PER_USER, LIMIT_SECONDS);
+        if retry > 0 {
+            raise Rejected(detail="too many attempts: try again later", retry_after=retry);
+        }
+        said = "".join([c for c in code.upper() if c in DEVICE_LETTERS]);
+        if not self.kept().decide(said, who if allow else "", time.time()) {
+            raise Rejected(
+                detail="no program is waiting with that code: check it, or begin again from the program",
+            );
+        }
+    }
+
+    def device_session(secret: str) -> Session | None {
+        found = self.kept().collect(token_key(secret), time.time());
+        if found is None {
+            raise Rejected(detail="this sign-in waited too long, or was never begun: begin again");
+        }
+        (answered, user) = found;
+        if not answered {
+            return None;
+        }
+        if user == "" {
+            raise Rejected(detail="this sign-in was turned away");
+        }
+        return Session(user=user, token=self.token_for(user));
     }
 
     def leave(headers: dict[str, str]) {

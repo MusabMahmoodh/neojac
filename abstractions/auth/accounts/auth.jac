@@ -10,10 +10,19 @@ import from accountbook { AccountsAuth, Book }
 import from auth.contract { AuthHost }
 import from sqlfile { Upgrade, open_db }
 
-glob ACCOUNTS_FORMAT: int = 1,
+"""The table of the programs that show no page and wait to be signed in:
+what layout 2 has that 1 did not."""
+glob DEVICES: str = "create table devices (code text primary key, key text not null unique, answered integer not null, user_id text not null, expires real not null)";
+
+"""A file of layout 1 made one of layout 2."""
+def with_devices(db: any) {
+    db.execute(DEVICES);
+}
+
+glob ACCOUNTS_FORMAT: int = 2,
      # The steps from each layout of the accounts file a release wrote to the
-     # next: none yet, 1 being the first.
-     ACCOUNTS_UPGRADES: list[Upgrade] = [];
+     # next.
+     ACCOUNTS_UPGRADES: list[Upgrade] = [Upgrade(since=1, apply=with_devices)];
 
 """The accounts file, as the accounts ask it."""
 obj FileBook(Book) {
@@ -128,6 +137,51 @@ obj FileBook(Book) {
     def away_key -> bytes {
         return self.key;
     }
+
+    def expect(code: str, key: str, expires: float, now: float) -> bool {
+        with self.turn {
+            self.db.execute("delete from devices where expires <= ?", (now,));
+            taken = len(
+                self.db.execute("select code from devices where code = ?", (code,)).fetchall()
+            )
+                > 0;
+            if not taken {
+                self.db.execute(
+                    "insert into devices values (?, ?, 0, '', ?)", (code, key, expires)
+                );
+            }
+            self.db.commit();
+        }
+        return not taken;
+    }
+
+    def decide(code: str, user: str, now: float) -> bool {
+        with self.turn {
+            said = self.db.execute(
+                "update devices set answered = 1, user_id = ? where code = ? and answered = 0 and expires > ?",
+                (user, code, now),
+            ).rowcount;
+            self.db.commit();
+        }
+        return said == 1;
+    }
+
+    def collect(key: str, now: float) -> tuple[bool, str] | None {
+        with self.turn {
+            found = self.db.execute(
+                "select answered, user_id from devices where key = ? and expires > ?", (key, now)
+            ).fetchall();
+            if len(found) == 0 {
+                return None;
+            }
+            answered = int(found[0][0]) == 1;
+            if answered {
+                self.db.execute("delete from devices where key = ?", (key,));
+                self.db.commit();
+            }
+            return (answered, str(found[0][1]));
+        }
+    }
 }
 
 obj Accounts(AccountsAuth) {
@@ -150,6 +204,7 @@ obj Accounts(AccountsAuth) {
                     # which no username reaches, since its user ID holds a `:`.
                     "create table identities (provider text, external_id text, user_id text not null unique, created real, primary key (provider, external_id))",
                     "create table sessions (token_hash text primary key, user_id text not null, expires real not null)",
+                    DEVICES,
                 ],
                 ACCOUNTS_UPGRADES,
                 host,
