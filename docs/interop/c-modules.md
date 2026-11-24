@@ -518,6 +518,16 @@ with entry {
 `Box[i32]` is the class `boxed` gives; `Box[Counter]` is an instance nothing in the C++ makes.
 An instance whose argument is no class or number type of C++ is refused by name.
 
+- **Classes or class templates of one name in two namespaces** (napi's `AccessorCallbackData` in
+  `Napi` and in `Napi::details`) are each named by their qualified name, its parts joined by
+  `_`: `tally::Pair<T>` is `tally_Pair[T]` and `tally::inner::Pair<T>` `tally_inner_Pair[T]`, as
+  `tally::Mark` and `tally::inner::Mark` are `tally_Mark` and `tally_inner_Mark`. A wire names
+  them so. A name only one class of the library has keeps its last part (`Box`).
+- **An instance a library gives through a name of a class template's own** (napi's
+  `ObjectWrap<T>::PropertyDescriptor`, which names `ClassPropertyDescriptor<T>`) is named by the
+  instance it names, never by that name: `Keeper<T>::Weight`, a `Tag<T>`, is `Tag[T]`, and the
+  library's own class `Weight` stays `Weight`.
+
 ### A Jac class deriving a C++ class
 
 A Jac class may list a C++ class as its base, where C++ allows a class to be derived: it is
@@ -577,7 +587,9 @@ figure/4/9 4
   where it is declared, with the reason (`'Plan.init' of the C module 'tally' cannot be bound: a
   Jac class cannot derive it: its virtual method step: it is private, and its definition is one a
   class deriving it cannot call`, or `it has no virtual method, and a Jac class derives only a C++
-  class C++ calls through one`); the class itself is bound, and Jac makes and uses it as it is.
+  class C++ calls through one`); the class itself is bound, and Jac makes and uses it as it is. A
+  class a Jac class may derive is derived the same way from any header, one that declares no
+  template among them.
 - **The Jac object owns its C++ part**, which is deleted when the Jac object is dropped: a class
   whose destructor runs code makes the deriving class an owned value too, bound `own`.
 - **The Jac class's `destroy` is its C++ part's destructor's body.** It runs once, when the part
@@ -926,7 +938,9 @@ with entry {
 string longer than the small buffer holds
 ```
 
-An `own` owner given away while such a pointer is used is E1304, as with any borrow. A member C++
+An `own` owner given away while such a pointer is used is E1304, as with any borrow: with
+`p = l.text()` of a member marked `[[clang::lifetimebound]]`, `m: own Label = l` before `p`'s last
+use is `'l' is destroyed while still borrowed`. A member C++
 declares no such thing of gives its pointer under C++'s own contract, with no loan: a managed
 local's object goes at its last use, an `own` one's where its scope ends, and the pointer then
 dangles; keep the object in a local read after the pointer, or in an `own` local, as long as it

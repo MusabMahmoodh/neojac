@@ -47,7 +47,11 @@ moves.
   counts as one written out: with `def lent(self: &Counter) -> &Counter`,
   `r = c.lent(); c.poke(); print(r.n)` is E1302 where `poke` takes
   `self: &mut Counter`, though no `&` is written. `neojac check` judges
-  what a call or an index returns as `neojac build` does.
+  what a call or an index returns as `neojac build` does. A loan made
+  through a borrow a local holds is a reborrow of what that borrow lends,
+  not a second loan of its owner, and does not conflict with the borrow's
+  own: a range `for` over a C++ container whose `begin()` lends begins its
+  two iterators through its `&mut` range, and both live.
 - **A shared borrow only reads.** Through `&x`, a `self: &T` receiver or
   the element a shared `flow for` lends, assigning a field is E1320 and
   calling a method that changes the object is E1318. A method changes its
