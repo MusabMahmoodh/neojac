@@ -15,9 +15,9 @@ mistakes people actually make, which is what the error messages and these pages 
 first, and an internal error counted by where it was raised is a defect found without anyone
 filing it.
 
-A week's report is sent once the week has ended, by a later command that takes a while itself,
-alongside its work and never making it wait. `neojac telemetry` prints what is recorded and not yet
-sent, in the form it is sent.
+A week's report is sent as it stands, at most once a day, by a command that takes a while itself,
+alongside its work and never making it wait; the collector keeps the latest. `neojac telemetry`
+prints what is recorded, each week's report in the form it is sent.
 
 ```sh
 neojac telemetry          # whether it is on, what decided that, and what is recorded
@@ -136,8 +136,7 @@ the notice again nor forgets that recording was turned off:
 
 | Path | What it is |
 |---|---|
-| `records/<week>.jsonl` | One line of JSON for each run that week, appended as the run ends, a line holding the week's ID, and a line for each time its report was tried and each time it was refused. A report is made from these lines; nothing else reads them |
-| `records/<week>.sent` | In CI, there once this week's report was sent: what is recorded after it that week is not kept |
+| `records/<week>.jsonl` | One line of JSON for each run that week, appended as the run ends; a line holding the week's ID; and a line for each time its report was tried, each time it was refused, and each time the collector took it, with how many runs it held. A report is made from these lines; nothing else reads them |
 | `off` | There when `neojac telemetry off` turned recording off |
 | `on` | There when `neojac telemetry on` turned it on |
 
@@ -168,37 +167,51 @@ A run in CI is recorded with `ci` true when any of these is set to anything but 
 
 ## Sending
 
-A week's report is sent once the week has ended (in UTC), by a later run of one of the commands
-that take a while by what they are: `neojac build`, `neojac test`, `neojac install` and
-`neojac dev`. A short command (`check`, `fmt`, `cc`, `run`, ...) never sends. Each ended week is one
+A week's report is always the whole week so far: every run recorded in it. It is sent by one of the
+commands that take a while by what they are: `neojac build`, `neojac test`, `neojac install` and
+`neojac dev`. A short command (`check`, `fmt`, `cc`, `run`, ...) never sends. Each week is one
 request, a POST of `{"args": {"sent": <report>}}` to
 `https://telemetry.neojac.dev/__jac/call/control/telemetry/take`, or to the address
-`NEOJAC_TELEMETRY_URL` names:
+`NEOJAC_TELEMETRY_URL` names. Such a command looks at each week it holds, the oldest first:
 
+- **Something to send.** A week has something to send when it holds more runs than the last report
+  the collector took of it, which `neojac telemetry` says. A week whose report was taken is sent
+  again only once more is recorded in it.
+- **At most once a day.** A week with something to send is sent when it was never tried, or was
+  last tried a day ago or more, whatever came of that try. The week in progress is sent the same
+  way as an ended one: on a machine used every day, its report reaches the collector each day as
+  the week goes on.
+- **Done when the collector has all of it.** A report the collector takes is noted in the week's
+  file, with how many runs it held. An ended week the collector has all of is deleted; the week in
+  progress is kept, and goes on being recorded into.
+- **Refused, or no answer.** A refused report is tried again a day later; a week refused three
+  times is not sent again, and is deleted once it has ended. A report that gets no answer (no
+  connection, no answer within the limit, a status that says try later) is tried a day later.
+- **Four weeks at most.** A week more than four weeks old is deleted, sent or not.
 - **Alongside the command, never in its way.** The sending starts as the command starts, on a
   thread of its own in the same process, and has 5 seconds in all, for every week it sends. A
   command that ends first does not wait for it: the process ends, and what was not answered is
-  tried another day. A failure says nothing, and changes no exit status.
-- **Done when the collector says so.** A report the collector answers that it took is done, and the
-  week's file is deleted. One it refuses is kept and tried a day later; after three refusals it is
-  dropped. One that gets no answer (no connection, no answer within the limit, a status that says
-  try later) is tried a day later.
-- **Four weeks at most.** A week's report not taken by the time it is four weeks old is dropped,
-  unsent, and so is an ended week whose runs are all a build from source's.
+  tried a day later. A failure says nothing, and changes no exit status.
 - **Nothing from what does not record.** `NEOJAC_TELEMETRY=off` and `DO_NOT_TRACK=1` send nothing, a
-  neojac that neojac started sends nothing, and a build from source sends nothing, even turned on.
-- **In CI.** A CI machine usually starts empty and never reaches the end of a week. There, a long
-  command sends this week's records so far, when a run before it on the machine has printed the
-  notice. The week's report is then done: what that machine records after it in the same week is
-  not kept.
+  neojac that neojac started sends nothing, a build from source sends nothing, even turned on, and
+  the run that prints the notice sends nothing: on a machine's first run there is nothing yet to
+  send.
 
-`neojac telemetry` says of each week whether it has been tried, and when.
+So a machine in CI, which usually starts empty, sends its week so far with the first long command
+after its first run, and nothing more that day: what it records after that is not sent unless the
+machine is used again a day later. A CI machine is otherwise like any other.
+
+`neojac telemetry` says of each week whether it is in progress or ended, when its report was last
+sent and how many of its runs that held, when it was last tried, how often it was refused, and when
+it is sent next.
 
 The request is made as neojac's downloads are: the server's certificate is checked against the
 certificates OpenSSL finds (`SSL_CERT_FILE`, `SSL_CERT_DIR`; Windows's own store on Windows), and a
 proxy is taken from `https_proxy`, `http_proxy` and `no_proxy`.
 
-The collector keeps one report for a week and an ID, so a report sent twice counts once, and keeps
+The collector keeps one report for a week and an ID: a report sent again takes the place of the one
+before, unless it holds fewer runs (two commands on one machine may send at once, the one that read
+the records first arriving last). An install's week is one report however often it is sent. It keeps
 reports for good: a report is counts and a week's random ID, and a trend is worth more the longer
 it is. `NEOJAC_TELEMETRY_URL` sends the reports elsewhere instead, as an organization that wants
 its machines' reports at a collector of its own does, or to watch them pass through a proxy.
@@ -207,6 +220,7 @@ its machines' reports at a collector of its own does, or to watch them pass thro
 
 `telemetry.neojac.dev`, in a browser, shows the totals of every report: active machines by week, by
 release and by platform; commands by runs and by how often they fail; diagnostics by how many
-machines met them; internal errors by release. No report, and no week's ID, is ever shown, and a
+machines met them; internal errors by release. The week in progress is shown as it goes, apart
+from the totals of the weeks that have ended. No report, and no week's ID, is ever shown, and a
 number is shown only where at least five machines are behind it. A container made fresh each time
 (a dev container, a CI machine) is a new machine each time, which the counts of machines say.
