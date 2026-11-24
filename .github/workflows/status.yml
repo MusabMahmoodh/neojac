@@ -1,7 +1,7 @@
 name: Status
 
 # Whether the launch platform answers, asked from outside it: every five
-# minutes the platform's own address and one launched app's are requested,
+# minutes the platform's own addresses and one launched app's are requested,
 # what came back is added to the record kept in the branch `status`, and
 # GitHub Pages serves that branch as status.neojac.dev. Nothing of it runs
 # on the platform, so the page answers when the platform does not.
