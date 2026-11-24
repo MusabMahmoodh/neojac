@@ -380,7 +380,7 @@ neojac launch delete [--as <name>] [--yes]
 | `--lines <n>` | How many of each instance's last lines logs prints (default: 200) |
 | `--yes` | Delete the app without asking for its name |
 
-login signs in to the platform, at https://launch.neojac.dev unless an address is given: it prints a link and a code, and opens the link where this machine has a screen. Whoever signs in on that page, or makes an account there, and says the program showing the code is theirs has signed it in; login waits for that, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
+login signs in to the platform, at https://launch.neojac.dev unless an address is given: it prints a link and a code. Whoever signs in on that page, or makes an account there, and says the program showing the code is theirs has signed it in; login waits for that, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
 
 The platform builds from source: the project's own directory is sent, without what a build or an install made in it, so its packages are ones jac.toml and jac.lock name by a version or a repository.
 

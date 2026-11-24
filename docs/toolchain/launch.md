@@ -31,11 +31,10 @@ To sign in to https://launch.neojac.dev, open
 sign in there, and check that the page shows the code WRQB-NRZQ
 ```
 
-It opens the page itself where this machine has a screen; on a machine that has none, open the
-link on any other. The page asks for a username and a password, or makes an account
-(`Create account`), shows the code, and asks whether the program is yours: `Sign it in`. `login`
-waits for that, ten minutes at most, and nothing typed at the page comes to this machine but the
-session. The session is kept for the commands that follow, on this machine and for this user:
+Open the link on this machine or on any other. The page asks for a username and a password, or makes
+an account (`Create account`), shows the code, and asks whether the program is yours: `Sign it in`.
+`login` waits for that, ten minutes at most, and nothing typed at the page comes to this machine but
+the session. The session is kept for the commands that follow, on this machine and for this user:
 
 | System | The session's file |
 |---|---|
