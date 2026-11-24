@@ -16,6 +16,20 @@ obj Upgrade {
         apply: Callable[[any], None];
 }
 
+"""The layout `db` says it is of (its `user_version`), and how many tables
+and indexes it holds."""
+def laid_out(db: any) -> tuple[int, int] {
+    version = 0;
+    for r in db.execute("pragma user_version") {
+        version = int(r[0]);
+    }
+    made = 0;
+    for r in db.execute("select count(*) from sqlite_master") {
+        made = int(r[0]);
+    }
+    return (version, made);
+}
+
 """Open the SQLite file at `path`, made with `tables` if it is new: one of
 layout `format` (its `user_version`).
 
@@ -45,24 +59,23 @@ def open_db(
     # (One connection, for whichever thread is at the file: its users take
     # turns at it.)
     db = sqlite3.connect(path, check_same_thread=False);
-    version = 0;
-    for r in db.execute("pragma user_version") {
-        version = int(r[0]);
-    }
-    made = 0;
-    for r in db.execute("select count(*) from sqlite_master") {
-        made = int(r[0]);
-    }
+    (version, made) = laid_out(db);
     if version == 0 and made == 0 {
         # (All of it at once: a table made on its own is a write to disk of its
-        # own, and a file of a dozen takes a dozen times as long to make.)
-        db.execute("begin");
-        for t in tables {
-            db.execute(t);
+        # own, and a file of a dozen takes a dozen times as long to make. And
+        # as the file's one writer, looked at again once it is: of the
+        # programs that start at once on no file, one makes it.)
+        db.execute("begin immediate");
+        (version, made) = laid_out(db);
+        if version == 0 and made == 0 {
+            for t in tables {
+                db.execute(t);
+            }
+            db.execute("pragma user_version = " + str(format));
+            db.commit();
+            return db;
         }
-        db.execute("pragma user_version = " + str(format));
-        db.commit();
-        return db;
+        db.rollback();
     }
     if version == format {
         return db;
@@ -85,10 +98,17 @@ def open_db(
         steps.append(step[0]);
     }
     kept = f"{path}.layout{version}";
-    shutil.copyfile(path, kept);
     db = sqlite3.connect(path, check_same_thread=False);
+    # (As the file's one writer from before it is copied: of the programs
+    # that start at once on a file of an older layout, one upgrades it, and
+    # the others find it done.)
+    db.execute("begin immediate");
+    if laid_out(db)[0] == format {
+        db.rollback();
+        return db;
+    }
+    shutil.copyfile(path, kept);
     try {
-        db.execute("begin");
         for u in steps {
             u.apply(db);
         }

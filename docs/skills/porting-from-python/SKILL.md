@@ -16,7 +16,26 @@ neojac docs start/coming-from-python   # every Python form beside Jac's, with th
 neojac docs library                    # which standard modules are native
 ```
 
-Try `neojac port stock.py` first (`neojac docs port`). It translates a core of Python mechanically, into Jac that behaves as the file does with every name an `any`, and says exactly which constructs it refuses (`neojac port --check stock.py`). The steps below are for what it refuses, and for giving a port its types.
+Try `neojac port stock.py` first (`neojac docs port`). It translates Python mechanically, into Jac that behaves as the file does, with every name an `any` and each annotation carried as the Python object the source named, and says exactly which constructs it refuses (`neojac port --check stock.py`). The steps below are for what it refuses, and for giving a port its types.
+
+In a project (a `jac.toml` above the file, as `neojac absorb` writes one), port reads the file as the project builds it, and a port is one change:
+
+- `neojac port --check <dir>` prints the plan: each module after the modules it imports, and modules that import each other as one group. Port in that order, a step at a time, and run the project's tests after each.
+- `neojac port shop/use.py` writes `shop/use.jac`, moves `use.py` to `replaced-by-neojac/shop/use.py`, writes its imports of the project's modules as wires in `archwire.jac`, and does all of it only if the project then checks (E4008). Nothing is half done: on a refusal, every file is as it was.
+- A module of the project imported by a script in no space is refused (E4009): put the script in a space, or port it too.
+- A class Python makes (a `NamedTuple` or SQLModel base, `@dataclass`, a run-time `if` in its body, a class in a function) and a decorated function stay Python's in a `cpython` space; natively they are E5174, E5175 and E5176 (`neojac docs interop/python-classes`).
+- A Python project's tests and scripts (files of its tree its wheel does not list) are its space's clients: they import the package as the space builds it, so the modules they import port. A module the wheel ships ports too: port lists its `.jac` in `[wheel."<dir>"] files`, and the wheel holds it as Python's own module.
+- A port is Python's in a `cpython` space, down to what Python does wrong: a name read before the code binds it is Python's `NameError` or `UnboundLocalError`, an object with no `__repr__` prints as Python's does, and `from __future__ import annotations` stays Python's: in such a module each annotation is written as the source's text, which `check` reads as `any`.
+- An import under `if TYPE_CHECKING:` is not written, nor wired: it binds nothing at run time, and the annotations that name it are text.
+- A re-export of a project module's name, an import of a name as itself (`from .registry import get_encoding as get_encoding`) or of a name `__all__` lists, is an `include`, and its wire an include wire (`neojac docs modules`, "include").
+- A Python builtin used as a value (`_min=min`, `zip(*rows)`) is `builtins.min`, Python's own; an import of a module that is not installed is E4016 at the module's top only: in a function or a `try` it is Python's `ImportError` where it runs.
+- If `neojac check` or `neojac build` says E4013, a port was killed part-way: run `neojac port --check` on a path of the project, which undoes that change first.
+- A comparison whose value is kept where an operand is a Python object (`kept = a == b`, SQLModel's `User.email == email`) is written as Python's own, `operator.eq(a, b)`, since Jac's `==` on an `any` is a `bool`; one only tested (`if a < b`) stays an operator.
+- A `def` in module code (under `try`, an `if`) is written where it stands, assigning the module's `glob` of its name, as Python binds it. So is an import in module code (`try: import json` falls back to `json = None`): `import json;` alone, which binds the module's `glob json` where it runs.
+- A parameter the source leaves unannotated stays so (`def f(a, b=1)`): in a `cpython` space it is `any` to `check` and has no entry in `__annotations__`, as in the source. Natively a parameter has a type (E0052): give it one, or `any`.
+- A class Python makes takes its constructor as `init`, which is Python's `__init__`; `super.init(...)` calls the base's.
+- A module that only another platform's `comptime if` branch imports (`_pswindows` on macOS) is not loaded for this platform, so what it uses of that platform alone is not checked here. Port checks it for the platform that loads it; one only a system neojac builds for no target of loads (`_pssunos`) stays Python (E4017), and so does one whose Jac fails its own platform's check (E4018, with that check's errors): the rest of the run is written, and the importer imports it as Python does.
+- An `except (ValueError, OSError) as err` binds `err` to their common base; `isinstance(err, ValueError) or err.errno == 2` reads `errno` of the `OSError` the right side is narrowed to.
 
 Record what the Python does before you change it: run it on inputs that exercise each path and keep the output (`python3 stock.py > py.out`). That file is the port's acceptance test.
 
@@ -55,7 +74,7 @@ Mechanically, top to bottom: braces and `;`, `class` to `class` with `has` field
 | Attributes added to an object at run time | Declare every field with `has` |
 | Integers past 64 bits | `i128`/`u128` when they fit, else `decimal` through CPython |
 | `namedtuple`, `type(...)` making classes | A declared `obj` (or a `struct`) |
-| A generator | Declare it `-> Iterator[T]` |
+| A generator | Declare it `-> Iterator[T]`, or `-> Generator[Y, S, R]` where it is sent values (`x = yield v`) or returns one |
 | Monkey-patching, `exec`, `eval` (W2001: there are none) | Restructure: code is all compiled ahead of time |
 
 ### 5. Check, build and compare

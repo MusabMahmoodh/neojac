@@ -26,8 +26,8 @@ neojac docs JsObject         # the same page, at its values
 A project's npm packages are an npm tree of its `jac.toml`: a `[npm."<directory>"]` table, named
 by the tree's directory from the project's root (`eco/web`, or `.` for a package at the root),
 which is the `package.json` of that directory. Look for one in `jac.toml`; the first install
-makes it. An import resolves in the project's only tree, or the one its space names
-(`[spaces.<space>] npm = "<directory>"`). Never write `package.json` by hand: neojac writes it, in
+makes it. An import resolves in the project's only tree, the one its space names
+(`[spaces.<space>] npm = "<directory>"`), or the one its space holds. Never write `package.json` by hand: neojac writes it, in
 the tree's directory, from `jac.toml`.
 
 ## Steps
@@ -91,14 +91,50 @@ ENOENT
 
 3. **Convert at the boundary.** An object, array or function JavaScript gives is a `JsObject`:
    - `C.new(args)` is `new C(args)`; `o.f()` calls with `o` as `this`.
-   - Annotate to convert: `xs: list[int] = arr` copies an array into a list, a plain object
-     into a `dict`. `str(arr)` is JavaScript's `String()`, `1,2,3`.
+   - Annotate to convert: `xs: list[int] = arr` copies an array into a list natively, a plain
+     object into a `dict`. On a JavaScript host an array JavaScript gives stays JavaScript's own,
+     and goes back as the same array; `js_array(items)` makes one from Jac. `str(arr)` is
+     JavaScript's `String()`, `1,2,3`.
    - `undefined` is `None`; `null` is `JsNull` from `import from js { JsNull }`.
    - An `int` past 2**53 sent to JavaScript is `OverflowError`.
-   - A JavaScript callback may get more arguments than it names: give the Jac function
-     `*rest: any`.
+   - A Jac function JavaScript calls binds JavaScript's arguments by its parameters, on every
+     host: one left out is its default (None where it has none), and arguments past what it
+     names are dropped, as JavaScript drops them, or are its `*rest`.
+   - A Jac function JavaScript holds is a JavaScript function, one per Jac function (its face,
+     no `Proxy`): on a JavaScript host a property either side sets is the other's, and `new f()`
+     constructs with `f.prototype`. An async function's face is an async function, a
+     generator's a generator function.
    - JavaScript's `TypeError` and `RangeError` arrive as `TypeError` and `ValueError`, anything
      else as `RuntimeError`; `js_error(e)` is what was thrown, with its `.code` and `.name`.
+   - Where a value's type is not known and JavaScript's own meaning is wanted, `js` has each
+     operation as a function: `js_truthy(x)` for `!!x`, `js_add`, `js_sub`, `js_mul`, `js_div`,
+     `js_pow`, `js_mod` for `%`, `js_shl`, `js_shr`, `js_ushr`, `js_band`, `js_bor`, `js_bxor`
+     for the shifts and bitwise operators, `js_lt`, `js_le`, `js_gt`, `js_ge`, `js_inc`,
+     `js_dec`, `js_number`, `js_same` for `===`, `js_typeof`, `js_item(o, k)` and
+     `js_set_item(o, k, v)` for `o[k]` and `o[k] = v` (whose value is `v`), `js_delete(o, k)`
+     for `delete o[k]`, `js_rest(o, ["a", "b"])` for `{ a, b, ...rest } = o`,
+     `js_unpack(o, 2, True)` for `[a, b, ...rest] = o` of any iterable,
+     `js_method(o, "join", ", ")` (a symbol's key too), `js_iter(x)` for `for ... of`, `js_for_in(o)`, `js_meta()`
+     for `import.meta`, `js_new_target()` for `new.target`, `js_prototype(f)` for
+     `f.prototype`, `js_as_method(f, "m")` for an object literal's method `m` (`f` takes the
+     object first), `js_global(name)`, `js_async_generator(g)` for a Jac async generator as
+     JavaScript's own (`neojac docs js_add`).
+   - A Jac async generator crosses as JavaScript's async generator, and a coroutine as a promise
+     of its result, on every host; on every host `async for` takes JavaScript's async
+     iterables (`Symbol.asyncIterator`, a stream).
+   - A project's JavaScript file that imports a module's `glob` reads it live, but a global of a
+     function type and the module's default, which it takes as they stand once the module has
+     started: assigning one of those again is E2311. Keep such a function in a global the file
+     does not import, and give the file a function that calls it.
+   - On a JavaScript host a class may derive from a JavaScript class (`class AppError(Error)`):
+     JavaScript makes it, its `init` is the constructor and calls `super.init(...)` once, before
+     it uses `self` (`neojac docs E2252`). A class may also derive from a global of type `any`
+     (`glob Plain: any = globalThis.Set; obj Tally(Plain) {}`), which JavaScript makes it over
+     where its statement runs; a global of another type is E2312.
+   - A project's file imports a Jac module's forwarder, which gives exactly the module's public
+     names. A `.d.ts` beside the module (`kinds.d.ts` beside `kinds.jac`) is its face to
+     TypeScript, held to the module by `neojac check`: E2313 for a name the module does not give,
+     E2314 for one it gives and the face lacks, E2315 for a value declared as a type.
 
 4. **Check, build, run.**
 

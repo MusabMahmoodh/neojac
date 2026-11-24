@@ -1,6 +1,6 @@
 ---
-description: Generic archetypes (obj Box[T], struct Duo[T]): how they are checked, what a construction infers, how the type keeps its arguments, value-type arguments held in place, generic bases, and classes bounded by interfaces.
-keywords: generic class, generic classes, Box[T], generic struct, generic base
+description: Generic archetypes (obj Box[T], struct Duo[T]): how they are checked, what a construction infers, type parameters' defaults, how the type keeps its arguments, value-type arguments held in place, generic bases, and classes bounded by interfaces.
+keywords: generic class, generic classes, Box[T], generic struct, generic base, type parameter default, defaulted type parameter
 ---
 # Generic classes
 
@@ -171,6 +171,34 @@ with entry {
 CodecError: .item: expected an int, got 'x'
 ```
 
+## Defaults
+
+A generic class's type parameter may have a default, `= T` after it, as Python's PEP 696 has: a
+use of the class that gives fewer arguments takes the defaults of the rest. `Tagged[int]` is
+`Tagged[int, str]`.
+
+```jac
+obj Tagged[T, L = str] {
+    has value: T,
+        label: L;
+}
+
+with entry {
+    a: Tagged[int] = Tagged[int](value=1, label="one");
+    b = Tagged[int, int](value=2, label=2);
+    print(a.label, b.label + 1);
+}
+```
+
+```output
+one 3
+```
+
+- **A default is resolved where the class is declared**, in its module, and is a type of its
+  own: one that names another type parameter is E1254.
+- **The parameters with defaults come last**: one without a default after one with a default
+  is E1255.
+
 ## Generic bases
 
 A generic class may have a base and be one.
@@ -321,6 +349,8 @@ Tally(total=1.6) Tally [1, 3]
 | E1560 | `isinstance(x, Box[int])`: a generic class given type arguments |
 | E1164 | A generic class given the wrong number of type arguments |
 | E1478 | A class given to a body that makes a `T` from a number |
+| E1254 | A type parameter's default names another type parameter |
+| E1255 | A type parameter without a default follows one with a default |
 | E5090 | An override of a generic base's method taking or giving `T`, in a class giving `T` a type |
 
 ```jac

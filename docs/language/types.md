@@ -76,7 +76,7 @@ An annotation is `: T` after a name, and `-> T` for what a function returns.
 - **Python's `Optional[T]` and `Union[A, B]` are not accepted** (E5090). Write `T | None` and
   `A | B`.
 - **Annotations are never evaluated when the program runs**, so a type may be used before the
-  declaration that defines it. `import from __future__ { annotations }` does nothing and is W3009.
+  declaration that defines it. `import from __future__ { annotations }` does nothing and is W3009, but in a cpython space, where it is Python's ([Annotations](../interop/python-classes.md#annotations)).
 - A name that declares no type is E2018 in an annotation.
 
 ```jac
@@ -110,6 +110,10 @@ Some first bindings give no type, and need an annotation (W1051):
 - `x = None;` Write `x: Cat | None = None;`.
 - `d = {};` Write `d: dict[str, int] = {};`. Annotate an empty `[]` the same way.
 - `xs = list();` and a bare `list`, `dict` or `set` used as a value.
+
+An empty `[]` or `{}` among a tuple display's items needs no annotation where nothing gives that
+item a type: it is a `list[any]` or a `dict[any, any]`, so `value not in (0, 0.0, [], None, "", {})`
+checks. Where the tuple's type is known (`t: tuple[list[int], int] = ([], 0);`), the item takes it.
 
 ```jac
 # expect: W1051 x2
@@ -237,6 +241,48 @@ with entry {
     either: Point | int = None;
 }
 ```
+
+A member of a class value that holds `None`, read, assigned, deleted or called where nothing
+narrowed it, raises `AttributeError` with Python's text, as Python does, on every host:
+
+```jac
+obj Link {
+    has val: int = 0,
+        next: Link | None = None;
+}
+
+def second(l: Link) -> int {
+    return l.next.val;
+}
+
+with entry {
+    print(second(Link(val=1, next=Link(val=2))));
+    try {
+        print(second(Link(val=1)));
+    } except AttributeError as e {
+        print("AttributeError:", e);
+    }
+    lone = Link();
+    try {
+        lone.next.val = 3;
+    } except AttributeError as e {
+        print("AttributeError:", e);
+    }
+}
+```
+
+```output
+2
+AttributeError: 'NoneType' object has no attribute 'val'
+AttributeError: 'NoneType' object has no attribute 'val' and no __dict__ for setting new attributes
+```
+
+A call of a value that may be `None` (a field typed `Callable[[int], int] | None`), where nothing
+narrowed it, raises `TypeError` (`'NoneType' object is not callable`) when it holds `None`, as
+Python's call of `None` does, on every host.
+
+A local narrowed by `is not None`, or by a guard that returns where it `is None`, is not tested
+again where its members are used.
 
 Write `| None` where a value may be absent: it says so to the reader, and it is what narrowing
 and a function's missing `return` go by ([Functions](functions.md)).
@@ -388,7 +434,8 @@ declaration; inside a function it is a syntax error.
 `isinstance(v, T)` takes a class, a builtin type or a tuple of them (E1179 otherwise).
 
 A type is a value: it may be held in an `any` or passed, and keeps its identity there (`held is
-int`), its `__name__` and `__qualname__`, and its call. A container type with its element types
+int`), its `__name__` and `__qualname__`, and its call. So are `int`, `float`, `str` and `bool`:
+`map(bool, [0, 2])` gives `False, True`. A container type with its element types
 is one too: `list[int]` held in an `any` and called makes an empty list or a list of an iterable's
 items, `dict[str, list[int]]()` and `set[str]()` make empty containers, and its `__name__` is the
 bare kind (`list`). A bare `list` given to a `Callable[[], list[int]]` takes that element type.

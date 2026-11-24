@@ -642,6 +642,10 @@
           "page": "interop/python-modules.md"
         },
         {
+          "title": "Classes and decorators in a cpython space",
+          "page": "interop/python-classes.md"
+        },
+        {
           "title": "npm and Node",
           "page": "interop/npm.md"
         },
@@ -876,7 +880,7 @@
               "page": "reference/diagnostics/e01-1.md"
             },
             {
-              "title": "E0120 to E0168: parameters, assignments, patterns, spellings, layers and connects",
+              "title": "E0120 to E0181: parameters, assignments, patterns, spellings, layers, connects, defaults, defer and bit-fields",
               "page": "reference/diagnostics/e01-2.md"
             },
             {
@@ -908,7 +912,7 @@
               "page": "reference/diagnostics/e12-2.md"
             },
             {
-              "title": "E1229-E1248: specialization, fields, tensors and reflection",
+              "title": "E1229-E1255: specialization, fields, tensors, reflection, C data, calls from C and defaults",
               "page": "reference/diagnostics/e12-3.md"
             },
             {
@@ -948,6 +952,10 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
+              "title": "E1615 to E1642: type parameter packs, wide text, C++ and Rust templates, C++ comparisons, C++ constructors, C++ function pointers, objects lent to C, sizeof, managed places, objects found by a field, statics written through a subclass, C++ templates deduced from a function, and several C++ functions written as one name",
+              "page": "reference/diagnostics/e16.md"
+            },
+            {
               "title": "E2009 to E2088: declarations, impls and misplaced statements",
               "page": "reference/diagnostics/e20-1.md"
             },
@@ -976,6 +984,10 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
+              "title": "E2240 to E2335: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, quoted paths, JavaScript's faces, C tags and C++ bases",
+              "page": "reference/diagnostics/e22-4.md"
+            },
+            {
               "title": "E30xx: lint",
               "page": "reference/diagnostics/e30.md"
             },
@@ -990,6 +1002,10 @@
             {
               "title": "E5114 to E5172: tail calls, C and Rust modules, the native library, programs, manifests and installed packages",
               "page": "reference/diagnostics/e51.md"
+            },
+            {
+              "title": "E5173 to E5271: what a host makes, JSX, C calling Jac, Rust and C++ instances, a class body's try, a surrogate pair, an extension's links and entries",
+              "page": "reference/diagnostics/e51-2.md"
             },
             {
               "title": "W0060 to W2001: stray strings, inference, modules and names",

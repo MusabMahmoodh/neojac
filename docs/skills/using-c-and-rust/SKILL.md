@@ -84,9 +84,31 @@ x=42
 
 Buffers and pointers, as above: a `bytearray` argument lets C write in place; `&mut x` lends a
 variable's address for one call; memory from `calloc` is a `ptr[T]`, indexed unchecked, freed by
-C's `free`; `p.view(n)` is a bounds-checked view, indexed (never iterated) with
+C's `free`, its size `sizeof(T)` (`import from jaclang.comptime { sizeof }`); `p.view(n)` is a bounds-checked view, indexed (never iterated) with
 `range(len(v))`. A Jac `list` is not a C array: copy into C memory. Where C keeps an address
-after the call, use `pin(x)` (`neojac docs pin`). Only a named function is a callback.
+after the call, use `pin(x)` (`neojac docs pin`); to give C a Jac object as a callback's user
+data, `hold(obj)`, taken back in the callback by `held[T](p)` (a `TypeError` for an address C
+does not hold) and given up by `release(p)`. A C record field of an `obj` is kept in the object
+(a read of it copies; `addressof(t.f)` is its address), and `held[T](f=p)` is the `T` C holds whose
+field `f` is at `p` (E1638 where `f` or `p`'s type does not fit).
+Only a named function is a callback as it is; a function value (a variable, a parameter, a
+record's field) is passed converted, `Callable[[ptr, ptr], i32](cmp)` or `ptr(cmp)`, and one with
+no C address (a closure that captures) raises `TypeError` there. A function pointer C may give
+as `NULL` is `Callable[...] | None`, `None` where C's is null: test it before calling it.
+`ptr[u16]("text")` and `ptr[u32]("text")` are C's `u"text"` and `U"text"`, of a literal only.
+A C++ library's pointer to a function of C++ types (`int (*f)(Counter &, int)`), a member's
+parameter or a free function's, takes a def or a static method by its name, of exactly its Jac
+form (`def bump_by(c: Counter, step: i32) -> i32`); a lambda, a bound method or another
+signature is E1639. A pointer to a member function of the class a Jac class derives
+(`int (T::*m)(int)`) takes a method by its class (`Drop.plus_size`), E1623 otherwise. C++ must
+call it on the thread that called into C++: from a thread of the library's own the program ends,
+naming the function. In an extension module or a Node addon, a thread of the loading process that
+enters through the module's exports (Node's main thread, a worker's) is made known to the Jac
+runtime and may be called back on. A C++ member's `const char *` result (`s.c_str()`) is a `ptr[i8]` into the
+object, a loan of it (as C++ declares of `std`'s accessors and of a `[[clang::lifetimebound]]`
+member): the object is kept while the pointer is used, a member that changes it may leave the
+pointer dangling, and `str(p)` copies its text. A member C++ declares no loan of gives a pointer
+under C++'s contract alone: keep its object while the pointer is used.
 
 2. **Compile C source in as a C module.** A directory `stats/` beside the program:
 
@@ -136,12 +158,25 @@ pub extern "C" fn add(a: i64, b: i64) -> i64 {
 }
 ```
 
-`import from adder { add }` then `print(add(2, 3))` prints `5` after `neojac build`. Keep
-Rust values behind an opaque handle: a `pub struct` without `#[repr(C)]` is held as `ptr[T]`,
-made and freed by the crate's own `extern "C"` functions. `i64` is `int`, `usize` is `u64`,
-`*const c_char` is `str`.
+`import from adder { add }` then `print(add(2, 3))` prints `5` after `neojac build`. Rust's own
+API needs no `extern "C"`: `import from std.collections { HashSet }`, and a crate's ordinary
+`pub` items through its wire, are used natively, generics by their arguments
+(`HashSet[u32].new()`), a generic method by its instance at the call (`o.zip[u32](p)`), a
+slice of numbers as `Slice[u32]` (`import from rust { Slice }`, `v.as_slice().sub(a, b)`,
+`bytes(s)` of a `Slice[u8]`), a slice's methods on a `Vec` (`v.sort()`, `v.contains(&x)`), an
+iterator stepped by `next()`, a panic as `RustPanic` (`import from rust { RustPanic }`). A value
+whose drop runs code is dropped where an `own` local's scope ends; a local or a field with no
+ownership annotation holds one as a managed place, from which no `own` binding takes it (E1637). `neojac docs Rust module` has what crosses.
 
-4. **Bind a project library** you build yourself:
+4. **Call Jac from C.** A wire gives a C module a Jac function by name
+   (`jhelp --> shapes.shapes { jhelp_scale }` for the project's own C file), and the C includes
+   `jac/jhelp.h`, which neojac writes. Such a function takes and gives integers, floats and
+   pointers (E1249). A C++ class is an `obj` Jac uses, and derives with `super.init(...)` as
+   the first statement of its `init` (E2335 elsewhere); a class template's instance is named by its template form, `Box[i32]`,
+   and a member template's or a header library's function template's by its type arguments,
+   `c.to[float]()`, `kept_[Counter](c)` (`neojac docs C module`).
+
+5. **Bind a project library** you build yourself:
 
 ```sh
 neojac cc -shared -fPIC vendor/tally.c -o vendor/libtally.dylib   # libtally.so on Linux
@@ -150,7 +185,7 @@ neojac cc -shared -fPIC vendor/tally.c -o vendor/libtally.dylib   # libtally.so 
 and declare it with its dotted path: `import from vendor.tally { def tally_add(n: int) -> int; }`.
 The program finds it relative to itself, so keep both where they are.
 
-5. **Build C or Rust alone** with the toolchain neojac carries (no system compiler needed):
+6. **Build C or Rust alone** with the toolchain neojac carries (no system compiler needed):
 
 ```sh
 neojac cc hello.c -o hello                          # this machine
@@ -189,10 +224,12 @@ with entry {
 | E1053 `expects i32, found int` | An `int` to a Jac function's `i32` parameter: only C's parameters and fields narrow one | Declare the parameter `int`, which narrows where it reaches C, or pass `i32(n)` |
 | E1053 `expects ptr[float], found list[float]` | A list passed as a C array | Copy into `calloc`'d memory, pass the pointer |
 | E1195 | A lambda or bound method as a callback | A named `def` |
+| E1639 | A lambda, a bound method or another signature for a C++ library's function pointer | A `def` of the module, of the pointer's exact signature |
 | E5090 `... as a C type` | A list, dict or Jac object in a declaration | Use the C types (`neojac docs C library`) |
 | E1021 `cannot iterate PtrView` | A view in a `for` | `for i in range(len(v))` |
 | E1145 | The header or crate has no such name | Check spelling; for Rust, `pub` and `#[unsafe(no_mangle)]` |
-| E5138 `it isn't extern "C"` | A Rust item C cannot call | Make it `pub extern "C"` with C types |
+| E5138 | A Rust item Jac cannot bind; the message says why (a type that borrows) | Use what it returns instead, or give it a C signature |
+| E1637 | An `own` binding takes a Rust value whose drop runs code from a managed local or field | Bind it `own` where it is made (`s: own HashSet[u32] = HashSet[u32].new();`), or keep the binding managed |
 | E5134, E5135, E5140 | The headers, a C source, or a crate fail to compile | Read Clang's or rustc's errors printed above |
 | E5149, W5021 | A library name that is no file, or absent on the target | `neojac docs C library` (naming the library) |
 | Crash or garbage at run time | A declaration that disagrees with C, or a bad pointer | Recheck the prototype; nothing checks it for you |

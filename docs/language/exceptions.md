@@ -1,6 +1,6 @@
 ---
-description: Raising and handling errors: try with except, else and finally, raise, bare raise and raise from, defining exception classes, assert, and what an exception nothing catches prints.
-keywords: exception, exceptions, try, except, finally, raise, raise from, assert, traceback, uncaught exception, exception class, awaiting
+description: Raising and handling errors: try with except, else and finally, raise, bare raise and raise from, defining exception classes, notes added with add_note, assert, and what an exception nothing catches prints.
+keywords: exception, exceptions, try, except, finally, raise, raise from, assert, traceback, uncaught exception, exception class, awaiting, add_note, __notes__, note
 grammar: try_stmt, except_clause, raise_stmt, assert_stmt
 ---
 # Exceptions
@@ -67,6 +67,37 @@ with entry {
 try,else,finally
 try,except bad,finally
 escaped: KeyError('key')
+```
+
+The name a tuple of classes binds is of their nearest common base. A test that it is not one of
+them narrows it to the other where the clause names two, so the other's members are there to
+read: in `except (ValueError, OSError) as err`, the right of `isinstance(err, ValueError) or`
+sees an `OSError`, with its `errno`. A clause that assigns the name is not narrowed.
+
+```jac
+def opened(path: str) -> str {
+    try {
+        if path == "" {
+            raise ValueError("no path");
+        }
+        with open(path) as f {
+            return f.read();
+        }
+    } except (ValueError, OSError) as err {
+        if isinstance(err, ValueError) or err.errno == 2 {
+            return "missing";
+        }
+        raise;
+    }
+}
+
+with entry {
+    print(opened(""), opened("/no/such/file"));
+}
+```
+
+```output
+missing missing
 ```
 
 `finally` runs before a `return` from the `try` hands back its value:
@@ -150,6 +181,61 @@ the tuple of several; a `KeyError`'s one argument is shown as its `repr` (`str(K
 `'k'`, quotes included). A `*` spread is accepted in an exception's construction,
 `ValueError(*parts)`, whatever the list's items are typed, as an exception class called through an
 `any` is.
+
+`e.add_note(text)` adds a line to what the exception says, as Python's does:
+
+- **The notes are `e.__notes__`**, a `list[str]` in the order they were added. It exists once a
+  note is: before the first, reading it raises `AttributeError` and `hasattr(e, "__notes__")` is
+  `False`.
+- **A note is a `str`.** Any other value raises `TypeError: add_note() argument must be str, not
+  int`.
+- **A traceback shows the notes**, each on a line of its own after the exception's message.
+
+```jac
+def checked(n: int) -> int {
+    try {
+        if n < 0 {
+            raise ValueError(f"negative: {n}");
+        }
+        return n;
+    } except ValueError as e {
+        e.add_note(f"while checking item {n}");
+        raise;
+    }
+}
+
+with entry {
+    e = KeyError("k");
+    print(hasattr(e, "__notes__"));
+    e.add_note("first");
+    e.add_note("second");
+    print(e.__notes__);
+    try {
+        e.add_note(3 as any);
+    } except TypeError as t {
+        print("TypeError:", t);
+    }
+    try {
+        checked(-2);
+    } except ValueError as v {
+        print(v, v.__notes__);
+    }
+}
+```
+
+```output
+False
+['first', 'second']
+TypeError: add_note() argument must be str, not int
+negative: -2 ['while checking item -2']
+```
+
+Uncaught, `checked(-2)`'s traceback ends with the note under the message:
+
+```text
+ValueError: negative: -2
+while checking item -2
+```
 
 ## Defining exception classes
 
@@ -253,6 +339,8 @@ outermost first, by file, line and function, and ends with the exception's class
 - Under each frame is its source line, as CPython shows it, when the program can read the file
   from where it runs; a program run elsewhere shows the frames alone.
 - Module code is named `<module>`. The runtime's own frames are left out.
+- An exception raised `from` another is shown after the one it was raised from, with Python's
+  line between them ("The above exception was the direct cause of the following exception:").
 
 ```jac
 def inner(n: int) -> int {
@@ -339,5 +427,7 @@ with entry {
 - An `except` clause names a class; there is no bare `except:`.
 - `raise ValueError` without a call is refused; write `raise ValueError()`.
 - `except ... as e` cannot reuse the name of a local.
-- An uncaught exception's traceback names the file, line and function of each call, without the
-  source lines, and does not print the exceptions it was raised from.
+- An uncaught exception's traceback leaves out the runtime's own frames, and shows a source line
+  only where the program can read its file from where it runs. An exception raised while another
+  was being handled, with no `from`, is shown alone: Python would show the one being handled first
+  ("During handling of the above exception, another exception occurred:").

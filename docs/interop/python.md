@@ -61,7 +61,11 @@ package's `.pyi` files, or a `py.typed` package's annotations, in that order, an
 CPython's standard library. Where the stubs declare everything a module or class has, a name it
 lacks is a compile error, and so is a call its signature does not bind. The type of what an
 attribute or a call gives follows from the stubs, so a chain (`np.linalg.inv(a).sum()`) is checked
-through. A module with no stubs is dynamic and checks nothing.
+through. A module with no stubs is dynamic and checks nothing. A name the stubs declare only
+under another platform's `sys.platform` branch (`os.pidfd_open`, Linux's; `signal.CTRL_C_EVENT`,
+Windows's) is read where it runs, as a Python object: where the platform lacks it, it is Python's
+`AttributeError` there, so code that tests the platform first runs on every one. A name declared
+only for another Python version is still E1030.
 
 ```jac
 # expect: E1030, E1052, E1051, E1050, E1001
@@ -173,9 +177,18 @@ pytest = "~=9.0"                # the project's own list, beside it
   and such a project is asked again by every `neojac install` that is not `--frozen`.
 - **A dependency on another Python project of the repository** (a workspace's member) is that
   project, and is asked of no index.
-- **The project itself is not installed**: its modules are the repository's source.
-- **Its dependency groups and its extras are installed where its tests name them**:
-  `[test.pypi."<directory>"]`'s `groups` and `extras`
+- **The project itself is not installed**: its modules are the repository's source. A project
+  `neojac absorb --record` recorded is asked for its requirements by its `[wheel]` table's
+  metadata, and install builds nothing of it.
+- **Its extension modules call the C libraries they vendor.** One neojac builds from a C module
+  links the C modules its row's `links` names, and exports `PyInit_<name>` and nothing else, so
+  each of its calls reaches its own copy of a function the interpreter also exports. A name
+  another library must find in it by name, as `ctypes` finds a function of a library the package
+  opens, goes in the row's `exports`
+  ([Extension modules](../toolchain/packages.md#extension-modules)).
+- **Its dependency groups and its extras are installed where `jac.toml` names them**:
+  `[install.pypi."<directory>"]`'s `groups` and `extras`, which `absorb` writes from what uv
+  installs by default for a project uv describes, then `[test.pypi."<directory>"]`'s
   ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)), a group with the
   groups it includes. No other group or extra is installed. What a project's tools need that no
   group lists is added with `neojac install --pypi <package>`.

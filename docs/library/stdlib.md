@@ -1,6 +1,6 @@
 ---
 description: Every standard-library module a native program imports, with what each is and how complete it is next to CPython's, and the modules that stay CPython's.
-keywords: standard-library modules, stdlib, module list, array.array, array.typecodes, calendar, colorsys, gettext, graphlib, graphlib.TopologicalSorter, ipaddress, keyword.iskeyword, keyword.issoftkeyword, locale, mimetypes, operator.itemgetter, operator.attrgetter, operator.methodcaller, platform.system, platform.machine, platform.python_version, secrets, tomllib, uuid
+keywords: standard-library modules, stdlib, module list, array.array, array.typecodes, calendar, colorsys, gettext, graphlib, graphlib.TopologicalSorter, ipaddress, keyword.iskeyword, keyword.issoftkeyword, locale, mimetypes, operator.itemgetter, operator.attrgetter, operator.methodcaller, platform.system, platform.machine, platform.python_version, secrets, tomllib, uuid, webbrowser, webbrowser.open
 ---
 # Standard-library modules
 
@@ -207,6 +207,7 @@ what the operator raises: `operator.abs("x")` raises
 | [`pathlib`](pathlib.md) | `Path`, `PurePath` and the flavoured classes | Nearly complete: no `Path.cwd`, `Path.home`, `Path.from_uri`, `PurePath.parser` |
 | [`shutil`, `tempfile`, `glob`, `filecmp`, `fileinput`, `stat`, `mmap`](files.md) | Copying and removing trees, temporary files, wildcards, comparing, many files as one stream, mode bits, mapped files | Complete but `filecmp.dircmp.methodmap` and `shutil.rmtree.avoids_symlink_attacks` (left out) |
 | [`subprocess`](subprocess.md) | Child processes | Complete |
+| `webbrowser` | A URL opened in a browser for the person at the machine: `open`, `open_new`, `open_new_tab`, `get`, `register`, the browser classes | Complete but `MacOSXOSAScript` (left out) |
 | [`signal`, `errno`, `pwd`, `grp`, `resource`, `fcntl`, `termios`, `tty`, `pty`, `syslog`](posix.md) | Signals, error numbers, users and groups, limits, descriptors, the terminal, the system log | Complete but enum aliases and 64-bit-wide values (left out); POSIX only but `signal` and `errno` |
 | [`argparse`, `getopt`, `configparser`, `getpass`](argparse.md) | Command lines, INI files, passwords | Complete |
 | [`logging`, `logging.handlers`](logging.md) | Loggers, handlers, formatters | `logging` complete; `logging.handlers` has the file, memory, syslog, SMTP, HTTP and queue handlers, and leaves out the two that pickle records and the Windows event log's |
@@ -218,6 +219,14 @@ and `ERANGE` the same everywhere (2, 17, 22, 13, 32, 33, 34). `platform.system()
 `Darwin` or `Windows`, and `platform.python_version()` is the version of the Python whose
 library this is, in a native program too; `python_implementation`, `python_build` and the other
 names that describe a running interpreter are left out (E5142).
+
+`webbrowser.open` tries each command line `BROWSER` lists first (`%s` the URL, else the URL
+appended; a last word `&` leaves it running in the background), then the platform's browser:
+`/usr/bin/open` on macOS, the program Windows associates with the URL, and on Linux what the
+display (`xdg-open`, `gio`, `x-www-browser`, ...) and the terminal (`www-browser`, `lynx`, `w3m`,
+...) have on `PATH`. The URL is one argument, never a shell's, and one that begins with `-` raises
+`ValueError`; with no browser that opens it, `open` returns `False`. `MacOSXOSAScript`, deprecated
+since Python 3.15, is left out (E5142): use `webbrowser.MacOS`.
 
 ## Threads
 

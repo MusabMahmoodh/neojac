@@ -113,6 +113,11 @@ A module is in at most one space. When several patterns match it, the most speci
 
 Two spaces writing the same pattern is E1275.
 
+A module two spaces both hold, the `entry` of each (`space py: cpython { entry main; }` beside
+`space js: node { entry main; }`), is, in each one's program, that space's own: compiled for its
+host and emitted with the space's other modules. Elsewhere, in a third space's program, it is the
+module of the space the rules above pick.
+
 The production also allows a bare `*`. That form is for a layer in `graph layers`; in a space it
 names no module.
 
@@ -126,6 +131,69 @@ module that both wire in.
 Because an unplaced module has no space to be served from, a `:pub` or `:protect` function or
 walker in one is E1211.
 
+A JavaScript or TypeScript file of the project that no space holds is loaded the same way: into
+the space whose module imports it, and run there. What it takes of that space's Jac modules is an
+ordinary call, never a crossing, so it makes no endpoint: in a node space whose `main` imports
+`kit/echo.js`, which imports `scaled` from the space's `maker.jac`, `neojac run` runs `main` and
+exits, and serves nothing.
+
+### A space of a tree
+
+A space may hold a tree of the repository that another tool packs, by its directory, quoted, as
+`jac.toml` names it: a Python project (`[pypi."<directory>"]`), held by a `cpython` space, or an
+npm tree (`[npm."<directory>"]`), held by a `node` or a `browser` space. A quoted item that is no
+tree of `jac.toml` is the module at that path, spelled as a wire spells a module whose file stem
+holds a dot (`"frontend/vite.config"`); one that is neither is E2236, a quoted module whose parts
+are all identifiers E2310 (write it dotted), and a tree in a space of another host E2237. In a `|`
+chain a quoted item is always a module.
+[`neojac absorb`](../toolchain/packages.md) writes these spaces, each named for its tree's
+package: a node or browser space for an npm tree whenever it writes, and a Python project's
+space when `absorb --record` records the project's build:
+
+<!-- example: not checked: an archwire is one file of a project, and this one's project holds a pyproject.toml and two package.json -->
+```jac
+graph spaces {
+    space probe: cpython { "."; }
+    space probe_dev: cpython { _buildinfo | scripts.* | tests.*; }
+    space store: node { "store"; }
+    space frontend: browser { "frontend"; }
+}
+```
+
+- **A Python project's space holds what its wheel ships**: the files `jac.toml`'s
+  `[wheel."<directory>"]` lists, its Jac modules among them, and its extension modules. Its Jac
+  modules are the package's: the wheel holds each as Python's own module
+  ([Building and testing a Python project](../toolchain/packages.md#building-and-testing-a-python-project)),
+  and the `_dev` space imports them as it imports the package's Python modules, in its own
+  process, not as calls across spaces.
+- **A node space holds what npm ships of its tree**: the package's `files`, its `main` and every
+  `exports` target, or the whole tree where it names no `files`. absorb declares one for an npm
+  tree that names a `main` or `exports`.
+- **A browser space holds the directories of the module scripts its `index.html` loads**, the
+  entries its bundler builds. absorb declares one for a tree a bundler builds, with
+  `[spaces.<space>.ui] plugin` the `ui` plugin its dependencies name.
+- **The rest of a tree is the space's clients**: its tests, its scripts, its configuration. They
+  import the space's modules as the space builds them, and hold none of them back. Once a
+  Python tree has its space, absorb declares the tree's clients a second `cpython` space,
+  `<space>_dev`, by the fewest patterns that hold them, and a later absorb adds to it what came
+  since; it imports the first space's modules. A browser tree's files that run in Node and import
+  the space's modules (Playwright's tests importing the generated client) are its clients too, the
+  `node` space `<space>_dev`, which absorb declares by the fewest patterns that hold them:
+  `space frontend_dev: node { frontend.tests.utils.privateApi; }`. A node tree's own tests stay
+  the tree's.
+- **A Python tree's own files are its tool's to build**: only its Jac modules are the space's
+  roots. **A node or browser space of an npm tree takes the tree's JavaScript as its program**:
+  each file is emitted as it is, beside its Jac modules, and a module `neojac port` made Jac gets
+  a forwarder where its JavaScript stood (`lib/twice.js` requiring `lib/twice.mjs`), so the
+  tree's own files and its tests import it as they did
+  ([A project's own suites](../toolchain/test.md#a-projects-own-suites)).
+- **An npm tree's space is where its imports resolve**: a space that holds one tree needs no
+  `[spaces.<space>] npm` row, though the project has several (E1288), and so is its client
+  space's: the `_dev` space of a tree takes the tree's npm packages.
+- **A space that holds no Jac module is its tree's tools' alone**: a project's `neojac check`
+  leaves it out, since its files are another language's (a Python tree's tests before any is
+  ported, a TypeScript tree's tests), and checks it once a port makes one of them Jac.
+
 ### What a space's program starts from
 
 Every space's program starts from its `entry`, when it has one, and from each module its patterns
@@ -133,11 +201,24 @@ name exactly. By host, it also starts from:
 
 | Host | Also a root |
 |---|---|
-| `native` | Each module directly in the directory of a `pkg.*` pattern |
-| `browser` | Each of the project's page modules that the space holds ([Pages](pages.md)) |
+| `native` | Every module its patterns hold, at any depth: each is checked and built, and its module code runs where it is first imported |
+| `cpython` | Every module its patterns name, at any depth: Python finds a module by its name as it runs (a test runner's collection, a module imported by a string), so each is emitted, and starts where Python first imports it |
+| `node`, `browser` | Every module its patterns hold, at any depth, whether or not anything imports it: a JavaScript tool finds a module by its path (a bundler, a test runner, a page of the project's, [Pages](pages.md)), so each is checked in the space and emitted |
 | `wasm` | Nothing more: its module is the first one its patterns name |
 
-Everything those modules import comes with them. A module nothing reaches is not built.
+Everything those modules import comes with them. So on every host but wasm a module under a
+pattern is the space's and is checked there for that host though nothing imports it: a file of
+the tree that is no module of the program (an example a site shows as text) belongs under
+`[project] exclude` in `jac.toml`. On every host a module that only another target's [`comptime if`
+branch](../language/compile-time.md#among-declarations-and-members) imports is not loaded for this
+target, though a pattern names it.
+
+A cpython space's directories are its package as Python sees them: each is a path entry of the
+space's own finder, which finds the space's modules there and the Python files and extension
+modules beside them (a `_native.cpython-*.so` beside the Jac modules of its package), so
+`pkgutil.iter_modules` of a package lists both, and a plugin package found by its name is found. A
+directory that holds modules and no module of its own name is a namespace package, as Python makes
+one.
 
 An `entry` decides what the program does when it starts:
 
@@ -213,7 +294,7 @@ What an app is follows from the hosts of the spaces it runs:
 |---|---|
 | Native spaces, with or without served pages | One native program, `dist/<app>-<platform>`, or a directory of that name when it carries pages, CPython or Node |
 | Native spaces and one `cpython` and/or one `node` space | The same, with CPython or Node embedded and those spaces run in its process |
-| One `node` or one `cpython` space alone | `dist/<app>/`: the space's modules, the interpreter and a launcher |
+| One `node` or one `cpython` space alone | `dist/<app>/`: a launcher, and in `@app/` the space's modules and the interpreter |
 | A `browser` space | A desktop app: the space in a window of its own ([Hosts](hosts.md)) |
 | One `hermes` space | `dist/<app>/`: the phone app's Hermes bundles |
 
@@ -253,13 +334,13 @@ it (`[pypi."<directory>"]`):
 graph spaces {
     space lib: cpython { "."; }
 
-    package tiktoken { ship lib; }
+    package spamlib { ship lib; }
 }
 ```
 
 ```text
-$ neojac build tiktoken
-dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
+$ neojac build spamlib
+dist/spamlib-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
 ```
 
 - **The space holds what the project's own packaging ships**: the files `jac.toml`'s
@@ -279,8 +360,8 @@ dist/tiktoken-0.14.0-cp315-cp315-macosx_14_0_arm64.whl
 |---|---|
 | E0168 | Something other than `ship` in a package |
 | E2235 | A package ships a space that is not declared |
-| E2236 | A space holds a tree `jac.toml` has no `[pypi."<directory>"]` for |
-| E2237 | A Python project in a space whose host is not `cpython` |
+| E2236 | A space's quoted item is neither a tree of `jac.toml` (`[pypi."<directory>"]`, `[npm."<directory>"]`) nor a module |
+| E2237 | A Python project in a space whose host is not `cpython`, or an npm tree in one that is neither `node` nor `browser` |
 | E2238 | A package that ships nothing |
 
 ## Profiles
@@ -351,7 +432,7 @@ changes no module and no line here.
 | Code | Cause |
 |---|---|
 | E0115 | Something other than a space, an app or a package in the block |
-| E0116 | Something other than `entry`, patterns or a tree's quoted directory in a space |
+| E0116 | Something other than `entry`, patterns or a quoted item in a space |
 | E0117 | Something other than `run`, `serve` or `<space> has` in an app |
 | E2093 | The archwire has a syntax error; reported with the error itself |
 | E1226 | A host that is not one of the six |

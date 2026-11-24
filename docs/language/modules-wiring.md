@@ -48,8 +48,13 @@ the `archwire.jac`'s directory: `core/clock.jac` is `core.clock`, and `main.jac`
 
 For the modules it governs:
 
-- **An import of another governed module is a wire, never written in the module.** Writing it in
-  the module is E1144 (E2094 for one inside a function). The message gives the wire to add.
+- **An import of another governed module is a wire, never written at the module's top.** Writing
+  it there is E1144, and the message gives the wire to add.
+- **An import in a code body is admitted by its wire.** With `units ++> shapes { label }`, a
+  function of `shapes` may write `import from units { label }`: the wire names what may be
+  taken, and the import binds it in that body, starting `units` where it runs
+  ([Modules](modules.md#an-import-in-a-code-body)). One the wires do not admit is E2094, whose
+  message gives the wire to add.
 - **Imports of anything else stay in the module:** the standard library, Python and npm packages,
   C libraries, and modules outside the governed tree.
 - **Every name a wire binds must be used** where it lands (E1146). A name listed in the consuming
@@ -103,6 +108,7 @@ A wire is `provider ++> consumer`, read "the provider feeds the consumer".
 | `core.clock as clk ++> main;` | `import core.clock as clk;` |
 | `core.clock ++> main;` | `import core.clock;` |
 | `include core.shared ++> main;` | `include core.shared;` |
+| `include core.shared ++> main { pad, trim as strip }` | `include from core.shared { pad, trim as strip }` |
 
 - A payload `{ ... }` lists names. A wire without a payload binds the module, and ends with `;`.
 - `as` on the provider aliases the module and belongs to a wire without a payload (E0089). A name
@@ -112,13 +118,18 @@ A wire is `provider ++> consumer`, read "the provider feeds the consumer".
   which each consumer has its own payload.
 - A wire that binds a module without an alias is the one wire that need not be used: it loads the
   module for the effect of its `with entry` code.
-- `include` takes no payload (E0091), a payload names each name once (E0090), and an empty payload
-  is an error (E0044).
+- An `include` wire with a payload gives the consumer those names as its own, as
+  [`include from`](modules.md#include-and-a-re-export) does: a module that imports the consumer
+  takes them from it, and the consumer need not use them itself (no E1146).
+- A payload names each name once (E0090), and an empty payload is an error (E0044).
 - `comptime` and `type` before the provider are the wire forms of `comptime import` and
   `import type`.
 - The provider may be a `.py` file of a [cpython space](../apps/hosts.md): the wire binds what the
   Python import it stands for binds, a name of the module (`helper ++> api { shout }`) or the
-  module (`helper ++> api;`).
+  module (`helper ++> api;`). A whole dotted wire whose head is a Python package,
+  `fastlib.api ++> checks.run;` where `fastlib/__init__.py` is Python and `fastlib/api.jac` Jac,
+  is Python's `import fastlib.api`: it binds `fastlib`, the package as Python imports it
+  (`fastlib.__file__`), with the Jac module `fastlib.api` as its member.
 - The provider may be a JavaScript or TypeScript file of the project, for a module that can import
   JavaScript: one of a browser or node space, or of a native program
   ([A project's own JavaScript](../interop/npm.md#a-projects-own-javascript)). The wire binds what
@@ -203,9 +214,9 @@ Each language is read by its own engine, the one that runs or compiles the file:
 | `.rs`, in a crate whose manifest `jac.toml` holds | rustc | every path that names an item another file of the crate defines: in a `use`, a type, an expression or a pattern ([A crate's files](../interop/rust-modules.md#a-crates-files)) | each item's name in its file: a variant's is its enum's. None where the file takes a module whole (`use crate::util::*;`), which covers the names it uses of it |
 
 A module a build makes from native code, which `jac.toml` declares as an
-[extension](../reference/jac-toml.md#extensionspath) (`[extensions."tiktoken/_tiktoken"]`), is a
+[extension](../reference/jac-toml.md#extensionspath) (`[extensions."spamlib/_tally"]`), is a
 module too, though no file is: a Python file that imports it is wired from it,
-`tiktoken._tiktoken --> tiktoken.core;`, and any name is taken of it.
+`spamlib._tally --> spamlib.core;`, and any name is taken of it.
 
 A file's module name is its path from the archwire, without its extension, so two files of one
 name and two languages in one directory (`util.py`, `util.ts`) are refused (E2224). Where a part
@@ -221,6 +232,11 @@ graph import {
 
 `lib/paint-brush.ts` holds `import pick, { brush } from "./tools"`. A payload of a `-->` wire may
 name any word the other language exports, a keyword of Jac's such as `default` among them.
+
+A stem that holds a dot is quoted too, as is every file under a directory whose name is no word:
+`"web/twice.gen"` is `web/twice.gen.ts`, where `web.twice.gen` would name `gen.ts` in a
+directory `twice`. A quoted name that a dotted one could say is E2310: `"lib/tools"` is
+`lib.tools`.
 
 A name the provider lacks is E1145 where the file states all it gives. A CommonJS file, a file
 that exports another's names with `*`, and a Python file with `from m import *` or a module
@@ -414,7 +430,7 @@ neojac build main.jac -o main && ./main
 | E2089 | Anything but `graph` blocks in `archwire.jac`, a comment included |
 | E2093 | `archwire.jac` has syntax errors (reported once) |
 | E1144 | A governed module writes an import of another governed module |
-| E2094 | The same, inside a function |
+| E2094 | An import in a code body that no wire admits |
 | E1146 | A wired name is never used in the consumer, on any target |
 | E1147 | A `-->` wire whose import no file of the consumer writes |
 | E1575 | An import a file in another language writes of a file of the project, that no `-->` wire declares |
@@ -434,7 +450,7 @@ neojac build main.jac -o main && ./main
 | E2208 | A flow two rules admit |
 | E2209, E0166 | A docstring of more than one line or 120 characters; one that describes nothing |
 | E0086 | A wire not written `provider ++> consumer` or `provider --> consumer` |
-| E0087, E0089, E0090, E0091, E0044, E0095, E0096 | Malformed wires and payloads |
+| E0087, E0089, E0090, E0044, E0095, E0096 | Malformed wires and payloads |
 
 A `graph import` block written in an ordinary module:
 

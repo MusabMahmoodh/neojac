@@ -695,7 +695,6 @@ graph import {
     core.site.ui.button ++> core.site.ui.Navbar { buttonVariants }
     core.site.ui.button ++> core.site.ui.NotFound { buttonVariants }
     core.site.ui.button ++> core.site.ui.alert_dialog { Button }
-    core.site.ui.button ++> core.site.ui.carousel { Button }
     core.site.ui.button ++> core.site.ui.dialog { buttonVariants }
     core.site.ui.card ++> core.site.jacyac.components.AuthForm {
         Card,
@@ -844,7 +843,6 @@ graph import {
     core.utils ++> core.site.ui.badge { cn }
     core.utils ++> core.site.ui.button { cn }
     core.utils ++> core.site.ui.card { cn }
-    core.utils ++> core.site.ui.carousel { cn }
     core.utils ++> core.site.ui.dialog { cn }
     core.utils ++> core.site.ui.dropdown_menu { cn }
     core.utils ++> core.site.ui.empty { cn }

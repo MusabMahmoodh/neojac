@@ -72,7 +72,54 @@ Counter(n=6) Counter(n=12)
   `self.bump()`. A bare `n` in a method is not the field (W2001).
 - **`Self` as a type is the class the method belongs to**, and in a subclass
   that inherits the method, the subclass. Use it for methods that return
-  `self` or a new instance of the same class.
+  `self`, or an object of the class they are called through (below).
+  `Self | None` is `Self` or `None`, and counts as `Self` where a subclass
+  inherits the method.
+- **A static method's `Self` is the class it is called through**:
+  `Square.latest()` of a `static def latest -> Self | None` that `Shape`
+  declares is a `Square | None`. Such a method returns an instance of the
+  class it is called through, as a C++ base's `static T *last()` gives a
+  deriving class's object ([C modules](../interop/c-modules.md#c-making-the-jac-object)).
+- **A `Self` result is tested where the class a call names is a subclass of
+  the method's own**: a method that makes its own class's object rather than
+  `self`'s, called through a subclass, raises `TypeError` ("the value given
+  as Self is not a Square") when it gives an object of another class, on
+  every host, so a `Square` is never a `Shape`. `None` stays `None` where
+  the type admits it.
+
+```jac
+obj Shape {
+    has sides: int = 0;
+
+    def copy -> Self {
+        return Shape(sides=self.sides);
+    }
+
+    static def first(sides: int) -> Self | None {
+        if sides == 0 {
+            return None;
+        }
+        return Shape(sides=sides);
+    }
+}
+
+obj Square(Shape) {}
+
+with entry {
+    print(Shape(sides=3).copy().sides, Square.first(0));
+    try {
+        Square(sides=4).copy();
+    } except TypeError as e {
+        print("TypeError:", e);
+    }
+}
+```
+
+```output
+3 None
+TypeError: the value given as Self is not a Square
+```
+
 - **`x.m` without a call is a bound method**: a function value that
   remembers the object `x` gave when it was read. `x` is evaluated once, at
   the read, and assigning `x` again later does not change the bound method.
@@ -159,9 +206,69 @@ Temp(c=100.0) Temp(c=0.0) Temp(c=0.0)
 ```
 
 Both are called on the class (`Temp.from_f(...)`) or on an instance. Using
-`self` in either is E2111. Python's `@staticmethod` is an error that names
+`self` in either is E2111.
+
+`cls` is the class the method is called on: through a subclass it is the
+subclass, and through an instance it is the instance's own class, whatever
+type the variable holding it has.
+
+```jac
+obj Counter {
+    has n: int = 0;
+
+    class def made(n: int) -> Counter {
+        return cls(n=n);
+    }
+}
+
+obj Score(Counter) {}
+
+with entry {
+    held: Counter = Score(n=5);
+    print(Counter.made(1), Score.made(2), held.made(8));
+}
+```
+
+```output
+Counter(n=1) Score(n=2) Score(n=8)
+```
+
+A static method whose parameters are all positional, with no default, is
+a function as a value: `Temp.from_f` is the function itself, as a module
+function's name is. It equals itself, and C may hold it as a callback
+([Callbacks](../interop/c-libraries.md#callbacks)). Any other static
+method's value is a function that calls it with its defaults. There is one
+such value per method, made once, so it too equals itself on every host.
+
+```jac
+obj Temp {
+    has c: float = 0.0;
+
+    static def from_f(f: float) -> Temp {
+        return Temp(c=(f - 32) * 5 / 9);
+    }
+
+    static def scaled(c: float, times: float = 2.0) -> float {
+        return c * times;
+    }
+}
+
+with entry {
+    conv = Temp.from_f;
+    sc = Temp.scaled;
+    print(conv(212.0), conv == Temp.from_f, sc(1.5), sc == Temp.scaled);
+}
+```
+
+```output
+Temp(c=100.0) True 3.0 True
+```
+
+Python's `@staticmethod` is an error that names
 the Jac spelling (W3001), and `@classmethod` is refused as any decorator
-that is not a compile-time function is (E1490).
+that is not a compile-time function is (E1490); in a `cpython` space,
+`@builtins.staticmethod` among a method's decorators says where Python wraps
+it ([Classes and decorators in a cpython space](../interop/python-classes.md#decorators)).
 
 `static` and `class` apply only to methods: a `static def` at module level
 is a syntax error (E0005).
