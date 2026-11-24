@@ -165,7 +165,7 @@ That is a `.gitignore` for a project.
 
 ## What neojac shows while it works
 
-A build, a check or an app's build that takes more than a moment says what it is doing, on stderr. What it shows depends on whether stderr is a terminal.
+A command that takes more than a moment says what it is doing, on stderr: a build, a check, an app's build, and a command that reads or checks a program before it answers. What it shows depends on whether stderr is a terminal.
 
 **On a terminal** there is one status line, redrawn in place: the output being made, the step it is at, and, for a step it waits on, how long that has taken so far.
 
@@ -174,6 +174,18 @@ A build, a check or an app's build that takes more than a moment says what it is
 ```
 
 The steps of a program's build are `loading modules`, `resolving names`, `checking types`, `checking ownership`, `generating code`, `preparing units`, `compiling units · <done>/<all>` and `linking`; an app's build adds its own (`building the program`, `bundling site with vite · transforming 4300 modules`, `assembling the artifact`). The line is cut with `…` to the terminal's width, so it never wraps. Its width is counted in the terminal's columns: a wide character (`漢`) takes two, a combining mark or a control character none, and a line is never cut in the middle of a character. Diagnostics, and the output of the tools a build runs, are written above it as they arrive.
+
+A command that prints an answer shows the steps of the work the answer takes, and the status line is gone before the answer is printed, so the answer is alone on its lines:
+
+| Command | Steps |
+|---|---|
+| `neojac arch`, `neojac query arch` | `reading archwire.jac`, `reading the modules it names` |
+| `neojac query` of a program | The steps of a check up to `checking types`; all of them for `query diagnostics` and `query index` |
+| `neojac port` checking what it made | The steps of a check |
+| `neojac fmt` | `formatting · <done>/<all>: <file>` |
+| `neojac fmt --fix`, `neojac precommit` | `fixing and formatting`, then the steps of each check |
+
+`neojac arch`'s viewer shows the same steps each time it reads the project again after an edit.
 
 When the work is done, the status line is replaced by the outcome:
 
