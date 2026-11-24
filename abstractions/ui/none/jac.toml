@@ -11,6 +11,3 @@ interface_ver = 1
 [ui]
 model = "none"
 hosts = ["browser", "hermes", "node"]
-
-[check.lint]
-select = []

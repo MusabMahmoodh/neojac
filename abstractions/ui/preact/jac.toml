@@ -28,6 +28,3 @@ name = "useRef"
 [ui.effect]
 from = "preact/hooks"
 name = "useEffect"
-
-[check.lint]
-select = []

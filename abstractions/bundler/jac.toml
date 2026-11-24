@@ -16,15 +16,3 @@ kind = "abstraction"
 interface_ver = 1
 per = "space"
 picked = "build"
-
-# The contract: `bundler` has no interface class, since nothing of its plugin
-# runs with the program. A plugin of it is a `jac.toml` with a `[bundler]`
-# table and the scripts the table names, which neojac's own Node runs with a job
-# file that says what to bundle and where to write it:
-#
-#   [bundler]
-#   build = "bundle.mjs"       # the script that bundles a space
-#   serve = "serve.mjs"        # the script that serves it under `neojac dev`
-#   settings = ["config"]      # the settings a project may give the plugin
-[check.lint]
-select = []

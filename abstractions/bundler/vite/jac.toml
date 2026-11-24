@@ -12,6 +12,3 @@ build = "vite.mjs"
 serve = "vite.serve.mjs"
 # The project's own Vite configuration, from its root.
 settings = ["config"]
-
-[check.lint]
-select = []

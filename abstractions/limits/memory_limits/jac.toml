@@ -7,6 +7,3 @@ kind = "plugin"
 fills = "limits"
 interface_ver = 1
 class = "memory_limits.limits.MemoryLimits"
-
-[check.lint]
-select = []

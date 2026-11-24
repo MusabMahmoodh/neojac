@@ -3,7 +3,6 @@
 [project]
 name = "mail"
 kind = "abstraction"
-archwire = false
 
 # `interface` is the class a plugin of it implements, and `interface_ver` that
 # interface's version: a number that goes up when the interface changes so
@@ -18,6 +17,3 @@ interface_ver = 1
 per = "project"
 picked = "start"
 standard = "smtp"
-
-[check.lint]
-select = []

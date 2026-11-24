@@ -7,6 +7,3 @@ kind = "plugin"
 fills = "jobs"
 interface_ver = 1
 class = "process_jobs.jobs.ProcessJobs"
-
-[check.lint]
-select = []
