@@ -1262,7 +1262,10 @@ the example takes it after the vector has its size.
   `words.emplace_back[ptr[i8]](p)`. The instance `emplace_back[std_string]` takes its argument
   as C++'s `std::string &&`, so given a local string it moves the local's value out, as
   `std::move(s)` would, and the local is left empty; `emplace_back[&mut std_string](s)`, the
-  instance C++ makes for `v.emplace_back(s)`, copies it, and so does `push_back(s)`.
+  instance C++ makes for `v.emplace_back(s)`, copies it, and so does `push_back(s)`. `emplace` of
+  a map whose items are `libcxx`'s own (`std_unordered_map[i32, i32]`) is not bound yet: E1030,
+  `std_unordered_map[i32, i32] has no field 'emplace'`; over a module's class it is
+  ([below](#a-std-class-over-a-modules-class)).
 - **`push_back` of a temporary is `push_back_move`**, the overload taking `T&&`, beside
   `push_back`, the one taking `const T&`, which copies.
 - **A member's `const char *` result is a `ptr[i8]`**, the pointer into the string: `told.c_str()`
