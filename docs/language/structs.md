@@ -63,7 +63,7 @@ changed its own copy. `o.at.y = 2.0` wrote into the object `o`, where its
 A struct is an archetype whose keyword is `struct`:
 
 ```ebnf
-archetype ::= decorators "async"? ("struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
+archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("as" NAME)? ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
 ```
 
 Its body has fields (`has`, see [Fields](fields.md)) and methods, as an

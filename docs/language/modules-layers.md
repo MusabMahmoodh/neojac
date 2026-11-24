@@ -68,7 +68,10 @@ A layer holds modules, or it holds other layers. It never holds both (E2212).
 - A layer holds something: one with no module and no layer is E2203.
 - A docstring before a layer is one line that says what it is for ([Docstrings](modules-wiring.md#docstrings)).
 
-`layers` and `layer` are words only here: a module named `layer` is still written `layer;`.
+`layers` and `layer` are keywords in an `archwire.jac` and names in every other file. A layer is not
+named with a keyword (E0013), an archwire's own among them: the layer that holds a module `app` is
+`apps`, or `` `app ``. A module is listed by its name whatever the word, so one named `layer` is
+still written `layer;`.
 
 ## Every module is in exactly one layer
 

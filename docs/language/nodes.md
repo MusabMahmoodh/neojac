@@ -18,7 +18,7 @@ all kinds share (`neojac docs archetype`). For the model nodes belong to, see
 A node is an `archetype` whose keyword is `node`:
 
 ```ebnf
-archetype ::= decorators "async"? ("struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
+archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("as" NAME)? ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
 ```
 
 The `: A --> B` part is for edges only. A node's body holds `has` fields

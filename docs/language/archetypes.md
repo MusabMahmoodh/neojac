@@ -24,9 +24,9 @@ the other kinds' pages.
 ## Syntax
 
 ```ebnf
-archetype ::= decorators "async"? ("struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
+archetype ::= decorators "async"? ("union" | "struct" | "class" | "walker" | "edge" | "obj" | "node") access_tag NAME ("as" NAME)? ("[" type_params "]")? ("(" inherit_list ")")? (":" pipe "-->" pipe)? where_clause? ("{" archetype_member* "}" | ";")
 
-archetype_member ::= (STRING? (ability | has_stmt | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
+archetype_member ::= (STRING? (ability | has_stmt | members_if | members_try | comptime_global | archetype | enum_decl | impl_def | module_code | stmt))?
 ```
 
 The parts of the header, in order:
