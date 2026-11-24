@@ -216,7 +216,7 @@ and `n: Note | None = jobj(id)` raises `TypeError: expected Note, found Tag`.
 | File | Holds |
 |---|---|
 | `graph.db` | The graph: one row per node and per edge, in SQLite. It is what the standard `store` plugin keeps: a project that binds another keeps its graph where that plugin does ([Plugins](plugins.md)) |
-| `accounts.db` | Accounts and sessions ([Serving a space](server.md)) |
+| `accounts.db` | Accounts, sessions, and the links mailed to accounts' addresses, of the standard `auth` plugin ([Serving a space](server.md#the-accounts-plugin)) |
 | `jobs/` | The input and progress of running jobs |
 | `files/` | The files the app's nodes hold, and `files.db`, what is known of each. It is what the standard `files` plugin keeps, for an app whose nodes or endpoints hold a `File` ([Files](files.md)) |
 | `arrangement` | The arrangement its user chose, for an app whose artifact holds several ([Building apps](building.md#several-arrangements-in-one-artifact)) |
@@ -241,7 +241,7 @@ fit the new program. The server then says so, all of it at once, and stops with 
 
 ```text
 api can't start with the data it kept in .jac/data/api:
-  accounts.db  is laid out as an older neojac wrote it, which this one can't upgrade (layout 0; this one reads layout 2)
+  accounts.db  is laid out as an older neojac wrote it, which this one can't upgrade (layout 0; this one reads layout 3)
   graph.db     holds 2 svc.Gone whose type this program no longer has; and holds 1 svc.Note that no longer fit the type (missing field 'text')
 To set that data aside and start empty, run `neojac run api --fresh` in the project, or start the program with JAC_FRESH=1.
 ```

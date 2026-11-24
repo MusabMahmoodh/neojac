@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>neojac launch: status</title>
+<style>
+:root{color-scheme:light dark;--up:#1a7f37;--down:#b00020;--none:#8884}
+@media (prefers-color-scheme: dark){:root{--up:#3fb950;--down:#ff8a80}}
+body{margin:0;font:16px system-ui,sans-serif;background:Canvas;color:CanvasText}
+main{max-width:44rem;margin:0 auto;padding:1.5rem 1rem 3rem;display:grid;gap:1.5rem}
+h1{font-size:1.4rem;margin:0}
+h2{font-size:1.05rem;margin:0}
+p{margin:0;line-height:1.45}
+.muted{opacity:.7;font-size:.9rem}
+section{display:grid;gap:.5rem}
+.now{display:flex;justify-content:space-between;gap:1rem;align-items:baseline;flex-wrap:wrap}
+.state{font-weight:600}
+.up{color:var(--up)}.down{color:var(--down)}
+.days{display:grid;grid-template-columns:repeat(90,1fr);gap:1px;height:2rem}
+.days i{background:var(--none);border-radius:1px}
+.days i.up{background:var(--up)}.days i.part{background:#bf8700}.days i.down{background:var(--down)}
+ul{margin:0;padding-left:1.2rem;display:grid;gap:.25rem}
+</style>
+<body>
+<main>
+<header>
+<h1>neojac launch: status</h1>
+<p class="muted" id="when">Reading the record.</p>
+</header>
+<div id="addresses"></div>
+<section>
+<h2>The last two days</h2>
+<ul id="incidents"></ul>
+</section>
+<p class="muted">Each address is asked every five minutes from outside the platform, by a scheduled
+job that may run some minutes late. An address answers when it replies as expected within ten
+seconds. A day's bar is green when every check that day was answered, amber when some were not, red
+when none were, and grey when no check was made.</p>
+</main>
+<script>
+(async () => {
+    const el = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+    let kept;
+    try {
+        kept = await (await fetch("status.json", { cache: "no-store" })).json();
+    } catch (_) {
+        document.getElementById("when").textContent = "The record could not be read.";
+        return;
+    }
+    document.getElementById("when").textContent = "Last asked " + kept.at.replace("T", " ").replace("Z", " UTC") + ".";
+    const days = [];
+    for (let back = 89; back >= 0; back--) days.push(new Date(Date.now() - back * 86400000).toISOString().slice(0, 10));
+    const share = (name, from) => {
+        let checks = 0, answered = 0;
+        for (const d of days.slice(from)) {
+            const of = (kept.days[d] || {})[name];
+            if (of) { checks += of.checks; answered += of.answered; }
+        }
+        return checks === 0 ? "no checks" : (100 * answered / checks).toFixed(2) + "%";
+    };
+    const addresses = document.getElementById("addresses");
+    addresses.style.display = "grid";
+    addresses.style.gap = "1.5rem";
+    for (const one of kept.asked) {
+        const mine = kept.checks.filter((c) => c.name === one.name);
+        const last = mine[mine.length - 1];
+        const part = el("section");
+        const now = el("div", undefined, "now");
+        now.append(el("h2", one.name), el("span", last ? (last.ok ? "Answering" : "Not answering (" + last.said + ")") : "Not asked yet", "state " + (last && last.ok ? "up" : "down")));
+        const bars = el("div", undefined, "days");
+        bars.setAttribute("role", "img");
+        bars.setAttribute("aria-label", "Ninety days, oldest first");
+        for (const d of days) {
+            const of = (kept.days[d] || {})[one.name];
+            const bar = el("i", undefined, !of ? "" : of.answered === of.checks ? "up" : of.answered === 0 ? "down" : "part");
+            bar.title = d + (of ? ": " + of.answered + " of " + of.checks + " answered" : ": not asked");
+            bars.appendChild(bar);
+        }
+        part.append(now, el("p", one.url, "muted"), bars,
+            el("p", "Answered: " + share(one.name, 89) + " today, " + share(one.name, 83) + " over 7 days, " + share(one.name, 0) + " over 90 days.", "muted"));
+        addresses.appendChild(part);
+    }
+    // A run of checks an address did not answer, from its first to the check
+    // that it answered again.
+    const incidents = document.getElementById("incidents");
+    for (const one of kept.asked) {
+        let began = null, said = "";
+        for (const c of kept.checks.filter((c) => c.name === one.name)) {
+            if (!c.ok && began === null) { began = c.at; said = c.said; }
+            if (c.ok && began !== null) {
+                incidents.appendChild(el("li", one.name + " did not answer from " + began.slice(0, 16).replace("T", " ") + " to " + c.at.slice(0, 16).replace("T", " ") + " UTC (" + said + ")."));
+                began = null;
+            }
+        }
+        if (began !== null) incidents.appendChild(el("li", one.name + " has not answered since " + began.slice(0, 16).replace("T", " ") + " UTC (" + said + ")."));
+    }
+    if (!incidents.firstChild) incidents.appendChild(el("li", "Every check was answered."));
+})();
+</script>
+</html>

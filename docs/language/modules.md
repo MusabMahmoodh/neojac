@@ -12,7 +12,7 @@ main module (the file given to `neojac build`) plus every module that one reache
 ## A module's top level
 
 ```ebnf
-module ::= STRING? element*
+module ::= archwire | STRING? element*
 
 element ::=
     type_alias
@@ -25,9 +25,6 @@ element ::=
     | ability
     | global_vars
     | comptime_element
-    | graph_import
-    | graph_spaces
-    | graph_layers
     | impl_def
     | sem_def
     | module_code

@@ -8,6 +8,7 @@ The whole syntax of Jac in EBNF, read out of neojac's parser, so it is exactly w
 - `a b` is a sequence, `a | b` a choice, `a?` optional, `a*` zero or more, `a+` one or more.
 - Text in quotes is a keyword or an operator, written as it is.
 - An UPPERCASE name is a class of tokens, which the lexical rules at the end define.
+- A file named `archwire.jac` is an `archwire`, and every other file a module's elements. In an archwire the `ARCHWIRE_KEYWORD` words are keywords as well, so `KEYWORD` there is either class; in every other file they are names.
 
 This page is written by `neojac grammar compiler/parsing/parser.jac --page -o docs/reference/grammar.md`.
 
@@ -17,8 +18,13 @@ This page is written by `neojac grammar compiler/parsing/parser.jac --page -o do
 # tests/driver/commands.jac fails while it differs from what the parser accepts.
 # Terminals in quotes are keywords and operators; UPPERCASE names are token
 # classes, defined by the lexer (the lexical rules close this file).
+# A file named archwire.jac is an `archwire`, and every other file a module's
+# elements. In an archwire the ARCHWIRE_KEYWORD words are keywords as well, so
+# KEYWORD there is either class; in every other file they are names.
 
-module ::= STRING? element*
+module ::= archwire | STRING? element*
+
+archwire ::= (graph_import | graph_spaces | graph_layers)*
 
 element ::=
     type_alias
@@ -31,14 +37,17 @@ element ::=
     | ability
     | global_vars
     | comptime_element
-    | graph_import
-    | graph_spaces
-    | graph_layers
     | impl_def
     | sem_def
     | module_code
     | decorated
     | async_element
+
+graph_import ::= "graph" "import" wire_module_path? "{" (STRING import_rule | import_rule | import_wire)* "}"
+
+graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl | package_decl) | space_decl | app_decl | package_decl)* "}"
+
+graph_layers ::= "graph" "layers" "{" (STRING layer_decl | layer_decl)* "}"
 
 type_alias ::= "type" access_tag (KEYWORD | NAME) ("[" type_params "]")? (":=" | "=") pipe ";"
 
@@ -65,12 +74,6 @@ comptime_element ::=
     | assert_stmt
     | comptime_global
 
-graph_import ::= "graph" "import" wire_module_path? "{" (STRING import_rule | import_rule | import_wire)* "}"
-
-graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl | package_decl) | space_decl | app_decl | package_decl)* "}"
-
-graph_layers ::= "graph" "layers" "{" (STRING layer_decl | layer_decl)* "}"
-
 impl_def ::= decorators "impl" impl_target_name ("." impl_target_name)* ("[" type_params "]")? (func_signature | "(" (atomic_chain ("," atomic_chain)*)? ")" | event_sig)? ("{" ((NAME (":" pipe)? ("=" expression)? ",")* "}" | block_rest) | "by" expression ";")
 
 sem_def ::= "sem" impl_target_name ("." impl_target_name)* "=" STRING+ ";"
@@ -80,6 +83,20 @@ module_code ::= "with" ("entry" | "exit")? (":" NAME)? block
 decorated ::= test_decl | ability | enum_decl | impl_def | archetype
 
 async_element ::= ability | archetype
+
+wire_module_path ::= (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" wired_name)?
+
+import_rule ::= "edge" NAME ":" module_pattern ("|" module_pattern)* "-->" module_pattern ("|" module_pattern)* (wire_payload | ";")
+
+import_wire ::= "comptime"? ("include" | "type")? wire_module_path ("++>" | "-->") ("[" (wire_target ("," wire_target)* ","?)? "]" | wire_target ";"?)
+
+space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | STRING | module_pattern ("|" module_pattern)*) ";")* "}"
+
+app_decl ::= "app" NAME "{" (NAME "has" NAME ("." NAME)* ("," NAME ("." NAME)*)* ";" | ("run" | "serve") name_list)* "}"
+
+package_decl ::= "package" NAME "{" ("ship" name_list)* "}"
+
+layer_decl ::= "layer" NAME "{" (STRING layer_decl | layer_decl | module_pattern ("|" module_pattern)* ";")* "}"
 
 access_tag ::= (":" ("protect" | "pub" | "priv"))?
 
@@ -119,20 +136,6 @@ assert_stmt ::= "comptime"? "assert" expression ("," expression)? ";"
 
 comptime_global ::= "comptime" access_tag global_var ("," global_var)* ";"
 
-wire_module_path ::= (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)?
-
-import_rule ::= "edge" NAME ":" module_pattern ("|" module_pattern)* "-->" module_pattern ("|" module_pattern)* (wire_payload | ";")
-
-import_wire ::= "comptime"? ("include" | "type")? wire_module_path ("++>" | "-->") ("[" (wire_target ("," wire_target)* ","?)? "]" | wire_target ";"?)
-
-space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | STRING | module_pattern ("|" module_pattern)*) ";")* "}"
-
-app_decl ::= "app" NAME "{" (NAME "has" NAME ("." NAME)* ("," NAME ("." NAME)*)* ";" | ("run" | "serve") name_list)* "}"
-
-package_decl ::= "package" NAME "{" ("ship" name_list)* "}"
-
-layer_decl ::= "layer" NAME "{" (STRING layer_decl | layer_decl | module_pattern ("|" module_pattern)* ";")* "}"
-
 impl_target_name ::=
     NAME
     | "return"
@@ -146,6 +149,16 @@ impl_target_name ::=
     | "postinit"
 
 block_rest ::= stmts "}"
+
+wired_name ::= ARCHWIRE_KEYWORD | NAME
+
+module_pattern ::= "*" | wire_module_path ("." "*")?
+
+wire_payload ::= "{" (("*" | any_word | wired_name) ("as" wired_name)? ("," ("*" | any_word | wired_name) ("as" wired_name)?)* ","?)? "}"
+
+wire_target ::= wire_module_path ("|" wire_module_path)* wire_payload?
+
+name_list ::= NAME ("," NAME)* ";"
 
 type_param ::= "*" NAME | "comptime"? NAME (":" pipe)? ("=" pipe)?
 
@@ -230,19 +243,11 @@ ownership_prefix ::= ("own" | "lin" | "imm" | "&" "mut"?)?
 
 decls_block ::= "{" element* "}"
 
-module_pattern ::= "*" | wire_module_path ("." "*")?
-
-wire_payload ::= "{" (("*" | any_word | NAME) ("as" NAME)? ("," ("*" | any_word | NAME) ("as" NAME)?)* ","?)? "}"
-
-wire_target ::= wire_module_path ("|" wire_module_path)* wire_payload?
-
-name_list ::= NAME ("," NAME)* ";"
-
 stmts ::= stmt*
 
-logical_or ::= logical_and (("or" | "??") logical_and)*
-
 any_word ::= NAME | KEYWORD
+
+logical_or ::= logical_and (("or" | "??") logical_and)*
 
 compr_clauses ::= compr_clause+
 
@@ -469,6 +474,10 @@ KEYWORD ::=
     | "root" | "async" | "await" | "flow" | "wait" | "and" | "or" | "not" | "in" | "is"
     | "lambda" | "own" | "lin" | "mut" | "imm" | "pub" | "priv" | "protect" | "self"
     | "init" | "super" | "postinit" | "True" | "False" | "None"
+
+ARCHWIRE_KEYWORD ::=
+    "layers" | "layer" | "spaces" | "space" | "app" | "run" | "serve" | "package"
+    | "ship"
 
 OPERATOR ::=
     "<-->" | "<++>" | "<--" | "<++" | "<-:" | "<+:" | "<<=" | "</>" | "<=" | "<<" | "<|"

@@ -52,7 +52,7 @@ with entry {
 ```ebnf
 type_params ::= type_param ("," type_param)* ","?
 
-type_param ::= "comptime"? NAME (":" pipe)? ("=" pipe)?
+type_param ::= "*" NAME | "comptime"? NAME (":" pipe)? ("=" pipe)?
 ```
 
 - `comptime` marks a value parameter, and only a value parameter: before a

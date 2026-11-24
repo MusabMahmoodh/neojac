@@ -1,6 +1,6 @@
 ---
 name: writing-a-plugin
-description: Use when writing or changing a neojac plugin - a package that carries out one of the language's abstractions (store, auth, transport, llm, jobs, schedule, limits, files, ui, bundler) - deciding between a plugin and a library, the package's jac.toml, a class whose fields are its settings, a ui or bundler plugin's table, declaring it by path in a project, picking it with JAC_<ABSTRACTION>, and what a build refuses.
+description: Use when writing or changing a neojac plugin - a package that carries out one of the language's abstractions (store, auth, transport, llm, jobs, schedule, limits, files, mail, ui, bundler) - deciding between a plugin and a library, the package's jac.toml, a class whose fields are its settings, a ui or bundler plugin's table, declaring it by path in a project, picking it with JAC_<ABSTRACTION>, and what a build refuses.
 ---
 # Writing a plugin
 
@@ -23,7 +23,7 @@ Load `writing-jac` first. Using the plugins neojac ships, in an app: `building-a
 
 ```sh
 neojac docs plugins            # the abstractions, their contracts, binding, settings, what is refused
-neojac docs auth.contract      # the interfaces Auth, Jobs, Scheduler, Limits, and their hosts
+neojac docs auth.contract      # the interfaces Auth, Jobs, Scheduler, Limits, Mailer, and their hosts
 neojac docs apps/ui-bindings   # ui and bundler plugins: their tables, a bundler's job
 neojac docs principles         # why a plugin is never imported
 ```
@@ -41,6 +41,7 @@ contract the one module of neojac's the plugin imports it from.
 | `schedule` | `schedule.contract.Scheduler` | As the program starts | `abstractions/schedule/loop_schedule` |
 | `limits` | `limits.contract.Limits` | As the program starts | `abstractions/limits/memory_limits` |
 | `files` | `files.contract.Files` | As the program starts | `abstractions/files/local_files` |
+| `mail` | `mail.contract.Mailer` | As the program starts | `abstractions/mail/smtp` |
 | `ui` | A `[ui]` table | As a space is built | `abstractions/ui/solid` |
 | `bundler` | A `[bundler]` table | As a space is built | `abstractions/bundler/vite` |
 
@@ -141,7 +142,7 @@ obj WindowLimits(Limits) {
      `open_db` opens a SQLite file at a layout, is one, in `libraries/sqlfile` of its tree.
      An `auth` plugin that keeps accounts somewhere of its own extends `accountbook`'s
      `AccountsAuth` (`libraries/accountbook`) and gives the `Book` they are kept in: signing in,
-     sessions and the settings are the library's
+     sessions, the links mailed to addresses and the settings are the library's
      ([Plugins](../../apps/plugins.md#what-a-plugin-imports)).
    - **It is compiled for every host its abstraction runs on**, a `cpython` space among them.
      There a class imported from a Python module is no type: do not annotate with one.

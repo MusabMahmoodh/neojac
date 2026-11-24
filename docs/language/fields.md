@@ -15,7 +15,7 @@ archetype writes its own with `def init`.
 ```ebnf
 has_stmt ::= "static"? "has" access_tag has_var ("," has_var)* ";"?
 
-has_var ::= NAME ":" pipe ("=" expression | "postinit")? ("{" accessor* "}")?
+has_var ::= NAME ":" pipe (":" expression)? ("=" expression | "postinit")? ("{" accessor* "}")?
 
 accessor ::= ("deleter" | "getter" | "setter") func_signature? (block | ";")
 ```

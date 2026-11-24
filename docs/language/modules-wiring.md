@@ -1,7 +1,7 @@
 ---
 description: How an archwire.jac declares the imports between a project's modules as wires in graph import blocks, restricts them with edge rules that say only what the wires do, and limits the packages a module may import.
-keywords: graph import, wire, import wiring, edge rule, graph, stale rule
-grammar: graph_import, wire_module_path, import_rule, import_wire, module_pattern, wire_payload, wire_target
+keywords: graph import, wire, import wiring, edge rule, graph, stale rule, archwire, archwire.jac
+grammar: archwire, graph_import, wire_module_path, import_rule, import_wire, module_pattern, wire_payload, wire_target, wired_name
 ---
 # Import wiring
 
@@ -26,9 +26,9 @@ import_wire ::= "comptime"? ("include" | "type")? wire_module_path ("++>" | "-->
 
 wire_target ::= wire_module_path ("|" wire_module_path)* wire_payload?
 
-wire_payload ::= "{" (("*" | any_word | NAME) ("as" NAME)? ("," ("*" | any_word | NAME) ("as" NAME)?)* ","?)? "}"
+wire_payload ::= "{" (("*" | any_word | wired_name) ("as" wired_name)? ("," ("*" | any_word | wired_name) ("as" wired_name)?)* ","?)? "}"
 
-wire_module_path ::= (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" NAME)?
+wire_module_path ::= (STRING | (NAME | KEYWORD) ("." (NAME | KEYWORD))*) ("as" wired_name)?
 
 import_rule ::= "edge" NAME ":" module_pattern ("|" module_pattern)* "-->" module_pattern ("|" module_pattern)* (wire_payload | ";")
 
