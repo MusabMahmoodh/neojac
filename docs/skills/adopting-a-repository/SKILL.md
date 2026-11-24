@@ -9,8 +9,8 @@ description: Use when a repository written in Python, JavaScript, TypeScript, Ru
 Use it when a repository that neojac did not make is to become a neojac project: its manifests
 held by `jac.toml`, its files wired in `archwire.jac`, and no source file changed.
 
-- Translating its source into Jac comes after, a file at a time: `porting-from-python`, and
-  `neojac docs toolchain/port`.
+- Translating its source into Jac comes after, a module at a time, in the order
+  `neojac port --check` plans: `porting-from-python`, and `neojac docs toolchain/port`.
 - Adding a package to a project that is already neojac's is `using-npm-packages` or
   `using-python-packages`, not this.
 
@@ -68,7 +68,7 @@ with a `workspace:` link, which npm is given as a range. If a step fails, every 
 
 | Diagnostic | Usually means |
 |---|---|
-| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is: an extension module a build makes. `neojac absorb --record` finds which crate it is linked from and writes `[extensions."pkg/_ext"]`; for one it does not take, write the table (`neojac docs toolchain/packages`, "Extension modules") and absorb again |
+| E1145 at a wire, `module 'pkg' has no '_ext'` | The source imports a module no file of the project is, in a project with a `[wheel]` table: an extension module a build makes that no table names. Before the project is recorded such an import is no error: absorb exits 0, and the project's `build` item stands for it. `neojac absorb --record` finds which crate it is linked from and writes `[extensions."pkg/_ext"]`; for one it does not take, write the table (`neojac docs toolchain/packages`, "Extension modules") and absorb again |
 | E2224 | Two files of one name and two languages in one directory |
 | E1575, E1147 | A wire and a source that disagree: `neojac fmt --fix archwire.jac` |
 
@@ -76,10 +76,10 @@ with a `workspace:` link, which npm is given as a range. If a step fails, every 
 
 | Kind | What it is | What closes it today |
 |---|---|---|
-| `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | `neojac install`, which holds pip to a `uv.lock`'s pins (building from source a pin with no wheel for neojac's CPython) and npm to a `pnpm-lock.yaml`'s or a `bun.lock`'s. It removes the tree's `node_modules` to do so, and needs the network. Then `neojac absorb --check`: its `locks` lines count the pins reproduced, and the item names each one that was not, with the version installed. Say why each differs (for pip, the log the install named, `.jac/pins/<name>-<version>.log`; for npm, a peer its range does not admit, or one range given two versions); accept one only when the user agrees, in `jac.toml`'s `[lock.pypi]` or `[lock.npm]`, `accept = ["<name>"]`. Keep the file until the item is closed. A lock of another tool (`poetry.lock`, `yarn.lock`) is not read: keep it and report it Once nothing of a lock is open, `neojac absorb` moves it to `replaced-by-neojac/` |
+| `lock` | Another tool's lock (`uv.lock`, `bun.lock`, `pnpm-lock.yaml`) | `neojac install`, which holds pip to a `uv.lock`'s pins (building from source a pin with no wheel for neojac's CPython) and npm to a `pnpm-lock.yaml`'s or a `bun.lock`'s. It removes the tree's `node_modules` to do so, and needs the network. Then `neojac absorb --check`: its `locks` lines count the pins reproduced, and the item names each one that was not, with the version installed. Say why each differs (for pip, the log the install named, `.jac/pins/<name>-<version>.log`; for npm, a peer its range does not admit, or one range given two versions); accept one only when the user agrees, in `jac.toml`'s `[lock.pypi]` or `[lock.npm]`, `accept = ["<name>"]`. Keep the file until the item is closed. A lock of another tool (`poetry.lock`, `yarn.lock`) is not read: keep it and report it. Once nothing of a lock is open, `neojac absorb` moves it to `replaced-by-neojac/` |
 | `form` | A manifest form npm does not read and neojac does not rewrite (`pnpm-workspace.yaml`, `pnpm.packageExtensions`) | Do not hand-edit the table to make npm take it: say what you found. `pnpm.overrides` and `workspace:` links are no open item: absorb rewrites the first, and prints what it rewrote, and `jac.toml` keeps the second as written |
-| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`) | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the platform it runs on, which each extension module lists (`recorded = ["macos-aarch64"]`): run it again on every other platform the project is built for, and it adds that platform's record to the same tables. Start each platform from a clean clone with `jac.toml`, `jac.lock` and `archwire.jac` carried over: what one system's build left behind (`build/`, `.jac/`) is not the next one's. On Linux an npm tree's record needs `make`. A build on a platform that is not recorded is refused (E5172); do not edit `recorded` to pass it. It says what of a build a table cannot hold: leave those programs in place and report what it said A record that says all the build made moves the build's own files (`setup.py`, `MANIFEST.in`, `binding.gyp`) to `replaced-by-neojac/`, and a later record puts them back for its run |
-| `tests` | No manifest says how a Python project's tests are run | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`, `[tool.cibuildwheel] test-command` |
+| `build` | A program that builds native code (`setup.py`, an in-tree build backend, `binding.gyp`), or a Python project that builds a wheel no record has said the files of yet: no space holds its Python until one does | For a Python project: `neojac absorb --record`, which runs the build and writes `[extensions."<path>"]` for a module linked from a crate or from C, with the C module's table, and `[wheel."<directory>"]`, what the project's wheel holds. For an npm tree with a `binding.gyp`: `neojac install`, then `neojac absorb --record`, which runs npm's node-gyp and writes each addon the same way, with the C module of every library it links. A record is of the platform it runs on, which each extension module lists (`recorded = ["macos-aarch64"]`): run it again on every other platform the project is built for, and it adds that platform's record to the same tables. Start each platform from a clean clone with `jac.toml`, `jac.lock` and `archwire.jac` carried over: what one system's build left behind (`build/`, `.jac/`) is not the next one's. On Linux an npm tree's record needs `make`. A build on a platform that is not recorded is refused (E5172); do not edit `recorded` to pass it. It says what of a build a table cannot hold: leave those programs in place and report what it said. A record that says all the build made moves the build's own files (`setup.py`, `MANIFEST.in`, `binding.gyp` and every other gyp file gyp loaded) to `replaced-by-neojac/`, and a later record puts them back for its run |
+| `tests` | No manifest says how a Python project's tests are run (absorb writes `[test.pypi."<directory>"]` itself from a `[tool.cibuildwheel] test-command`, or as `pytest --import-mode=append` for a project that configures pytest or holds a `conftest.py` in its directory or one down, with the one dependency group that names it; and an npm tree's `[test.npm."<directory>"]` from its `test` script), or several dependency groups name pytest, or none does | Write `[test.pypi."<directory>"]` (below), from the command the repository itself uses: its CI, its `Makefile`; or its `groups`, the one the tests need |
 
 An item neojac cannot close yet is reported, not worked around. Changing a manifest so that a
 tool stops complaining changes what the repository builds.
@@ -96,11 +96,15 @@ groups = ["test"]                  # the [dependency-groups] the command needs
 script = "test"
 
 [test.cargo."."]                   # a crate: neojac cargo test
+
+[install.pypi."."]                 # what install adds beyond the dependencies, tested or not
+groups = ["dev"]                   # absorb writes uv's default groups where a uv.lock describes it
+extras = ["blobfile"]
 ```
 
 ```sh
 neojac absorb --record             # every Python project: what its wheel holds, [wheel]
-neojac install                     # its dependencies, and the groups and extras the table names
+neojac install                     # its dependencies, and the groups and extras the tables name
 neojac test                        # builds the project from the tables, then runs the command
 ```
 
@@ -110,9 +114,15 @@ neojac test                        # builds the project from the tables, then ru
   which holds no extension module. Where the tests' directory has an `__init__.py`, pytest puts
   the project's directory first on Python's path unless it is told `--import-mode=append` (or
   `importlib`): give it that.
-- **What the tests need that no group or extra lists** (tiktoken's `pytest` and `hypothesis`
-  are named only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
+- **What the tests need that no group or extra lists** (`pytest` and `hypothesis`, where a
+  project names them only in its `[tool.cibuildwheel]`) goes in `[dependencies.pypi]`:
   `neojac install --pypi pytest hypothesis`.
+- **A test group's package that depends on the project itself** takes the project as neojac
+  builds it: `install` gives pip the repository's own Python projects as installed, so no
+  release of the project is fetched beside it and `jac.lock` pins none.
+- **A Python tree that ships no wheel** (a uv workspace's root, with no `[project]` table) is
+  no Python project to record: its own scripts and hooks are a `<dir>_dev` cpython space absorb
+  declares, and they are checked there, as Python.
 - **An npm tree's addon is built from its recorded tables** before its suite runs: record it
   first (`neojac install`, then `neojac absorb --record`). Leave a script that needs a tool
   neojac does not ship (`bun`, `turbo`) unnamed, and report it.
@@ -151,7 +161,7 @@ git add -A                                    # the moves into replaced-by-neoja
 
 absorb has already moved what `jac.toml`, `jac.lock` and the record stand in for into
 `replaced-by-neojac/`: each manifest as it stood, the build's own files (`setup.py`,
-`MANIFEST.in`, `binding.gyp`) once a record said all the build made, and another tool's lock once
+`MANIFEST.in`, `binding.gyp` and the gyp files it loads) once a record said all the build made, and another tool's lock once
 each of its pins was reproduced or accepted.
 
 - **Untrack a manifest; do not delete it.** npm, pip and cargo still read it, and neojac writes
@@ -166,6 +176,26 @@ each of its pins was reproduced or accepted.
   `neojac test`, with the same tests passing.
 - **Say what the repository gives up**: an install from its source by pip or npm, and tools
   that read its manifests without neojac.
+
+## Porting it to Jac, after
+
+Once the project is adopted and its tests pass on neojac, its source can move to Jac a module at a
+time, each step leaving a project that builds:
+
+```sh
+neojac port --check                # what would port, what is refused, and the plan
+neojac port shop/mathx.py          # one module: its Jac, the source to replaced-by-neojac/, its wires
+neojac test                        # the same tests passing, after each step
+```
+
+Port in the plan's order: each module after the modules of the project it imports. Each port is
+one change, made only if the project then checks (E4008), and a C file the rest of its C module
+still calls is called through the header beside its Jac; a C function defined with `...` ports
+with every C file that calls it (E4031). Commit after each step. A port that was killed leaves
+its change journalled, and `check` and `build` refuse the project (E4013) until the next
+`neojac port` in it undoes the change. An npm tree's own suite keeps running after a file of it is
+Jac: `neojac test` runs its script on what the tree's space emits, where a forwarder stands in
+each ported file's place.
 
 ## What a correct result looks like
 

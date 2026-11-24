@@ -92,8 +92,8 @@ with entry {
 
 3. **Convert at the boundary.** What Python gives is a `PyObject`; it becomes a Jac value where
    a Jac type is wanted (`words: list[str] = ...`), and is a `TypeError` there if it is not one.
-   - A Python class is not a Jac type: `-> ast.Module` is E1163. Return a Jac value
-     (`str(t)`), or leave a local unannotated.
+   - A Python class written as a type (`-> ast.Module`) is `any` to the checker: nothing is
+     checked of it. Return a Jac value (`str(t)`) where callers need one.
    - A Python number that is not an int (a `Decimal`, a float) does not fit where an `int` is
      wanted (`n: int = x` is a `TypeError`); convert it with `int(x)`, which truncates it as
      Python's `int()` does, as above.
@@ -155,7 +155,6 @@ with entry {
 | E1030 | The stubs say the module or object has no such name | Read the package's API; mind the spelling |
 | E1050, E1051, E1052 | A call the stubs' signature does not bind | Match the signature |
 | E1001 | The stubbed result type is not the type annotated | Annotate what it returns, or convert |
-| E1163 | A Python class written as a Jac type | Convert to a Jac type, or leave it unannotated |
 | E5142 | A name the native module leaves out (`collections.namedtuple`) | Do what the message says (an `obj`), or `importlib.import_module("collections")` |
 | E5143 | A submodule the native package lacks (`json.tool`) | `importlib.import_module("json.tool")` |
 | E2191 | A class deriving from a Python class and something else | Derive from the Python class alone |

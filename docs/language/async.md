@@ -29,8 +29,8 @@ walker in `neojac docs walker`.
   `Coroutine[any, any, R]` where `R` is the declared return type.
 - `await c` runs the coroutine `c` until it finishes, and gives its return value, or raises what it
   raised. While `c` is paused, the coroutine doing the awaiting is paused too.
-- `await` is allowed only inside an `async def` (E2085), and only on something awaitable (E1041):
-  a coroutine, or an object whose class defines `__await__`.
+- `await` is allowed only inside an `async def` and in a module's code (E2085), and only on
+  something awaitable (E1041): a coroutine, or an object whose class defines `__await__`.
 - A call of an `async def` whose coroutine is dropped, as in `fetch(1);` on its own, never runs, and
   is an error (E1278).
 - `await` binds tightly, like a prefix on what follows: `await f(x) + 1` is `(await f(x)) + 1`.
@@ -121,6 +121,57 @@ with entry {
 result 13
 ```
 
+### Module code that awaits
+
+A module's code may `await`, and use `async for` and `async with`, as an `async def` does. Such
+a module's code, all its `with entry` blocks in order, runs as one coroutine when the module
+starts, to its end, on an event loop of its own: natively and in a `cpython` space as
+`asyncio.run` runs one, and as the module's own asynchronous code on a JavaScript host. Its
+names are still the module code's (see [Modules](modules.md#module-code-with-entry)), and
+`return;` still ends it.
+
+```jac
+import asyncio;
+
+async def double(n: int) -> int {
+    await asyncio.sleep(0);
+    return n * 2;
+}
+
+async def count(n: int) -> AsyncIterator[int] {
+    for i in range(n) {
+        yield i;
+    }
+}
+
+with entry {
+    got = await double(21);
+    print(got);
+}
+
+with entry {
+    async for i in count(2) {
+        print("tick", i, got);
+    }
+}
+```
+
+```output
+42
+tick 0 42
+tick 1 42
+```
+
+A module whose code awaits, started from inside a running event loop (a module a coroutine
+imports in a code body), raises `asyncio.run`'s `RuntimeError` there.
+
+- **On wasm32-wasi**, where asyncio cannot be loaded, the module's code runs on a driver of its
+  one task, as asyncio's `Task` drives one: a bare yield is a turn. Nothing asyncio makes is
+  there to await.
+- **A yield that is no awaitable's, nor a bare one,** reaching the loop is thrown back into the
+  code as asyncio's `RuntimeError` (`Task got bad yield: ...`), on every host, a JavaScript
+  host's included.
+
 ### Awaitable objects
 
 An object is awaitable when its class defines `__await__`, written as a generator method. What it
@@ -179,7 +230,10 @@ in dict and set comprehensions. It too belongs inside an `async def`.
 
 `async for` is also how a page, or any code on a JavaScript host, reads a stream of another
 space: a call of a function there that gives an iterator gives an `AsyncIterator[T]` here
-([Crossings](../apps/crossings.md#calling-a-stream)).
+([Crossings](../apps/crossings.md#calling-a-stream)). On a JavaScript host it takes JavaScript's
+own async iterables too. On every host an async generator that reaches JavaScript is
+JavaScript's async generator, and a coroutine a promise of its result
+([npm and Node](../interop/npm.md#jacs-values-in-javascript)).
 
 ```jac
 async def ticker(n: int) -> AsyncIterator[str] {
@@ -435,8 +489,8 @@ Task True False
 
 | Code | Condition |
 |---|---|
-| E2085 | `await` outside an `async def` |
-| E2192 | `async for`, `async with` or an async comprehension outside an `async def` |
+| E2085 | `await` outside an `async def` and a module's code |
+| E2192 | `async for`, `async with` or an async comprehension outside an `async def` and a module's code |
 | E1041 | `await` of something that is not awaitable |
 | E1278 | A call of an `async def` whose coroutine is dropped |
 | E2193 | `return value;` in an async generator |

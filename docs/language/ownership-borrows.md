@@ -18,13 +18,40 @@ moves.
   scope or being moved while a borrow of it is used later. A value that
   carries a borrow borrows as the borrow does: the result of a call that
   returns a borrow, a view (below), a container a borrow is put in, a
-  closure that captures one.
-- **A borrow of a local is not returned** (E1306). A function may return a
+  closure that captures one. A tuple with a `&` among its items borrows
+  too: `def pick(b: &Buffer) -> tuple[&Buffer, int]` lends its result
+  what it was lent, and each item unpacked from it that the annotation
+  marks `&` borrows (`(k, n) = pick(&a)`, then `finish(a)` while `k` is
+  used later is E1304).
+- **A borrow counts from where it is made.** What a local holds at a use
+  is what the bindings that reach that use lent: a local bound to one
+  borrow before a loop and to another after it holds the first in the first
+  loop and the second in the second, so a change to the owner between
+  them is no conflict. Where paths join, it holds what either lent: after
+  an `if` whose branches each bind `r`, `r` borrows both owners, and a
+  binding late in a loop's body is what a use earlier in the next turn
+  holds.
+- **A borrow of a local is not returned** (E1306), an `own` value's or a
+  struct's (`return &mut p;` of a struct local `p`). A function may return a
   borrow it was lent: `def lend_back(b: &Buffer) -> &Buffer`.
-- **A borrow starts at a parameter, `self`, an `own` value or another
-  borrow** (E1323): a managed local may be released while it is used.
+- **A borrow starts at a parameter, `self`, an `own` value, another
+  borrow or a struct local** (E1323): a managed local may be released while
+  it is used. A struct in a local is the frame's own, so a borrow of it is
+  judged as one of an `own` value is: changing the local while a mutable
+  borrow of it is live is E1302, keeping the borrow past the local's block
+  E1304, and returning it E1306.
 - **One mutable borrow at a time** (E1302), and no change through the owner
-  while a shared borrow is live (E1303).
+  while a shared borrow is live (E1303). A `&mut x` argument and a call of a
+  method whose receiver is `self: &mut` lend `x` mutably for the call, so
+  `r = &a; bump(&mut a); print(r.n)` is E1302. A borrow a call returns
+  counts as one written out: with `def lent(self: &Counter) -> &Counter`,
+  `r = c.lent(); c.poke(); print(r.n)` is E1302 where `poke` takes
+  `self: &mut Counter`, though no `&` is written. `neojac check` judges
+  what a call or an index returns as `neojac build` does. A loan made
+  through a borrow a local holds is a reborrow of what that borrow lends,
+  not a second loan of its owner, and does not conflict with the borrow's
+  own: a range `for` over a C++ container whose `begin()` lends begins its
+  two iterators through its `&mut` range, and both live.
 - **A shared borrow only reads.** Through `&x`, a `self: &T` receiver or
   the element a shared `flow for` lends, assigning a field is E1320 and
   calling a method that changes the object is E1318. A method changes its
@@ -48,6 +75,9 @@ moves.
 - **A mutable borrow reaches storage**: `&mut x` of an `int` local is E1330,
   since a scalar is copied. Lend what holds it (an object, a list, a struct
   variable).
+- **A borrow of a struct is its place**: a local declared `&mut P` and a
+  function declared `-> &mut P` reach the struct they lend, and change it,
+  rather than a copy ([Places](structs.md#places)).
 
 ```jac
 obj Player {
@@ -81,6 +111,28 @@ def lend_back(b: &Player) -> &Player {
     return b;
 }
 
+def bump(b: &mut Player) {
+    b.score += 1;
+}
+
+def rebound -> int {
+    p: own Player = Player(score=4);
+    bump(&mut p);
+    x = lend_back(&p);
+    total = 0;
+    for i in range(2) {
+        t = lend_back(x);
+        total += t.score;
+    }
+    bump(&mut p);
+    y = lend_back(&p);
+    for i in range(2) {
+        t = lend_back(y);
+        total += t.score;
+    }
+    return total;
+}
+
 with entry {
     p: own Player = Player(name="ada");
     name: &str = &p.name;
@@ -88,14 +140,18 @@ with entry {
     print(name, p.score, lend_back(&p).name);
     c = Chain(head=Link(v=1, next=Link(v=2, next=Link(v=3))));
     hit = find(c, 3);
-    print(hit.v if hit is not None else None, c.steps);
+    print(hit.v if hit is not None else None, c.steps, rebound());
 }
 ```
 
 ```output
 ada 3 ada
-3 3
+3 3 22
 ```
+
+In `rebound`, `t` is bound in both loops; the second `bump` changes `p`
+while no borrow of it that reaches there is used later: `x` is not used
+after the first loop, and `y` is made after the `bump`.
 
 ### Reference loops
 
@@ -177,8 +233,17 @@ with entry {
   Overwriting an entry drops the old value at once, `pop` moves one out,
   and the rest drop with the container. An element cannot be moved into
   another owner in place (E1317).
-- **Storing an owner into a managed object's field seals it** into managed
-  storage: from there it is counted, as any managed value is.
+- **An owned container's items drop with it**: `xs: own list[Buf]` drops
+  each `Buf` it holds where `xs` is dropped, and an owned object's fields go
+  with it the same way, unless something else still holds them.
+- **A field or a local with no ownership annotation is a managed place**, as
+  a managed container's item is: storing an owner there seals it into managed
+  storage, from where it is counted, as any managed value is, and dropped when
+  its last reference goes. So is a value whose drop runs code (a Rust
+  `HashSet`, a C++ `std::vector`): such a field or local need not be `own`,
+  and an `own` binding does not take it back out of one, nor out of a call
+  that may give one's value (E1637). `del o.f`
+  ends the field's value at once ([Ownership](ownership.md#values-whose-drop-runs-code-dropped-where-their-scope-ends)).
 - A [packed list](packed-lists.md) of structs or narrow numbers owns its
   elements by holding them, so `list[own P]` is E1521.
 
@@ -229,7 +294,7 @@ optional field, `swap(&mut p.a, &mut p.b)` of two fields,
 ## What is rejected
 
 ```jac
-# expect: E1302, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
+# expect: E1302 x4, E1304, E1306, E1316, E1318, E1319, E1320, E1321, E1322, E1323, E1328
 obj Buffer {
     has n: int = 0;
 }
@@ -256,6 +321,40 @@ def two_mutable {
     e1: &mut Buffer = &mut a;
     e2: &mut Buffer = &mut a;
     print(e1.n, e2.n);
+}
+
+def lent_mutably_while_shared {
+    a: own Buffer = Buffer();
+    r = &a;
+    bump(&mut a);
+    print(r.n);
+}
+
+def lend_back(b: &Buffer) -> &Buffer {
+    return b;
+}
+
+def lent_mutably_after_a_join(flag: bool) {
+    a: own Buffer = Buffer();
+    b: own Buffer = Buffer();
+    if flag {
+        r = lend_back(&a);
+    } else {
+        r = lend_back(&b);
+    }
+    bump(&mut a);
+    print(r.n);
+}
+
+def lent_mutably_while_an_earlier_turn_holds {
+    a: own Buffer = Buffer();
+    b: own Buffer = Buffer();
+    r = lend_back(&a);
+    for i in range(2) {
+        bump(&mut b);
+        print(r.n);
+        r = lend_back(&b);
+    }
 }
 
 def moved_while_borrowed {
@@ -327,7 +426,7 @@ def cut_by_call(head: Link, other: Link) -> Link | None {
 
 | Code | Meaning |
 |---|---|
-| E1302 | A second mutable borrow while one is live, or a change to what a `&mut` loop lends. |
+| E1302 | A second mutable borrow while one is live (made on any path that reaches it), or a change to what a `&mut` loop lends. |
 | E1303 | The owner is changed while a shared borrow of it is live. |
 | E1304 | A borrow is used after its owner went out of scope or was moved. |
 | E1306 | A borrow of a local escapes its scope (returned). |

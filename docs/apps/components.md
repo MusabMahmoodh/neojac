@@ -45,6 +45,24 @@ def Counter(step: int = 1, label: str = "count") -> JsxElement {
   whenever `count` changes.
 - The `return` is what it shows.
 
+A component that sometimes shows nothing returns `JsxElement | None`, and `None` where it shows
+nothing, as a React component returns `null`. One that reaches its end without a `return` gives
+`None` too.
+
+<!-- example: not checked: a component is a module of a browser space, with JSX -->
+```jac
+def Hint(text: str) -> JsxElement | None {
+    if text == "" {
+        return None;
+    }
+    return <i>{text}</i>;
+}
+```
+
+`<Hint text="" />` shows nothing, and `<Hint text="!" />` an italic `!`. Under a fine-grained
+`ui` plugin, which takes no `return` before the end (below), write it as one expression:
+`return <i>{text}</i> if text != "" else None;`.
+
 ## JSX
 
 ```ebnf

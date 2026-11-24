@@ -141,8 +141,10 @@ curl -X POST http://127.0.0.1:8000/__jac/call/svc/api/where
   ([Serving a space](server.md)).
 - **Its calls of other spaces are awaited**, as in any JavaScript host, and it may call only their
   `:pub` and `:protect` functions and walkers (E1210).
-- **Its artifact**, when an app runs it alone, is `dist/<app>/`: its modules (`.mjs`), Node, the
-  project's npm packages, and `dist/<app>/<app>`, the launcher that starts it.
+- **Its artifact**, when an app runs it alone, is `dist/<app>/`: the launcher `dist/<app>/<app>`
+  that starts it, and beside it `dist/<app>/@app/`, which holds its modules (`.mjs`), Node and
+  the project's npm packages. No app's name starts with `@`, so no app is named as a directory of
+  what it runs.
 - **It keeps a graph of its own**, as a native space does: `root ++> Spot(v=1) ++> Spot(v=2);`,
   `root spawn Look()`, `visit [-->]` and a walker's `reports` work there. Only a walker as an
   endpoint is refused (below).
@@ -153,7 +155,11 @@ A node space refuses, with E5090, what Node cannot do yet:
 |---|---|
 | A `:protect` function | `` `:protect` in a node space `` |
 | A walker as an endpoint | `a walker endpoint in a node space` |
-| JSX | `JSX in a node space` |
+
+**JSX in a node space** is made by the JSX runtime its `ui` plugin names in `[ui.jsx]`'s
+`source` ([UI bindings](ui-bindings.md)): with `source = "react"`, `<ul>{[<Item name={x} /> for
+x in names]}</ul>` is `_jsx("ul", { children: [...] })` of `react/jsx-runtime`, which renders on
+the server. A plugin that names no `source`, as the standard `none`, refuses JSX there (E5178).
 
 A node space may call another space's stream, and reads it with `async for`
 ([Crossings](crossings.md#calling-a-stream)).
@@ -199,6 +205,24 @@ What differs from a native space:
 - **An `obj` is a Python class** with the fields, `init`, `postinit`, properties, repr and
   equality a native one has.
 - **The entry module runs as `__main__`.**
+- **A module's declarations are made in file order**, as Python makes them: each `def` and class
+  where its statement stands, among the module's `with entry` code. One that module code above it
+  calls is made just above that code, and one a global's value or another module's code reaches
+  is made with the module. So `importlib.reload` of a module runs its code again as Python does: a
+  `def` below code that raises is left as it was, one above it made anew. Natively and on a
+  JavaScript host every declaration is made before any of the module's code. A module the space's
+  loader makes when it is first imported (`importlib.import_module("kit.drawer")`) reloads; one
+  the program starts with has no `__spec__` yet, so its reload raises `ImportError`.
+- **A module is a value**: a name bound to a module, or a submodule named through its package, is
+  Python's module object, so `getattr(m, "f")`, `vars(m)` and `mock.patch.object(m, "f", ...)`
+  take the module itself, and a dunder the module does not declare (`m.__doc__`, `m.__file__`)
+  is Python's read of it. Natively and on a JavaScript host a module is no value (E5090): a native
+  module has no object holding its globals, and a JavaScript module's namespace is read-only.
+- **A module-level def's default that reads a global bound once is Python's own default value**,
+  made with the def, so `inspect.signature` shows it; every other default is made at each call,
+  as on every host ([A default made once](../interop/python-classes.md#a-default-made-once)).
+- **A static written through a subclass is the subclass's own attribute**, as in Python; on every
+  other host it is E1640 ([Static fields](../language/fields.md#static-fields)).
 - **A file cannot be imported by path** (E5090).
 
 Walkers, nodes and edges work as they do natively. A cpython space with no `entry` serves exactly
@@ -210,9 +234,10 @@ with `for`, as in a native one ([Crossings](crossings.md)).
 `neojac emit-py <space> -o <dir>` writes a cpython space's code objects and, in `<dir>/py/`, each
 module as Python source.
 
-An app that runs a cpython space alone is `dist/<app>/`: the code, CPython, its home (the standard
-library compressed in `lib/python315.zip`, the project's packages in
-`lib/python3.15/site-packages`) and the launcher `dist/<app>/<app>`.
+An app that runs a cpython space alone is `dist/<app>/`: the launcher `dist/<app>/<app>`, and
+beside it `dist/<app>/@app/`, which holds the code (`@app/py/`, `@app/__main__.py`), CPython
+(`@app/python3.15`) and its home (the standard library compressed in `@app/lib/python315.zip`,
+the project's packages in `@app/lib/python3.15/site-packages`).
 
 ## Other hosts in a native app's process
 
@@ -431,9 +456,13 @@ defect.
 | `cpython` | A dict whose keys change under a loop over it, its size the same, is found out by CPython's rule. Natively, removing any key but the newest leaves a hole the loop stops at: its next step raises `RuntimeError: dictionary keys changed during iteration`, and removing the newest key and adding another walks on. CPython walks on past some such changes and raises at the end of others: in `{"a": 1, "b": 2, "c": 3}`, removing `"b"` and adding `"z"` when the loop is at `"a"` raises natively and walks `a, c, z` on cpython. A change of size raises `dictionary changed size during iteration` on both |
 | `cpython` | An `any` holding a list, dict or set taken as a typed one (`list[int]`) is the same container whenever no item has to change; natively it is always a new one |
 | `cpython` | `list[int]` is CPython's alias of `list`, so `type([1]) is list[int]` is `False`; natively `True` |
+| `cpython` | An `assert`'s message may be any object, as Python's may: `assert ok, (n, "small")` raises `AssertionError` with the tuple. Natively the message is a `str` (E1001) |
+| `cpython` | `del` of a module's own global, function or imported name deletes it, as Python's `del` does ([Variables](../language/variables.md#del)); natively it is E0083 |
+| `cpython`, `node`, `browser`, `hermes` | A class declared in a code body (a function, a method, a `with entry` block) is made where its statement runs, a new class each time, as Python makes one ([A class in a code body](../interop/python-classes.md#a-class-in-a-code-body)); natively it is E5176, and a class is declared at a module's top level. In a cpython space its methods may read the body's names, as Python's closure does; on a JavaScript host one that reads them is E5177 |
 | `node`, `browser`, `hermes` | A dict whose keys change under a loop over it, its size the same, is walked as JavaScript walks a `Map`: on, past a removed key and through an added one, where native code raises `dictionary keys changed during iteration` for a key removed from the middle. A change of size raises `dictionary changed size during iteration`, as on every host |
 | `node`, `browser`, `hermes` | A whole float held in an `any` is an int: `a: any = 2.0` prints `2`, `-0.0` prints `0`, and `[1, "two", 3.0]` of anys prints `[1, 'two', 3]`. A `float`-typed value prints as natively (`2.0`) |
 | `node`, `browser`, `hermes` | An `int` is a JavaScript number ([Numbers](../language/numbers.md)) |
+| `node`, `browser`, `hermes` | A `str` is JavaScript's UTF-16 text, which cannot hold a surrogate pair apart: a str literal that holds one, `"\ud83d\udc4d"`, two code points natively and on cpython as in Python, is refused (E5221), and two surrogates joined as the program runs (`chr(0xd83d) + chr(0xdc4d)`) are the one character they stand for, `"\U0001f44d"`, of length 1 ([Strings](../language/strings.md#str)). A lone surrogate is held as on every host: its `repr` escapes it (`'\ud83d'`), and encoding it raises `UnicodeEncodeError` but under `surrogatepass`. `neojac port` refuses a Python literal that holds a surrogate pair in a module of these hosts (E4005), and writes a lone one with its escape |
 | `browser`, `hermes` | A `File` holds what the page has, and is sent when a call carries it: `File(source)` takes a `Blob` or bytes, and `read()` is awaited ([Files](files.md#in-a-page)) |
 | Every host but native and wasm | Owners, borrows and memory regions are checked, then erased: values are freed by the host's own collector, `region_of` gives `None`, and on a JavaScript host `__del__` never runs ([Memory](../language/memory.md), [Memory regions](../language/memory-regions.md)) |
 
@@ -445,4 +474,5 @@ defect.
 | E1540 | In a cpython, node, browser or hermes space: a use of C, a C function, record or global ([C libraries](../interop/c-libraries.md)). In a node space: a standard-library module or function only the native runtime defines. In a hermes space: anything that needs a graph. In a browser, hermes or node space: an import of a stdjac name whose module needs the native runtime (`stdjac.remote`, `stdjac.graph`, `stdjac.plan`, `stdjac.server`) |
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
 | E1220, E1221 | Text or a lowercase tag React Native does not show |
-| E5090 | In a node space: `:protect`, a walker endpoint, JSX. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |
+| E5178 | In a node space, JSX where its `ui` plugin names no JSX runtime |
+| E5090 | In a node space: `:protect`, a walker endpoint. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |

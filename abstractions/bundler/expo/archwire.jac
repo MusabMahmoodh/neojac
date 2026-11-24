@@ -5,5 +5,5 @@ graph layers {
 
 graph import {
     "expo-project" --> expo { prepare }
-    "expo-project" --> expo.serve { prepare }
+    "expo-project" --> "expo.serve" { prepare }
 }

@@ -10,56 +10,130 @@ the mapping: each construct port translates and the Jac it becomes. It is printe
 the translation itself reads (`neojac port --mapping javascript`).
 
 The pinned TypeScript reads the file, a JavaScript file too, and gives every expression its
-type. Port keeps those types, and translates an operator only where they say what it does: `+`
-of two numbers is an addition and of two strings a concatenation, and of anything else it is
-refused, since JavaScript would convert one operand and Jac would not.
+type. TypeScript's types are erased, so a port checks no type at run time that the source did
+not test: a place keeps its type only where every value that reaches it has that type with no
+conversion from `any`, and is `any` where a value TypeScript took on trust (an `any`, a cast
+that is no upcast, `v!`) reaches it. Port writes Jac's own operator only where the types say it
+does what JavaScript's does: `+` of two numbers is an addition and of two strings a
+concatenation. Of anything else it is JavaScript's own operator, a function of `js` (`js_add`),
+which converts an operand as JavaScript does.
 
 | JavaScript and TypeScript | Jac |
 |---|---|
 | `const x = 1;` at the top, of a literal, before any other code | `glob x: float = 1.0;` |
+| `const t = make();` at the top, which a function reads: before any other code, or after it | `glob t: any = make();`, made where the module starts, in order; `glob t: any;` and `t = make();` in `with entry`, where the statement stands (`= None` of a `var`): a read before the code that makes it raises NameError, where JavaScript throws |
+| A top-level function, class, variable or type the file does not export, in an ES module, a CommonJS module (not on `exports`) or a script | `def:priv f`, `obj:priv C`, `glob:priv x`, `type:priv T`: the module's names are the source's exports, as TypeScript has them, and the names the port makes (`given_1`, `length_2`) are private too |
 | Any other statement at the top | A statement of the module's one `with entry { }` |
-| `function f(a: number, b = 2, c?: string): number { }` | `def f(a: float, b: float = 2.0, c: str \| None = None) -> float { }` |
-| `class C { x: number; constructor(x) { this.x = x; } m() { } }` | `obj C { has x: float; def init(x: float) { self.x = x; } def m { } }` |
-| `let x = v;`, `const x: T = v;` | `x: T = v;`, with the type TypeScript gives `x` |
+| `function f(a: number, c?: string): number { }`; `function g(a, b = a + 1, c) { }`, a parameter with a default and those after it | `def f(a: float, c: str \| None = None) -> float { }`; `def g(a: any = None, *given_1: any) { got_2: any = js_item(given_1, 0); b: any = js_add(a, 1.0) if got_2 is None else got_2; c: any = js_item(given_1, 1); }`: a default is made at each call, where the argument is left out or undefined, and reads the parameters before it, as JavaScript's; the function's JavaScript `length` counts the parameters before the first with a default or `...`, as Jac's counts those before its `*args` |
+| `(a: number) => a + 1`, `function (a) { }`, `async (a) => { }` | `lambda (a: float) -> float { return a + 1.0; }`; a function in a function is a closure in both; one made in a loop that uses the pass's `const` variables takes them as its own, `(lambda (k: str) -> any { return lambda -> str { return k; }; })(k)`, as each pass has its own |
+| `const f = (a) => { };`, `const f = function (a) { };` at the top; a function a body declares after a call of it; a closure a `const` in a body holds that reads a variable declared after it | `def f(a: any) { }`; the `def` before the call, after the variables it reads, as JavaScript hoists it; the closure after that variable |
+| A parameter of untyped JavaScript, `function f(a) { }`; a function a call in any file of the run gives more arguments than it names, `f(1, 2)`, and a method of untyped JavaScript | `def f(a: any = None) { }`: JavaScript passes `undefined` for an argument a call leaves out; `def f(a: any = None, *extra_: any) { }`, which takes the arguments past those it names and drops them, as JavaScript does (JavaScript's own call reaches the function through its face, which drops them too); `a: any`, so it checks no more than JavaScript does |
+| TypeScript's types: `function f(n: number): string { }`, `let x: string = g();`, `class C { p: number; }`, `(a: T) => a.ok`; a value TypeScript takes on trust: an `any`, a cast that is no upcast (`v as string` of an `unknown`, `v as unknown as T`), `v!` of what may be null | Each place (a parameter, a variable, a field, a return, a lambda's result) keeps TypeScript's type only where every value that reaches it has that type with no conversion from `any`: TypeScript's types are erased, so the port checks no more at run time than JavaScript does. A value taken on trust is `any` (`(v as any)`), and so is every place it reaches, in every file of the run; what a `typeof` or `instanceof` test narrows keeps its type |
+| A function's sole or last parameter that is an object pattern of plain names, after parameters with no default: `async function visit({ page, n = 2, ...more }) { }`, `({ a, b } = {}) => a + b`; a call of it, `visit({ page: p, n: 3 })` | keyword-only parameters, `async def visit(*, page: any, n: any = None, **more: any) { }`, a default taken in the body where the name is None, as JavaScript gives `undefined`, `= {}` making every name optional; a call that gives a literal of exactly those names gives them by name, `visit(page=p, n=3)`, and any other is JavaScript's call, `js_invoke(visit, o)`; JavaScript's own call gives its object to the function's face, `async function ({ page, n, ...more })`, which binds it |
+| `arguments` in `function f() { }`, in `function f(a = 1, b, ...more) { }`, in `function f(a, b) { }` and an object literal's method `m(a, b) { }`, whose `length` counts `a` and `b` | `def f(*arguments_1: any) { }`; `def f(*arguments_3: any) { given_1: list[any] = list(arguments_3); got_2: any = js_item(given_1, 0); a: any = 1.0 if got_2 is None else got_2; b: any = js_item(given_1, 1); more: list[any] = list(given_1)[2:]; }`; `def f(*arguments_1: any) { a: any = js_item(arguments_1, 0); b: any = js_item(arguments_1, 1); }` and `glob length_2: any = js_with_length(f, 2);` (`js_with_length(m, 2)`, a function value's, where it is made), of `js`, which gives it JavaScript's `length`: what the call gave, whatever the function names or defaults |
+| `function f(this: T, a) { this.x }` outside a class, or one whose body reads `this`; `f.call(o, a)`; `f.bind(o)`; `this.p` of such a function where `this` is not typed | `def f(self: T, a: any) { self.x }`, its `self` the object JavaScript calls it on (`any` where nothing types `this`); `f(o, a)`; `js_method(js_as_method(f, "f"), "bind", o)`, JavaScript's own `bind` of the method; `js_item(self, "p")`, undefined where the object has no `p` |
+| `class C { x: number; constructor(x) { this.x = x; } m() { } }`; `class D extends C { y = 1; constructor() { super(2); } }` of the file's `C`; `class E extends Error { constructor(m) { check(m); super(m); this.c = 1; } }` of a JavaScript class; `static n = 0;`, `static f() { }`; `get p() { }`, `set p(v) { }`; no constructor | `obj C { has x: float; def init(x: float) { self.x = x; } def m { } }`; `obj D(C) { has y: float; def init { super.init(2.0); self.y = 1.0; } }`, `super.m()`; `obj E(globalThis.Error) { def init(m: any) { check(m); super.init(m); self.c = 1.0; } }`, a class JavaScript makes, whose `init` is its constructor and `super.init(...)` its `super(...)`; `static has n: float = 0.0;`, `static def f { }`; `has p: T { getter { } setter(v: T) { } }`; `def init(*args: any) { }`, which takes what a call gives as JavaScript's does |
+| A class declared in a function, `function f() { class C extends B { } return new C(); }`; a class expression, `new (class { get a() { } })()`, `const K = class { }` | `obj C(B) { }` where its statement stands, which a JS space's JavaScript makes there, a new class each time; `obj Class_1 { }` before the statement, its `name` JavaScript's: `globalThis.Object.defineProperty(Class_1, "name", {"value": "", "configurable": True});` where it has none, `obj K { }` where it is a variable's |
+| `let x = v;`, `const x: T = v;`, `let x;` | `x: T = v;`, with the type TypeScript gives `x`; `let x;` is `x: any = None;` |
+| `var x = v;` in a function: once, among the function's own statements, and read nowhere before it; any other `var` of a function, in a block, a loop's body or a `for`'s head, declared twice, or read before its statement (by a closure too) | `x: T = v;`, as `let`; `x: any = None;` at the function's start, and `x = v;` where each `var x = v;` stands (`var x;` leaves `x` as it is; `for (var k in o)` is `for item_1 in js_for_in(o) { k = item_1; }`): one variable of the function, which every pass and closure shares, `undefined` before its statement. A `var` that names a parameter is the parameter |
+| `import.meta`; a CommonJS module's `__filename`, `__dirname`, `require.main === module`; `new.target`; `F.prototype` of a function used as a constructor | `js_meta()` of `js`, `import.meta` of the module on a JS host; `js_meta().filename`, `js_meta().dirname`, `js_meta().main`; a member read off it is the module's own `import.meta` text (`js_meta().env.MODE` is `import.meta.env.MODE`), which a bundler rewrites where it stands, as it rewrites the source's; `new.target` is `js_new_target()` of `js`, the `new.target` of the call that reached the function: a function's, and a constructor's of a class JavaScript makes; `F.prototype` is `js_prototype(F)` of `js`, the prototype of the function's JavaScript face, which JavaScript's `new` constructs with |
+| `require(spec)` in a function, or after the file's code has started, of a package, a Node addon or a path the program computes; `require` as a value; `require("./conf.json")` of a JSON file or an addon, anywhere | `createRequire(js_meta().url)(spec)`, `import from "node:module" { createRequire }`: Node's own `require` of the module |
 | `if (c) { } else if (d) { } else { }`, `while (c) { }`, of a boolean | `if c { } elif d { } else { }`, `while c { }` |
-| `for (let i = 0; i < n; i++) { }` | `for i = 0.0 while i < n with i += 1.0 { }` |
-| `for (const x of xs) { }`, of an array | `for x in xs { }` |
+| `switch (s) { case "a": f(); break; default: g(); }`, of string literals, or of number or boolean literals where TypeScript types `s` so | `switch s { case "a": f(); break; default: g(); }`: Jac's falls through as JavaScript's does |
+| `for (let i = 0; i < n; i++) { }`; any other `for`, `for (; i <= n; ++i, ++k) { }`, `for (const end = i + n; i < end; ++i) { }`, `for (;;) { }` | `for i = 0.0 while i < n with i += 1.0 { }`; the variables it declares, then `while True { if not first_1 { <step> } first_1 = False; if not <cond> { break; } ... }`, whose step runs before each pass but the first, a `continue`'s too; a `const` it declares is each closure's own, as each pass has its own |
+| `for (const x of xs) { }`, `for (const [k, v] of Object.entries(o)) { }`, `for await (const x of g) { }` | `for x in xs { }`; of any other value `for x in js_iter(v) { }`, JavaScript's iterator of it (a Map's entries); a pattern is taken apart first in the body, as a declaration's is; `for await` is `async for x in g { }`, which takes a Jac async generator and JavaScript's async iterable |
+| `for (const k in o) { }` | `for k in js_for_in(o) { }`: the keys JavaScript visits, as it visits them |
 | `return v;`, `break;`, `continue;` | The same |
 | `3`, `2.5`, `0xff` | `3.0`, `2.5`, `255.0`: a number is a float |
 | `"a"`, `'a'`, `` `a${s}b` `` of strings | `"a"`, `"a" + s + "b"` |
+| `null`, `x === null`, `x == null` | `JsNull`, `x is JsNull`, `(x is None or x is JsNull)`, of `import from js { JsNull }` |
+| `if (x)`, `!x`, `a \|\| b`, `a && b` of values that are not booleans; `o[k]`, `o[k] = v` but of an array's literal index | `if js_truthy(x)`, `not js_truthy(x)`, `(a if js_truthy(a) else b)`, `(b if js_truthy(a) else a)`; `js_item(o, k)`, `js_set_item(o, k, v);`, of `js` |
+| `catch (e) { use(e); }`; Node's `process`, `Buffer`, `setImmediate`, `setTimeout`; Node's `global`, and a name a file sets on it (`global.expect = f;`) or no file declares, in untyped JavaScript | `except BaseException as caught { e: any = js_error(caught); use(e); }`; imported from `node:process`, `node:buffer`, `node:timers`; `globalThis`, `js_global("expect")` of `js`: the global object's property where the code runs |
 | `true`, `false`, `undefined`, `this` | `True`, `False`, `None`, `self` |
 | `a + b`, `a - b`, `a * b`, `a ** b` of numbers; `s + t` of strings | The same operators |
-| `{ a: 1, "b": 2 }` typed `Record<string, number>`, `d[k]`, `d[k] = v;` | `{"a": 1.0, "b": 2.0}`, `d[k]`, `d[k] = v;` |
-| The types `number`, `string`, `boolean`, `T[]`, `Record<string, T>`, a class, `T \| undefined` | `float`, `str`, `bool`, `list[T]`, `dict[str, T]`, the class, `T \| None`; anything else is `any` |
+| `{ a: 1, "b": 2, 3: 4 }`, of any type, a table's (`Record<string, number>`, an index signature) too; `d[k]`, `d[k] = v;` of a table | `globalThis.Object.fromEntries([("a", 1.0), ("b", 2.0), (globalThis.String(3.0), 4.0)])`, JavaScript's own object, a number as a key the string JavaScript makes of it; `js_item(d, k)`, `js_set_item(d, k, v);`, of `js` |
+| An object literal's method: `{ m(x) { return this.n + x; } }`, `*m() { }`, `async m() { }`, `[k]() { }` of a key that reads a name or a property | `def m_1(self: any, x: any) -> any { return self.n + x; }` before the statement and `("m", js_as_method(m_1, "m"))` of `js` in the object's entries: the object is `self`, and JavaScript cannot construct the method; a generator `def`, an `async def`; `(k, js_as_method(method_1, k))` |
+| Any other object literal: `{ a: 1, b, [k]: v, ...o }` | `globalThis.Object.assign(globalThis.Object.fromEntries([("a", 1.0), ("b", b), (k, v)]), o)`: JavaScript's own object |
+| `o.p` where `o`'s type declares `p`; where it declares it optional; where `o` is untyped, and `o.m(a)`; `o.m` of a method read as a value; `o.$`, a name that is no Jac name; `o[k](a)` of an untyped `o`; `o.constructor`, `o.hasOwnProperty(k)`, what `o` has only from JavaScript's `Object` | `o.p`; `getattr(o, "p", None)`; `js_item(o, "p")` and `js_method(o, "m", a)`, JavaScript's read and call, a TypeError of `null`; `js_item(o, "m")`, the class's function and not one bound to `o`; `js_item(o, "$")`; `js_method(o, k, a)`, called on `o`, a symbol's key too; `js_item(o, "constructor")`, `js_method(o, "hasOwnProperty", k)`: JavaScript's own, which no Jac class declares |
+| `const { a, b: c = 1, ...rest } = o;`, `const [x, y] = xs;`, `function f({ a }) { }`; `const [a, , ...rest] = v;` of a value TypeScript does not type as an array | `a = getattr(o, "a", None);` (`js_item(o, "a")` of an untyped `o`), `c = 1.0 if got is None else got;`, `rest = js_rest(o, ["a", "b"]);`, `x = xs[0] if len(xs) > 0 else None;`; a parameter's pattern is taken apart first in the body; `held_1: list[any] = js_unpack(v, 2, True); a = held_1[0]; rest = held_1[2];`, which iterates `v` as JavaScript does and closes an iterator the pattern leaves unfinished |
+| `f(...xs)`, `[...xs, 1]`, `function f(...xs: number[]) { }`; `[...v]` of a value that is not an array | `f(*xs)`, `[*xs, 1.0]`, `def f(*xs: float) { }`; `[*js_iter(v)]` |
+| A global of JavaScript's own libraries: `JSON`, `Object`, `String`, `Number` | `globalThis.JSON`, `globalThis.Object`, ... |
+| The types `number`, `string`, `boolean`, `T[]`, a class, `T \| undefined` | `float`, `str`, `bool`, `list[T]`, the class, `T \| None`; anything else is `any`, a table (`Record<string, T>`) too, which is JavaScript's object |
 | `a / b` of numbers | `a / b` where `b` is a literal other than 0; else `(a / b) if b != 0.0 else a * (float("-inf") if Object.is(b, -0.0) else float("inf"))`, since Jac raises where JavaScript gives an infinity |
 | `a < b`, `<=`, `>`, `>=` of numbers; `===`, `!==` of two numbers, strings or booleans | `a < b`, `<=`, `>`, `>=`; `==`, `!=` |
+| `a + b`, `a - b`, `a < b`, `<=`, `>`, `>=`, `x += v`, `x -= v`, `+a` of operands TypeScript does not type as the operator's own, or, in JavaScript, are not sure to be of it (`function f(a = 0) { return a + 1; }`, which a caller may give a string: a kind there is TypeScript's only where every value a variable is given has it, every call of a function that does not escape the file gives its parameter one, or a test such as `typeof a === "number"` narrows it); `a === "s"` of an untyped `a`; `a % b`, `a << b`, `>>`, `>>>`, `&`, `\|`, `^` of any operands; a compound assignment or `++`/`--` of a property or an index | `js_add(a, b)`, `js_sub(a, b)`, `js_mul(a, b)`, `js_div(a, b)`, `js_pow(a, b)`, `x = js_inc(x);` for `x++;`, `x = js_dec(x);`, `js_lt(a, b)`, `js_le`, `js_gt`, `js_ge`, `x = js_add(x, v);`, `x = js_sub(x, v);`, `js_number(a)`; `js_same(a, "s")`; `js_mod(a, b)`, `js_shl`, `js_shr`, `js_ushr`, `js_band`, `js_bor`, `js_bxor`; `js_set_item(o, "p", js_inc(js_item(o, "p")));` for `o.p++;`, `js_set_item(o, k, js_mod(js_item(o, k), v));` for `o[k] %= v;` (the object and the key held first where they are more than names), of `js`: JavaScript's own operators |
 | `===`, `!==` of two objects or arrays; `x === undefined` | `is`, `is not`; `x is None` |
 | `!c`, `c && d`, `c \\|\\| d` of booleans; `c ? a : b`; `-a` | `not c`, `c and d`, `c or d`; `a if c else b`; `-a` |
 | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x++;`, `x--;` as statements | `x = v;`, `x += v;`, `x -= v;`, `x *= v;`, `x += 1.0;`, `x -= 1.0;` |
-| `f(a)`, `o.m(a)`, `new C(a)`, `o.x` | `f(a)`, `o.m(a)`, `C(a)`, `o.x` |
+| `f(a)`, `o.m(a)`, `new C(a)` of a class of the run or of a Jac module, `o.x` | `f(a)`, `o.m(a)`, `C(a)`, `o.x` |
 | `console.log(a, b)`, `Math.sqrt(x)`, `Math.PI` | The same, on JavaScript's own `console` (`import from "node:console" { default as console }`) and `Math` |
-| `[a, b]`, `xs[0]`, `xs.length`, `xs.push(v);` | `[a, b]`, `xs[0]`, `float(len(xs))`, `xs.append(v);` |
+| `[a, b]`, `xs[0]`, `xs.length`, `xs.push(v);` of an array the file's own code alone reaches: iterated, spread or indexed where it stands, or held by a variable that is only read so, its `length`, or a method of an array that keeps it to itself; any other array, `Object.freeze([1])`, `box.add(xs)`, `return [a]`; `[1, , 3]`, a hole, in a JavaScript space | `[a, b]`, `(xs[0] if len(xs) > 0 else None)` (`xs[0] = v;` assigned), `float(len(xs))`, `xs.append(v);`; `js_array([1.0])`, JavaScript's own array, an `any` read through `js`, which crosses to JavaScript as itself where a Jac list crosses as a copy; `[js_delete(holed_1 := [1.0, None, 3.0], 1), holed_1][1]`: JavaScript's own hole, which `in`, `forEach` and `Object.keys` skip and `length` counts |
+| Any other method of an array or a string, `xs.join(", ")`, `s.split("")`; a string's `length` | `js_method(xs, "join", ", ")`, `js_method(s, "split", "")`, `js_item(s, "length")`, of `js`: JavaScript's own method, called on the value |
+| `a ?? b`; `o?.x`, `o?.m(a)`, `xs?.[0]` of a value TypeScript types; `f?.(a)` of a name; `o?.m(a)` of a value it does not | `a ?? b`; `o?.x`, `o?.m(a)`, `xs?[0]`; `f(a) if f is not None else None`; `(None if (held_1 := o) is None or held_1 is JsNull else js_method(held_1, "m", a))`, the value taken once and the arguments only where the method is called |
+| `export default function f() { }`, `export default class C { }`, `export default f;` of a function, class or variable of the file; `export default make({ a: 1 });`, a value its code makes, before the file's other code | `default def:priv f { }`, `default obj:priv C { }`: the module's default, whose own name the module does not export; `default glob:priv given_1: any = make(globalThis.Object.fromEntries([("a", 1.0)]));`, made where the module starts, in order; `def f { }` and `default glob:priv given_1: any = f;` of a function or class exported by its own name too |
+| `<div className="a" {...rest}>text {v}<C x={1} /></div>`, `<></>`; a type `JSX.Element` | The same JSX; `JsxElement`; a function returning one, of one parameter `props`, takes `**props`: its props, as the JSX runtime gives them; one TypeScript types `JSX.Element \| null` returns `JsxElement \| None`, its `return null` a `return None`, which renders nothing |
+| `` tag`a${x}b` `` of a function the file declares | `tag(["a", "b"], x)`: the parts, then the values |
+| `v as T`, `<T>v`, `v!`, `v satisfies T` | `v` where TypeScript checks it (an upcast, `satisfies`, `as const`, `v!` of what cannot be null); `(v as any)` where it takes it on trust, since nothing checks it at run time |
+| `await p`; `async function f() { }`; `async () => { }`; `await p` in a module's code; `await v` of a value TypeScript types as no promise, or as `any`, on a JS host | `await p`; `async def f { }`; an `async def` of its own, declared before the statement that makes it; `await p` in `with entry`, which makes the module's code a coroutine run to its end; `await globalThis.Promise.resolve(v)`, as JavaScript awaits it |
+| `function* f() { yield v; yield* xs; }`, a generator's method or function expression; `async function* f() { yield v; }`, and `g.next(v)`, `g.return(v)`, `g.throw(e)` of an async generator | `def f -> Iterator[any] { yield v; yield from xs; }`; a function expression is a `def` of its own, declared before the statement that makes it; an async generator is `async def f -> AsyncIterator[any] { yield v; }`, which is JavaScript's own async generator where it crosses to JavaScript, and its `next` `js_method(js_async_generator(g), "next", v)` |
+| `throw new TypeError(m);` | `raise new(globalThis.TypeError, m);` |
+| `try { } catch { } finally { }`, and `catch (e)` where the block does not use `e` | `try { } except BaseException { } finally { }` |
+| `/a+/g` | `new(globalThis.RegExp, "a+", "g")` |
+| `new C(a)` of a class JavaScript keeps: a package's, or a file's that stays JavaScript | `new(C, a)` |
+| `typeof x === "string"`, `"boolean"`, `"number"`, `"undefined"`, `"function"`, `"object"` | `isinstance(x, str)`, `isinstance(x, bool)`, `(isinstance(x, float) or globalThis.Number.isInteger(x))`, `x is None`, `callable(x)`; of any other name `js_typeof(x) == "object"`, JavaScript's `typeof` |
+| `typeof x` but compared with a string literal | `js_typeof(x)` |
+| `delete o.p`, `delete o[k]`, in a module or a strict script | `js_delete(o, "p")`, JavaScript's `delete`, of a table's key too |
+| `void e` | `[e, None][1]`; `e;` as a statement |
+| `a, b` (the comma operator); `x++`, `++x`, `o.p++`, `++o[k]` used as a value, of an untyped `x` or a property of a name or `this` | `[a, b][1]`; `a;` and `b;` as a statement; `[js_number(x), (x := js_inc(x))][0]`, `(x := js_inc(x))`, `[(old := js_number(js_item(o, "p"))), js_set_item(o, "p", js_inc(old))][0]`, `js_set_item(o, k, js_inc(js_item(o, k)))`, of `js`: JavaScript's value of each |
+| `x instanceof C`, `k in o`, `a === b` of values TypeScript does not type, `` `n=${n}` `` of a number | `isinstance(x, C)`, `globalThis.Reflect.has(o, k)`, `a is b`, `"n=" + globalThis.String(n)` |
+| `import { a, b as c } from "pkg";`, `import d from "pkg";`, `import * as ns from "pkg";`, `import "pkg";`, `import { f } from "./helper.js";`; `export function f`, `export const x`, `export class C`; `export { f as g };` of a function or class | `import from "pkg" { a, b as c }`, `{ default as d }`, `{ * as ns }`, `import "pkg";`, `import from "./helper.js" { f }` of a file that stays JavaScript, `import from .helper { f }` of a Jac module of the program (one the run ports, or a module a path alias of `tsconfig.json` names, `@/lib/utils`); the declaration, a Jac module's names being its own; `glob g: any = f;` |
+| `const fs = require("fs");` at the top; `exports.f = f;`, `exports.f = function () { };` | `import from "fs" { default as fs }`; nothing, `f` is the module's; `def f { }` |
+| `module.exports = f;`, `module.exports = function f() { };`, `module.exports = v;` before the file's code | `default def f { }`; `default glob <file's stem>: any = v;`: the module's default, which a `require` of it gives |
+| `exports` used as a value in a CommonJS module: `exports["a-b"] = f;`, `Object.values(exports)` | `default glob exports: any = globalThis.Object.fromEntries([]);`, the module's exports object, which a `require` of it gives, and every `exports.x = v;` of the file sets a property of it where its code runs: `js_set_item(exports, "a-b", f);` |
+| `const x = require("./m");`, `const { a } = require("./m");` of a file ported with it, or of a JavaScript file of the project that stays | `import from .m { default as x }` of a module that gives one value; `import from . { m as x }` of one that gives its names, the module whole; `import from .m { a }`; a module whose file's stem is no identifier by its quoted path, `import from "./tally-error" { default as x }`, and taken whole it is refused |
+| `type T = ...;`, `interface I { }`, `import type`, `declare ...`, an overload's signature; `export type T = ...;`, `export interface I { }`, `export type { T }`, `export type { T } from "./m"` of a module of the program | Nothing: TypeScript erases them, and a value of such a type is typed as TypeScript resolves it; `type T = any;`, a name of the module a TypeScript file may import while it stays and after (`include from .m { T }` of a re-export), and `type T = C;` of the file's class `C` |
 
 ## What is refused
 
 Anything not in the table is refused with E4001, and nothing is written for the file. So is a
 construct in the table whose Jac would mean something else (E4005):
 
-- **An operator on operands TypeScript does not know the types of**, or of two different types.
-  Annotate them, in TypeScript or in JSDoc comments.
-- **`%`.** JavaScript's remainder has the dividend's sign and Jac's the divisor's.
-- **A condition that is not a boolean.** An empty array is true in JavaScript and false in Jac.
-- **An index that is not a whole number literal**, a string's `length` and its characters. A
-  JavaScript number is a float and a string is UTF-16.
-- **A variable declared again inside the block of another of its name.** A Jac function has one
-  variable of a name.
-- **A top-level variable that functions use, bound by anything but a literal before the file's
-  code.**
+- **A function made in a loop that uses a `let` variable of the loop's body.** Each pass of a
+  JavaScript loop has its own, which the pass may change; a Jac function has one.
+- **`yield*` in an async generator.** Jac's async generator has no `yield from`.
+- **A getter, a setter or `super` in an object literal.**
+- **A variable declared inside the block of another of its name, where a third of its name
+  is renamed already.** A Jac function has one variable of a name, so the inner one is a
+  variable of another name, as is one a function inside another declares where the other
+  has a variable of its name; one at a time.
+- **A top-level variable that functions use, made in a `for` statement's head.**
+- **A function called before a variable it reads is declared.** Jac declares it after them.
 - **A property a method binds that the constructor does not.**
+- **A step after `?.` in one chain, and `?.()` of a function that is more than a name.**
+- **`delete` in a script that is not strict.** It gives false there where a module throws.
+- **`arguments` in a class method whose JavaScript `length` counts a parameter** (one before
+  the first with a default or `...`). A method's `length` is its class's to give.
+- **A class's `length`, `name` and the other properties JavaScript's Function gives it.**
+- **`export default` of a function or class expression, of a value after the file's code has
+  started, and `export =`.** An expression's function is named `default` in JavaScript.
+- **A variable exported both as the default and by its own name.** JavaScript's default is
+  the value it has where `export default` stands, apart from the variable.
+- **A `var` outside a function, a hoisted `var` a pattern declares, and a `var` of the name of
+  a function or class the same function declares.** A hoisted variable is declared at the
+  function's start and assigned where its `var` stands, and a pattern declares; JavaScript
+  makes one variable of a `var` and a function of one name.
+- **A class in a function, and a class expression, outside a JavaScript space.** JavaScript
+  makes a class each time the statement runs; a native Jac class is made once.
+- **A hole in an array literal outside a JavaScript space**, where a list has no holes.
+- **A closure over a `for`'s own `let`.** Each pass has its own, which the step changes after
+  the closure is made.
+- **An object pattern parameter whose default is no empty object, and one whose every name
+  has a default and which has none of its own.** The first's default gives its names values
+  keyword-only parameters do not; for the second JavaScript throws where a call gives no
+  object, which keyword-only parameters take as an empty one.
+- **`import.meta.glob`.** A bundler expands its patterns from the module's own place, and the
+  files they match are the sources, where a ported module's JavaScript is not emitted.
 
-## What differs in what is written
-
-- **A missing element or key raises.** `xs[9]` past the end and `d[k]` of a key that is not there
-  raise `IndexError` and `KeyError`, where JavaScript gives `undefined`.
-
-It is a gap to close before JavaScript's port is complete.
+Each construct the table lists keeps its meaning: a property of `undefined` or `null` throws
+JavaScript's TypeError, an element past an array's end and a key an object lacks are `undefined`,
+and `?.` stops at `null` as well as `undefined`.

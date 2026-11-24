@@ -1,6 +1,6 @@
 ---
 description: Declaring an archetype's fields with has (types, defaults, static fields, postinit fields), the init and postinit constructors, and properties with getters and setters.
-keywords: has, static has, init, postinit, getter, setter, deleter, property, properties, field, fields, default value, static field
+keywords: has, static has, init, postinit, getter, setter, deleter, property, properties, field, fields, default value, static field, hasattr of a property, Self property
 grammar: has_stmt, has_var, accessor
 ---
 # Fields
@@ -102,8 +102,8 @@ with entry {
     b = Special(n=5);
     Counter.names.append("a");
     print(Counter.made, Special.made, a.made, b.names);
-    Special.made = 10;
-    print(Counter.made, a);
+    Counter.made = 10;
+    print(Special.made, a);
 }
 ```
 
@@ -113,14 +113,69 @@ with entry {
 ```
 
 - A static field needs a value (E2103).
-- It is read as `Class.name`, or through an instance (`a.made`). It is
-  assigned as `Class.name = v`; assigning through an instance is E1030.
+- It is read as `Class.name`, through a subclass (`Special.made`), or through
+  an instance (`a.made`). It is assigned through the class that declares it,
+  `Counter.made = v`: assigning through an instance is E1030, and through a
+  subclass E1640, since the subclass has no value of its own. A subclass that
+  needs one declares its own static of that name.
 - It is not a constructor argument and is not shown by `repr`.
+- **The one difference between hosts:** in a cpython space a class is Python's
+  class object, and a static written through a subclass's name, or through
+  `cls`, is that subclass's own attribute, as in Python, and the base keeps its
+  value
+  ([A class's statics through a subclass](../interop/python-classes.md#a-classs-statics-through-a-subclass)).
 - Static fields are initialized when the program starts, with the module's
   `glob`s, in the order they are written, and before its `with entry` code. A
   static's value may read a `glob` or a static declared above it; one declared
   below has no value yet (E2200). See [Variables](variables.md#initialization-order).
 - A static property (a `static has` with accessors) is not built yet (E5090).
+
+**A callable static field is a method.** A static field reached through an
+instance and called is called with the instance first, and read through an
+instance it is bound to it, as a Python class attribute holding a function is.
+One of a function type always binds; one of type `any` binds when its value is
+a function, and gives any other value (a class, a number) as it is. Through the
+class, `Badge.name(b)` calls the value as it is.
+
+```jac
+def bracketed(f: any) -> any {
+    def inner(me: any, *rest: any) -> any {
+        return "<" + f(me, *rest) + ">";
+    }
+    return inner;
+}
+
+def name_of(me: Badge) -> str {
+    return me.who;
+}
+
+def greet(me: Badge, whom: str) -> str {
+    return me.who + " greets " + whom;
+}
+
+obj Badge {
+    has who: str;
+
+    static has name: any = bracketed(name_of);
+    static has hello: Callable[[Badge, str], str] = greet;
+}
+
+with entry {
+    b = Badge("ann");
+    print(b.name(), Badge.name(b), b.hello("bo"));
+    h = b.hello;
+    print(h("fay"));
+}
+```
+
+```output
+<ann> <ann> ann greets bo
+ann greets fay
+```
+
+A function-typed static read through an instance is `any` to the checker: a
+`Callable` carries no parameter names, so a keyword argument through it is
+E1052. Read through a class value, `type(x).name` is the run-time class's.
 
 ## `init`
 
@@ -260,7 +315,38 @@ refused: below absolute zero
 - An accessor written with `;` in place of its block is declared here and
   implemented by `impl Temp.celsius.getter { ... }`; see [Impl blocks](impl.md).
 
-`hasattr(x, "celsius")` is true and `getattr(x, "celsius")` calls the getter.
+`getattr(x, "celsius")` calls the getter, and so does `hasattr(x, "celsius")`, which is `True`
+where the getter gives a value and `False` where it raises `AttributeError`, as Python's is.
+
+A property's type may be `Self`, as a method's result may
+([Methods](methods.md)): the class of the object it is read through, a subclass where the
+subclass inherits the property.
+
+```jac
+obj Node {
+    has up: Node | None = None,
+        _label: str = "";
+
+    has parent: Self {
+        getter {
+            if self.up is None {
+                raise AttributeError("a root has no parent");
+            }
+            return self.up;
+        }
+    }
+}
+
+with entry {
+    top = Node(_label="top");
+    kid = Node(up=top, _label="kid");
+    print(kid.parent._label, hasattr(kid, "parent"), hasattr(top, "parent"));
+}
+```
+
+```output
+top True False
+```
 
 ## Fields and inheritance
 
