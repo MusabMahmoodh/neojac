@@ -1,7 +1,7 @@
 ---
 description: What a Jac source file is made of: encoding, comments, names, reserved words and the backtick escape, literals, and how statements and blocks are delimited.
 keywords: comment, #, #*, name, identifier, keyword, reserved word, backtick, literal, None, True, False, ..., ellipsis, ;, block, statement
-grammar: block, block_rest, stmt, stmts, any_word, KEYWORD, OPERATOR
+grammar: block, block_rest, stmt, stmts, any_word, KEYWORD, ARCHWIRE_KEYWORD, OPERATOR
 ---
 # Lexical structure
 
@@ -84,15 +84,25 @@ KEYWORD ::=
     | "init" | "super" | "postinit" | "True" | "False" | "None"
 ```
 
-Four points a reader coming from Python or from the reference design will not expect:
+Five points a reader coming from Python or from the reference design will not expect:
 
 - **The type words are reserved.** `int`, `str`, `float`, `bool`, `bytes`, `list`, `dict`, `set`,
   `tuple`, `type`, `any` and every sized number type (`i32`, `u8`, `f32`, ...) are keywords.
   `list = [1]` and `def type() {...}` are errors, not shadowing.
 - **`self` is a parameter only as the receiver.** `init` and `postinit`, the names of a
   constructor's hooks, may also name a function or a method.
-- **Words the grammar uses in one construct only are not reserved.** `struct`, `tail`, `where`,
-  `dyn`, `space`, `app`, `run` and `serve` are ordinary names everywhere else.
+- **Words the grammar uses in one construct only are not reserved.** `struct`, `tail`, `where`
+  and `dyn` are ordinary names everywhere else.
+- **An archwire has keywords of its own.** A file named `archwire.jac` is not a module: it is a
+  project's `graph` blocks and nothing else, and in it `layers`, `layer`, `spaces`, `space`, `app`,
+  `run`, `serve`, `package` and `ship` are keywords as well. In every other file they are names,
+  so a program still has a function `run` or a variable `app`.
+
+  ```ebnf
+  ARCHWIRE_KEYWORD ::=
+      "layers" | "layer" | "spaces" | "space" | "app" | "run" | "serve" | "package"
+      | "ship"
+  ```
 - **Another language's reserved words are names here** when Jac does not reserve them: `pass`,
   `global`, `nonlocal`, `catch`, `function`, `undefined` and the reference design's `props` name variables like any
   other word.
@@ -240,8 +250,8 @@ OPERATOR ::=
     | ":->" | ":+>" | ":<-" | ":<+" | ":>" | ":=" | ":" | "..." | ".>" | "." | "**="
     | "*%=" | "*|=" | "**" | "*=" | "*%" | "*|" | "*" | "//=" | "//" | "/=" | "/>" | "/"
     | ">>=" | ">=" | ">>" | ">" | "==" | "=" | "!=" | "|>" | "|=" | "|" | "@=" | "@"
-    | "&=" | "&" | "%=" | "%" | "^=" | "^" | "?" | "(" | ")" | "[" | "]" | "{" | "}"
-    | "," | ";" | "~"
+    | "&=" | "&" | "%=" | "%" | "^=" | "^" | "??" | "?" | "(" | ")" | "[" | "]" | "{"
+    | "}" | "," | ";" | "~"
 ```
 
 `not in` and `is not` are each one operator, written with one or more spaces between the two words.
@@ -316,6 +326,7 @@ stmt ::=
     | forever_stmt
     | for_stmt
     | with_stmt
+    | defer_stmt
     | try_stmt
     | match_stmt
     | switch_stmt

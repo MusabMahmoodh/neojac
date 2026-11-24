@@ -59,7 +59,12 @@ the `comptime if` kept one branch and the `comptime for` was unrolled.
 At module level, and inside an archetype's body for a global:
 
 ```ebnf
-comptime_element ::= ability | import_stmt | assert_stmt | comptime_global
+comptime_element ::=
+    comptime_decls
+    | ability
+    | import_stmt
+    | assert_stmt
+    | comptime_global
 
 comptime_global ::= "comptime" access_tag global_var ("," global_var)* ";"
 ```
