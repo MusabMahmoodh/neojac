@@ -284,10 +284,17 @@ def:pub sell -> bool {
 
 - **The graph's store and the accounts file are used by one thread at a time.** A program needs no
   lock of its own for them.
+- **A write that another instance's got ahead of stops the calls that would start** until every
+  call in flight has ended, and then runs those in flight again, each on what the other wrote
+  ([Several instances on one store](data.md#several-instances-on-one-store)). A call that waits
+  long holds them long; a call that calls its own server over HTTP meanwhile waits for its
+  request's timeout. A call made from within a call (through a space the app runs in its process,
+  or by a thread the call started) is part of that call, and never waits for it.
 - **The loop** is the thread the program started on. It takes connections, reads each request and
   hands it to its call's thread, and runs [scheduled functions](#scheduled-functions-schedule) between
   requests. While a scheduled function runs, the calls already being answered go on, and no new
-  request is read.
+  request is read. It never waits for a refused write to be put back: a scheduled function due
+  meanwhile runs at its next turn.
 
 ## Signing in
 
@@ -299,12 +306,22 @@ Who a caller is, and how one signs in, is the project's `auth` plugin's to say
 |---|---|
 | `GET /__jac/auth/` | What signing in takes: the `fields` to give and the `actions` they are given to, or a place to go (`redirect`), or the `session` of a caller the plugin knows already |
 | `POST /__jac/auth/<action>`, a JSON object of what the action needs | `{"user": ..., "token": ..., "name": ...}`: the caller is signed in. `name` is what they are called where that is not who they are, as the name another service knows them by, and `""` otherwise |
-| `GET /__jac/auth/me` | `{"user": ...}`, or 401 for a caller no one knows |
+| `GET /__jac/auth/me` | `{"user": ..., "checked": ..., "mails": ...}`, or 401 for a caller no one knows: whether the plugin checked their address, and whether it checks addresses at all ([below](#checked-addresses-and-new-passwords)) |
 | `POST /__jac/auth/logout` | `null`; the caller's session is ended |
 | `GET /__jac/auth/<action>?...` | Not JSON: the page a caller comes back to from the place an action sent them, below |
+| `POST /__jac/auth/device`, `{}` | A program that shows no page begins to be signed in: the `code` it shows, the `secret` it collects with, the `page` to send the person to, and `lasts` and `every`, in seconds ([below](#a-program-that-shows-no-page)) |
+| `GET /__jac/auth/device` | Not JSON: the page at which someone signs such a program in |
+| `POST /__jac/auth/device/allow`, `POST /__jac/auth/device/refuse`, `{"code": ...}` from a signed-in caller | `null`; the program showing the code is the caller's, or is turned away |
+| `POST /__jac/auth/device/session`, `{"secret": ...}` | The program's session, once; `null` while no one has answered |
+| `POST /__jac/auth/check/mail`, `{}` or `{"address": ...}` from a signed-in caller | `null`; a link that checks their address is mailed to it ([below](#checked-addresses-and-new-passwords)) |
+| `GET /__jac/auth/check`, `GET /__jac/auth/reset` | Not JSON: the page a mailed link opens |
+| `POST /__jac/auth/check`, `{"token": ...}` | `null`; the address the link was mailed to is checked |
+| `POST /__jac/auth/forgot`, `{"name": ...}` | `null`; a link that sets a new password is mailed to the address of the account the name names |
+| `POST /__jac/auth/reset`, `{"token": ..., "password": ...}` | `{"user": ..., "token": ..., "name": ...}`: the password is set, and the caller signed in |
 
 A sign-in the plugin refuses is 400 `rejected` with its reason, and 429 with a `Retry-After`
-header for one made too often.
+header for one made too often. `me`, `logout`, `device`, `check`, `forgot` and `reset` are the
+app's own: a plugin names no action so.
 
 An action done elsewhere has a `redirect`, the place to go, and may have `keeps`: values the page
 that leaves keeps in its tab. The other service sends the caller back to
@@ -312,6 +329,87 @@ that leaves keeps in its tab. The other service sends the caller back to
 was kept, to `POST /__jac/auth/<action>`, keeps the session, and goes back to the page the caller
 left from. So a plugin can tell the caller who left from one who was only handed the way back:
 the second kept nothing.
+
+### A program that shows no page
+
+A command in a terminal, or any program of the app's that has no page to show a form on, is
+signed in by someone at a page of the app. The app serves all of it: there is no code of the
+project's, and the form is the plugin's, as a page's `sign_in()` shows it.
+
+1. **The program begins,** with `POST /__jac/auth/device`. It is answered a code, a secret, and a
+   page:
+
+   ```text
+   {"ok": true, "data": {"code": "WRQB-NRZQ", "secret": "<64 hex digits>",
+                         "page": "/__jac/auth/device?code=WRQB-NRZQ", "lasts": 600, "every": 2}}
+   ```
+
+2. **It sends the person to the page,** at the app's address, and shows them the code. The page
+   signs them in, by whatever the plugin takes (an account made there, where the app makes
+   accounts), shows the code, and asks whether the program is theirs: `Sign it in` or
+   `Turn it away`.
+3. **It asks for its session** every `every` seconds, with
+   `POST /__jac/auth/device/session` and its secret: `null` until the person has answered, then
+   `{"user": ..., "token": ..., "name": ...}`, once. One turned away is 400 `rejected`
+   (`this sign-in was turned away`), and so is one that waited longer than `lasts` seconds
+   (`this sign-in waited too long, or was never begun: begin again`).
+
+The session is the program's own: ending the page's session leaves it, and ending it leaves the
+page's. The secret never leaves the program, and the code alone signs no one in: it names the
+program to a caller who is signed in already. So the page says what the answer means, and a
+person sent to it by someone else turns the program away.
+
+The page is sent with headers that keep it out of another site's frame
+(`Content-Security-Policy: frame-ancestors 'none'`, `X-Frame-Options: DENY`), and it loads
+nothing from anywhere but the app.
+
+A plugin that signs no such program in refuses each step (`rejected`, with its reason).
+
+### Checked addresses and new passwords
+
+A plugin that keeps its accounts' addresses checks each by a link mailed to it, and sets a
+forgotten password again by another, where the app sends mail ([The mail an app
+sends](#the-mail-an-app-sends)). Neither is offered where it does not: the routes above refuse
+(`this app mails no links`), and a page's `sign_in()` shows no way to ask for a password.
+
+What an unchecked account may not do is the app's to say. An endpoint asks
+`address_checked()`, imported from `stdjac`:
+
+```jac
+import from stdjac { address_checked }
+
+def:protect publish(text: str) -> str {
+    if not address_checked() {
+        return "check your address first: follow the link mailed to it";
+    }
+    return "published";
+}
+```
+
+- **It is true** where the caller's address was checked, where another service vouches for them
+  (an account made through GitHub or Google), and also **where the app checks no addresses**, since
+  there is nothing an account could do about it there. So it says whether the app may ask more of
+  the caller, never that someone checked an address. It is false for a call no one signed in
+  made.
+- **`GET /__jac/auth/me` tells the two apart:** `checked` is what the plugin says of the address,
+  and `mails` whether it checks addresses at all. A page or a command says "check your address"
+  only where `mails` is true.
+
+**A link** is the app's address, a path, and a token in its fragment:
+`https://example.org/__jac/auth/check#<64 hex digits>`, or `.../reset#...`. A request never
+carries a fragment, so the token reaches no server's log and no other site. The page the link
+opens is the app's, the same for every plugin:
+
+- **At `/__jac/auth/check`** it says what the link is for and has one button, `Check my address`.
+  The address is checked by that click and never as the page opens, so a program that opens the
+  links in mail to look at them checks no one's address.
+- **At `/__jac/auth/reset`** it asks for a new password and sets it. The person is then signed in
+  there, and every other session of the account has ended.
+- **Both are sent with the device page's headers**: never in another site's frame, loading
+  nothing but from the app.
+
+**An account with no address** (one made before the app mailed) gives itself one with
+`POST /__jac/auth/check/mail` and `{"address": ...}`, which is mailed a link like any other.
 
 ### The accounts plugin
 
@@ -341,6 +439,19 @@ curl -X POST http://127.0.0.1:8000/__jac/spawn/api/notes/MyNotes -H "Authorizati
 - **Attempts are limited** in each 15 minutes, by the project's limits: 5 sign-ins for one
   username from one client address, 30 sign-ins from one client address, 10 registrations from
   one client address.
+- **Where the app mails,** an account is made only with an address, and a link that checks it is
+  mailed as it is made. A check link lasts a day, and a link that sets a password an hour; each
+  is followed once, and the plugin keeps only its token's SHA-256. Following a reset link ends
+  every session the account had and drops its other links, and checks its address too.
+- **What is mailed is limited too:** 3 links to one account in each 15 minutes (a password's link
+  past that is not mailed, and the caller is told the same), 10 asks for a password's link from
+  one client address, and 30 links followed from one client address. A name no account has is
+  answered as one that has an account is, though registering says which addresses are taken.
+- **A program that shows no page** waits ten minutes to be signed in, and asks every two seconds.
+  Its code is eight letters in two halves (`WRQB-NRZQ`), of twenty that are not taken for one
+  another, and is given in either case, with or without the hyphen. 30 programs may begin from
+  one client address in each 15 minutes, and one account may answer 10 codes
+  (`too many attempts: try again later`). The plugin keeps the SHA-256 of a program's secret.
 
 Its settings, in `[auth.accounts]`:
 
@@ -350,13 +461,16 @@ Its settings, in `[auth.accounts]`:
 | `rounds` | `int` | `600000` | The rounds of a password's hash, for a password set from now on |
 | `session_seconds` | `float` | `604800.0`, a week | How long a session lasts |
 | `local_users` | `bool` | `false` | An app in a window of its own takes the people at its machine as its users, by a name each gives and no password ([Hosts](hosts.md#local-users)) |
-| `email_required` | `bool` | `false` | An account is made only with an email address (`an account needs an email address`) |
-| `registration` | `bool` | `true` | One the app does not know may make themselves an account, by registering or by signing in through GitHub for the first time. With `false` the sign-in form offers no `register`, and either is refused (`this app makes no new accounts: ask whoever runs it for one`): the accounts are the ones there are |
+| `email_required` | `bool` | `false` | An account is made only with an email address (`an account needs an email address`), as it is wherever the app mails |
+| `registration` | `bool` | `true` | One the app does not know may make themselves an account, by registering or by signing in through GitHub or Google for the first time. With `false` the sign-in form offers no `register`, and each is refused (`this app makes no new accounts: ask whoever runs it for one`): the accounts are the ones there are |
 | `github_id`, `github_secret` | `Secret` | The variables `SSO_GITHUB_CLIENT_ID` and `SSO_GITHUB_CLIENT_SECRET` | A GitHub OAuth app's client ID and secret, below |
 | `github`, `github_api` | `str` | `https://github.com`, `https://api.github.com` | Where GitHub is, and its API: others for GitHub Enterprise |
-| `origin` | `str` | `""` | Where callers reach the app (`https://example.org`), for the place another service sends them back to |
+| `google_id`, `google_secret` | `Secret` | The variables `SSO_GOOGLE_CLIENT_ID` and `SSO_GOOGLE_CLIENT_SECRET` | A Google OAuth client's ID and secret, below |
+| `google`, `google_api` | `str` | `https://accounts.google.com`, `https://oauth2.googleapis.com` | Where Google signs a caller in, and where its tokens are had |
+| `origin` | `str` | `""` | Where callers reach the app (`https://example.org`): what another service sends them back to, and what a mailed link names. Without it, nothing is mailed and Google is not offered |
 
-Accounts are one server's: the file is, and so is the key that signs a sign-in through GitHub.
+Accounts are one server's: the file is, and so is the key that signs a sign-in through GitHub or
+Google.
 All of the above but the file is the library `accountbook`'s, which a plugin that keeps accounts
 where several servers reach them is built on
 ([Plugins](plugins.md#what-a-plugin-imports)).
@@ -386,8 +500,59 @@ SSO_GITHUB_CLIENT_ID=<id> SSO_GITHUB_CLIENT_SECRET=<secret> dist/api-linux-x86_6
   ([Plugins](plugins.md#secrets)). `JAC_AUTH_GITHUB_ID` and `JAC_AUTH_GITHUB_SECRET`, when set,
   are read in their place.
 
+#### Signing in through Google
+
+Where the program runs with a Google OAuth client's ID and secret, and `origin` says where the app
+is reached, the plugin offers the action `google`, which `sign_in()` shows as
+`Continue with Google`:
+
+```sh
+SSO_GOOGLE_CLIENT_ID=<id> SSO_GOOGLE_CLIENT_SECRET=<secret> JAC_AUTH_ORIGIN=https://example.org \
+    dist/api-linux-x86_64
+```
+
+- **The client's redirect URI** is `<origin>/__jac/auth/google`, which Google is told and holds to
+  the ones the client registers. Google has no callback of its own to fall back on, so with no
+  `origin` it is not offered.
+- **The account** is the Google account: its user ID is `google:<Google's ID for the person>`,
+  which stays when they change their address, and the session's `name` is their address. It is
+  not the account of a username, nor one GitHub vouches for, with the same address: nothing joins
+  accounts by their address.
+- **The caller who left is the one signed in,** as with GitHub: a verifier the page keeps, its
+  hash given to Google (PKCE), and a `state` signed over it that lasts 10 minutes.
+- **Who they are is the ID token** Google's token endpoint gives for the code: read straight from
+  Google over TLS, which stands for its signature, and held to this client, to Google as its
+  issuer and to its time.
+- **Attempts are limited** to 30 in each 15 minutes from one client address.
+
 A sign-in through a service this plugin does not offer is another auth plugin, again with no code
 in the project.
+
+### The mail an app sends
+
+What sends an app's mail is the project's `mail` plugin ([Plugins](plugins.md)). No source names
+it: the `auth` plugin mails its links through it. The standard one, `smtp`, hands each letter to
+an SMTP server, which every provider of mail runs:
+
+```sh
+JAC_MAIL_HOST=smtp.example.org JAC_MAIL_SENDER='Example <no-reply@example.org>' \
+    JAC_MAIL_USER=apikey SMTP_PASSWORD=<password> JAC_AUTH_ORIGIN=https://example.org \
+    dist/api-linux-x86_64
+```
+
+| Setting | Type | Default | Meaning |
+|---|---|---|---|
+| `host` | `str` | `""` | The SMTP server. With none, the app sends no mail |
+| `port` | `int` | `587` | Its port |
+| `sender` | `str` | `""` | Whom the mail is from, as its `From` says. With no one, the app sends no mail |
+| `user` | `str` | `""` | Whom the server knows the app as, `""` for one that asks no one |
+| `password` | `Secret` | The variable `SMTP_PASSWORD` | Their password |
+| `starttls` | `bool` | `true` | Whether the connection is made private (STARTTLS) before anything is said on it: false only where the mail crosses no network to the server |
+
+- **A letter is one connection,** and one the server does not take is not tried again. The app
+  says why on its standard error, and the caller is told nothing different: a person who gets no
+  mail asks for another link.
+- **A letter is plain text,** two lines and the link, in the accounts plugin's own words.
 
 ## Limits: @limit
 
@@ -403,9 +568,35 @@ def:pub post(text: str) -> str {
 ```
 
 - A signed-in caller's calls are counted for them, and a caller no one knows by the address they
-  call from.
+  call from ([below](#the-address-a-caller-calls-from)).
 - The program's own calls, and those of the deployment's other apps, are not counted.
 - A function's route (`@restspec`) is counted with its endpoint.
+
+### The address a caller calls from
+
+A request's client is the address its connection came from. Behind a gateway that is the
+gateway's, for every caller, and what is counted by client is then counted for everyone together:
+the sign-in attempts of the `accounts` plugin, and a `@limit` for a caller no one knows.
+
+The `http` transport is told the gateway in front of it by the one header that gateway writes each
+request's client into, in `[transport.http]`:
+
+```toml
+[transport.http]
+client_header = "x-envoy-external-address"
+```
+
+or `JAC_TRANSPORT_CLIENT_HEADER` where the program runs. A request's client is then the address
+that header holds. A request that carries none, or more than one address under it, is its
+connection's: the probe of whatever runs the program is such a request.
+
+- **Name a header only the gateway can set:** one it writes over whatever a caller sent under that
+  name. An Envoy that takes a connection's address for its client
+  (`use_remote_address`) writes `x-envoy-external-address` so. `X-Forwarded-For` and `Forwarded`
+  are not such headers: a caller writes what they like at their head, and each proxy on the way
+  adds to them.
+- **Name one only where nothing but the gateway reaches the server.** Whoever else reaches it says
+  what client they like.
 
 `consume_limit(scope, actor, limit, seconds)` counts something that is no endpoint's caller: it
 returns 0 while `actor` is within `limit` uses of `scope` in `seconds`, else the seconds to wait.
@@ -446,7 +637,24 @@ curl http://127.0.0.1:8000/robots.txt    # User-agent: *
 curl http://127.0.0.1:8000/status        # {"ok": true, "data": {"up": 1}}
 ```
 
-`@restspec(method, path, produces="text/plain", envelope=True)` is a
+A page is such a function, of a server that has no browser space: its result is the HTML, and
+`headers` keeps it out of another site's frame.
+
+<!-- example: not checked: it is one function of a served app -->
+```jac
+@restspec(
+    method=HTTPMethod.GET,
+    path="/about",
+    produces="text/html; charset=utf-8",
+    envelope=False,
+    headers={"Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'"}
+)
+def:pub about -> str {
+    return "<!doctype html><title>About</title><p>A page of this app.</p>";
+}
+```
+
+`@restspec(method, path, produces="text/plain", envelope=True, headers=None)` is a
 [decorator](../language/decorators.md): it records the route on the function as the program
 compiles, and nothing is registered as the module starts.
 
@@ -456,6 +664,7 @@ compiles, and nothing is registered as the module starts.
 | `path` | Absolute: one that does not start with `/` does not compile |
 | `envelope` | `True`: the reply is the JSON envelope. `False`: the body is the function's result, which must be a `str`. |
 | `produces` | The `Content-Type` of an unenveloped body |
+| `headers` | Headers an unenveloped body is sent with, a dict written at the decorator: what a page says of where it may be shown and what it may load (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control`). A refusal and a failure are the JSON envelope, sent with none of them |
 
 The function takes no parameters. Its access tag guards the route as it guards its endpoint:
 `:pub` for anyone, `:protect` for a signed-in caller (401 otherwise), untagged for requests with

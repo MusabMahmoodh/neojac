@@ -46,7 +46,7 @@ A package's identity, and what of its tree is its source.
 | `project.kind` | string | none | `"library"` or `"plugin"`, for a package other projects declare. A project that is neither has no `kind` |
 | `project.neojac` | string | none | The oldest neojac the package builds with, `neojac = "0.4"`: a neojac older than that refuses it (E2229), the project's own included |
 | `project.archwire` | boolean | `true` | `false` says the project has no `archwire.jac`: its modules write their own imports, and nothing judges which imports which. Without it, a module of the project that no `archwire.jac` governs is E2231 ([Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports)) |
-| `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, and a directory that matches is not entered ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
+| `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, no space holds it and nothing checks it, and a directory that matches is not entered. Its entries are yours to write (a directory of example snippets a site shows as text) beside those `neojac absorb` writes (a directory whose manifest no workspace names, what git ignores) ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
 
 ```toml
 [project]
@@ -87,7 +87,7 @@ With no `select`, or no `[check.lint]`, the rules are `"clean"`: `neojac check` 
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `check.exclude` | list of strings | `[]` | fnmatch patterns of file paths, relative to the root with `/` between parts, that [`neojac precommit`](../toolchain/lint.md#neojac-precommit) fixes and does not check as programs of their own |
+| `check.exclude` | list of strings | `[]` | fnmatch patterns of file paths, relative to the root with `/` between parts, that [`neojac precommit`](../toolchain/lint.md#neojac-precommit) fixes and does not check as programs of their own, nor a project's `neojac check` as [a module no space holds](../toolchain/check.md#checking-a-project) |
 | `check.imports` | string | `"open"` | `"ruled"` asks an [edge rule](../language/modules-wiring.md#a-rule-for-every-import-from-outside) in `archwire.jac` for every import from outside the project (E2211); `"open"` asks one only for a package some rule names |
 
 `neojac check <main.jac>` does not read `exclude`: a program is checked whole.
@@ -130,7 +130,7 @@ Where `neojac test` looks for tests when it is given no paths. See [test](../too
 
 ### [test.pypi."\<directory\>"]
 
-The own suite of a Python project the repository holds, `[pypi."<directory>"]`: `neojac test` runs it after the Jac tests, against what `neojac build` makes of the project ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
+The own suite of a Python project the repository holds, `[pypi."<directory>"]`: `neojac test` runs it after the Jac tests, against what `neojac build` makes of the project ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)). `neojac absorb` writes `command` from the project's `[tool.cibuildwheel] test-command`. A project with no test command of its own that configures pytest (a `[tool.pytest]` or `[tool.pytest.ini_options]` table in `pyproject.toml`, a `pytest.ini` or `.pytest.ini`, a `[tool:pytest]` section of `setup.cfg`), or that holds pytest's `conftest.py` in its directory or one directory down, is tested by `pytest`: absorb writes `command = ["pytest", "--import-mode=append"]`, so that the suite imports what was built and not the package's directory beside the tests, and `groups` where exactly one dependency group names pytest itself (one that only includes such a group does not count). Where several name it, or none does, the groups are an open item ([Open items](../toolchain/packages.md#open-items)).
 
 | Key | Type | Meaning |
 |---|---|---|
@@ -148,9 +148,28 @@ groups = ["dev"]
 |---|---|
 | E5158 | `test.pypi` is not a table of projects, an entry has no `command`, has a key of another type or another key, or names a group or an extra the `pyproject.toml` has none of |
 
+### [install.pypi."\<directory\>"]
+
+What `neojac install` installs of a Python project the repository holds, `[pypi."<directory>"]`, beyond what it depends on: dependency groups and extras its own tools need, whether or not a test names them ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)). It is read for every Python project, one that ships no wheel included. The groups and extras of the project's `[test.pypi."<directory>"]` are installed after these. `neojac absorb` writes `groups` for a project uv describes (a `uv.lock` beside it or at its workspace's root), as uv installs it by default: the project's `[tool.uv] default-groups`, every group where that is `"all"`, and `["dev"]` where it is unset and the project has a `dev` group. A table already there is kept.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `install.pypi."<directory>".groups` | list of strings | Dependency groups of the project's `pyproject.toml` (`[dependency-groups]`), each with the groups it includes |
+| `install.pypi."<directory>".extras` | list of strings | Extras of the project (`[project.optional-dependencies]`, or what its build states) |
+
+```toml
+[install.pypi."."]
+groups = ["dev"]
+extras = ["blobfile"]
+```
+
+| Code | Cause |
+|---|---|
+| E5158 | `install` or `install.pypi` is not a table of projects, an entry is not a table, has a key other than `groups` and `extras` or one that is not a list of strings, or names a group or an extra the `pyproject.toml` has none of |
+
 ### [test.npm."\<directory\>"] and [test.cargo."\<directory\>"]
 
-The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says.
+The own suite of an npm tree (`[npm."<directory>"]`) and of a crate (`[cargo."<directory>"]`), which `neojac test` runs after the Jac tests, in the tree's directory ([test](../toolchain/test.md#a-projects-own-suites)). A tree with no table here is not tested, whatever its manifest says. `neojac absorb` writes `script = "test"` for an npm tree whose `package.json` has a `test` script.
 
 | Key | Type | Meaning |
 |---|---|---|
@@ -234,34 +253,46 @@ A Rust crate's or workspace's `Cargo.toml` (`cargo`), a C module's `cmodule.toml
 | E5157 | The table is written inline or with dotted keys where neojac has it to rewrite, or a manifest's text cannot be moved under a table's name as it is |
 | E5158 | `cargo`, `c` or `pypi` is not a table of manifests, each a table named by its directory |
 
-`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are installed where [`[test.pypi."<directory>"]`](#testpypidirectory) names them.
+`neojac install` installs what each `[pypi."<directory>"]` depends on into `.jac/venv`, with the packages `[dependencies.pypi]` lists ([Python](../interop/python.md#a-python-project-of-the-repository)). Its dependency groups and its extras are installed where [`[install.pypi."<directory>"]`](#installpypidirectory) and [`[test.pypi."<directory>"]`](#testpypidirectory) name them, and no others. A project `absorb --record` recorded is asked for its requirements by its `[wheel."<directory>".metadata]`, and nothing of it is built; one not recorded is asked through pip, which may run its build backend.
 
 ## [extensions."\<path\>"]
 
-A module that a build makes from native code and an interpreter loads: a CPython extension module, a Node-API addon. The table is named by the module's path from the project's root, without its file's ending (`tiktoken/_tiktoken` is the module Python imports as `tiktoken._tiktoken`), and names the unit of the project it is built from.
+A module that a build makes from native code and an interpreter loads: a CPython extension module, a Node-API addon. The table is named by the module's path from the project's root, without its file's ending (`spamlib/_tally` is the module Python imports as `spamlib._tally`), and names the unit of the project it is built from.
 
 | Key | Type | Meaning |
 |---|---|---|
 | `extensions."<path>".cargo` | string | The crate it is built from, by the directory of its `[cargo."<directory>"]` table |
 | `extensions."<path>".features` | list of strings | The crate's features it is built with |
 | `extensions."<path>".c` | string | The C module it is built from, by the directory of its `[c."<directory>"]` table |
+| `extensions."<path>".links` | list of strings | Only with `c`: the other C modules of the project its link takes, each by the directory of its `[c."<directory>"]` table, which `neojac absorb --record` writes from the link it records. The extension links its own C module and these, and no others; one that leaves undefined a symbol a C module of the project defines is refused (E5270). Absent, it links its own module alone |
+| `extensions."<path>".exports` | list of strings | Only with `c`: the C names the extension gives the program that loads it, for a library that program loads by its own convention (a SQLite loadable extension's `sqlite3_extension_init`), which `neojac absorb --record` writes where the library it recorded defines none of its tree's entry points. Absent, its tree's entry points, as below |
+| `extensions."<path>".jac` | string | The Jac module it is built from, by its file's path in the project (`native/eggs.jac`): its public functions and `obj`s are the extension module's |
 | `extensions."<path>".recorded` | list of strings | The platforms its build was recorded on (`macos-aarch64`, `linux-x86_64`, ...), which `neojac absorb --record` writes. It is built on those, and on every platform with no list. A project all of whose extension modules are recorded for other platforms is refused there (E5172) |
 
 ```toml
 [cargo."."]
 # Cargo.toml, as it stands
 
-[extensions."tiktoken/_tiktoken"]
+[extensions."spamlib/_tally"]
 cargo = "."
 features = ["python"]
 recorded = ["linux-aarch64", "macos-aarch64"]
+```
+
+**An extension built from a C module or a Jac module exports its entry points and nothing else**, on every target, and every other definition in it is local to it: one under a `[pypi."<directory>"]` tree exports `PyInit_<name>` (`PyInit__tally` for `spamlib/_tally`), one under an `[npm."<directory>"]` tree Node-API's registration pair, `napi_register_module_v1` and `node_api_module_get_api_version_v1`, and one whose row has `exports` the names it lists. Each but Node-API's version entry must be defined (E5271): an addon that does not define `node_api_module_get_api_version_v1` is built without it, and Node takes it as Node-API version 8, its default. So the extension's own calls reach its own functions, those of the C modules its `links` names among them: on Linux a shared library's reference to a function it defines would otherwise bind to the function of that name its host gives, as Node gives libuv's `uv_version`.
+
+```toml
+[extensions."test/plug"]
+c = "test/plug"
+exports = ["sqlite3_extension_init"]
 ```
 
 An extension module is a module of the project though no file of it is one: it is in a layer of `archwire.jac`, and a file that imports it is wired from it ([Import wiring](../language/modules-wiring.md#declared-wires---)). It is built with the Python project whose `[wheel]` its path is under ([Packages](../toolchain/packages.md#building-and-testing-a-python-project)).
 
 | Code | Cause |
 |---|---|
-| E5158 | `extensions` is not a table of extension modules, or an entry names neither a crate nor a C module, names both, names one `jac.toml` holds no table for, has `features` with a C module, lists a platform neojac has no name for in `recorded`, or has another key |
+| E5158 | `extensions` is not a table of extension modules, or an entry names none of a crate, a C module and a Jac module, names more than one, names a crate or a C module `jac.toml` holds no table for or a Jac file the project does not have, has `features` without a crate, has `links` or `exports` without a C module, has `exports` that is not a list of at least one C name, lists in `links` something other than a directory of another `[c."<directory>"]` table (a module there is no table for, or the row's own), lists a platform neojac has no name for in `recorded`, or has another key |
+| E5270 | The extension, linked, leaves undefined a symbol that a C module of the project its row does not link defines |
 
 ## [wheel."\<directory\>"]
 
@@ -269,7 +300,7 @@ What the wheel of a Python project, `[pypi."<directory>"]`, holds. `neojac absor
 
 | Key | Type | Meaning |
 |---|---|---|
-| `wheel."<directory>".files` | list of strings | The project's files the wheel holds, each by its path in the wheel |
+| `wheel."<directory>".files` | list of strings | The project's files the wheel holds, each by its path in the wheel. A module the project holds as Jac is listed by its `.jac` file (`neojac port` lists the module it ports so) |
 | `wheel."<directory>".root` | string | Where those paths start, below the project's directory (`src`). Absent where that is the directory itself |
 | `wheel."<directory>".tag` | string | The wheel's Python and ABI tags where the build names them and they are not the interpreter's own: `cp38-abi3` |
 | `wheel."<directory>".metadata` | table | Fields of the wheel's `METADATA` that the project's build states and its `[project]` table does not, each by its name there (`Name`, `Version`, `Classifier`), a string or a list of strings, with the text after the fields as `Description` |
@@ -277,10 +308,10 @@ What the wheel of a Python project, `[pypi."<directory>"]`, holds. `neojac absor
 ```toml
 [wheel."."]
 tag = "cp38-abi3"
-files = ["psutil/__init__.py", "psutil/_common.py"]
+files = ["probe/__init__.py", "probe/_common.py"]
 
 [wheel.".".metadata]
-Name = "psutil"
+Name = "probe"
 Version = "8.0.0"
 ```
 
@@ -352,11 +383,11 @@ standard = "sqlite"
 
 ## [\<abstraction\>]
 
-The plugin that carries out one of the language's abstractions, and the plugins a program is built with for it. There are ten abstractions. Eight are picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits` and `files`. Two are picked as a JavaScript space is built: `ui` and `bundler`. See [Plugins](../apps/plugins.md#binding-a-plugin).
+The plugin that carries out one of the language's abstractions, and the plugins a program is built with for it. There are eleven abstractions. Nine are picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files` and `mail`. Two are picked as a JavaScript space is built: `ui` and `bundler`. See [Plugins](../apps/plugins.md#binding-a-plugin).
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
+| `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`, `smtp` for `mail`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
 | `<abstraction>.<plugin>` | table | | Lists the plugin `<plugin>`, which is then compiled into the program, and holds its settings: each key a field of the plugin's class. For `ui` and `bundler`, only the table of the plugin the space is built with, holding the settings that plugin's own `jac.toml` lists |
 | `spaces.<space>.<abstraction>` | table | the project's | The same table for one space, for an abstraction a space has one of: `store`, `ui` and `bundler` |
 
@@ -394,7 +425,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | `spaces.<space>.bundler` | table | `plugin` is the one the space's `ui` plugin names | The `bundler` plugin that packs the space, as `plugin = "<name>"`: one neojac ships (`vite`, `expo`), or one `[plugins]` declares, whose script neojac runs on its Node |
 | `spaces.<space>.bundler.<plugin>` | table | | The settings of the space's bundler. `vite` has `config`: a configuration file, relative to the root (in the space's npm tree: `eco/web/vite.config.ts`) |
 | `spaces.<space>.base` | string | `"/"` | The URL path a browser space is served at |
-| `spaces.<space>.npm` | string | the project's only tree | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
+| `spaces.<space>.npm` | string | the project's only tree, else the one npm tree the space holds | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
 
 | Code | Cause |
 |---|---|
@@ -403,7 +434,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | E1214 | `ui` names a plugin that does not support the space's host |
 | E5158 | `ui` or `bundler` is a string, or the space has a `bundler_config`: the forms these had before; or the space has the table of a plugin it is not built with, or a setting its bundler does not list |
 | E1287 | `npm` names a tree `jac.toml` does not declare |
-| E1288 | The space imports from npm, `jac.toml` declares several trees, and `npm` names none |
+| E1288 | The space imports from npm, `jac.toml` declares several trees, the space holds none of them, and `npm` names none |
 
 ## [apps.\<app\>]
 

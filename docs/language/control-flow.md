@@ -1,7 +1,7 @@
 ---
-description: The statements that choose and repeat: if/elif/else, while, for over an iterable, the for-while-with loop, forever, switch with fallthrough, break and continue, and the else clause of a loop.
-keywords: control flow, if, elif, else, while, for, for loop, while loop, forever, switch, default, fallthrough, break, continue, loop else, for else
-grammar: if_stmt, elif_stmt, else_stmt, while_stmt, for_stmt, forever_stmt, switch_stmt, switch_case
+description: The statements that choose and repeat: if/elif/else, while, for over an iterable, the for-while-with loop, forever, switch with fallthrough, break and continue, the else clause of a loop, and defer.
+keywords: control flow, if, elif, else, while, for, for loop, while loop, forever, switch, default, fallthrough, break, continue, loop else, for else, defer, cleanup, scope exit
+grammar: if_stmt, elif_stmt, else_stmt, while_stmt, for_stmt, forever_stmt, switch_stmt, switch_case, defer_stmt
 ---
 # Control flow
 
@@ -306,6 +306,59 @@ with entry {
 
 `match` is the form without fallthrough, with guards; use it unless the fallthrough is wanted.
 
+## `defer`
+
+```ebnf
+defer_stmt ::= "defer" block stmts
+```
+
+`defer { ... }` runs its block when the block it is written in is left: at its end, at a
+`return`, at a `break` or `continue` that leaves it, and as an exception passes out of it. Of
+several, the last one written runs first. It is the cleanup that a `try` with a `finally` around
+the rest of the block would be, written beside what it cleans up.
+
+```jac
+def steps(log: list[str], fail: bool) -> int {
+    defer {
+        log.append("first");
+    }
+    log.append("body");
+    defer {
+        log.append("second");
+    }
+    if fail {
+        raise ValueError("failed");
+    }
+    return len(log);
+}
+
+with entry {
+    log: list[str] = [];
+    print(steps(log, False), log);
+    again: list[str] = [];
+    try {
+        steps(again, True);
+    } except ValueError as e {
+        print(e, again);
+    }
+}
+```
+
+```output
+1 ['body', 'second', 'first']
+failed ['body', 'second', 'first']
+```
+
+- **A `return`'s value is computed before the deferred blocks run**: `steps` returns 1, the
+  length of the log before they append to it.
+- **A deferred block that is never reached does not run**: one written after a `return` is not
+  registered.
+- **Nothing in a deferred block leaves it early** (E0180): no `return`, `skip` or `disengage`, and
+  no `break` or `continue` of a loop outside it. A loop inside it, and a function it defines,
+  are their own.
+- **`defer` is a word only where a statement starts with `defer {`**: a variable or a module named
+  `defer` is a name as before.
+
 ## What is rejected
 
 | Code | Condition |
@@ -315,6 +368,7 @@ with entry {
 | E0058 | `break` outside a loop or a switch; `continue` outside a loop |
 | E0152 | A second `default` in a switch |
 | E1021 | `for x in v` where `v` cannot be iterated |
+| E0180 | A `return`, `skip`, `disengage`, `break` or `continue` that would leave a `defer` block early |
 | W3024 | An `elif` whose condition repeats an earlier one of its chain, so its block never runs |
 | W3025 | An `if` whose two blocks are the same |
 

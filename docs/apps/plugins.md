@@ -1,6 +1,6 @@
 ---
 description: Plugins, the mechanisms behind the language's abstractions - the abstractions that take one and where each declares itself, binding a plugin in jac.toml, the plugins neojac ships, listing several and picking one where the program runs, the two that are picked as a space is built, settings and secrets, a project's own plugin by its path, writing one against its abstraction's contract, what a plugin imports and what its host gives it, and what is refused.
-keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, accountbook, AccountsAuth, Book, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin
+keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, accountbook, AccountsAuth, Book, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin, mail plugin, smtp
 ---
 # Plugins
 
@@ -30,6 +30,7 @@ which neojac ships and a project uses until it names another.
 | `schedule` | `@schedule` | `schedule.contract.Scheduler` | Project | As the program starts | `loop_schedule` |
 | `limits` | `@limit`, `consume_limit` | `limits.contract.Limits` | Project | As the program starts | `memory_limits` |
 | `files` | `File`, `@accepts` | `files.contract.Files` | Project | As the program starts | `local_files` |
+| `mail` | Nothing: the `auth` plugin mails its links through it | `mail.contract.Mailer` | Project | As the program starts | `smtp` |
 | `ui` | A component: `has` in a function, `can with entry`, JSX | A `[ui]` table of the plugin's `jac.toml` | Space | As the space is built | Its host's: `react` in a browser, `react_native` on hermes, `none` on node |
 | `bundler` | Nothing: a JavaScript space is bundled as it is built | A `[bundler]` table of the plugin's `jac.toml` | Space | As the space is built | The one the space's `ui` plugin names: `vite`, `expo` |
 
@@ -45,7 +46,7 @@ abstractions/
     jac.toml        the abstraction: its interface, its version, its standard plugin
     contract.jac    the contract: `Store`, and the types that cross it
     sqlite/         the standard plugin
-  auth/  transport/  llm/  jobs/  schedule/  limits/  files/     each the same
+  auth/  transport/  llm/  jobs/  schedule/  limits/  files/  mail/     each the same
   ui/               jac.toml, and react/ preact/ solid/ react_native/ none/
   bundler/          jac.toml, and vite/ expo/
   common/           contract.jac: what every plugin may use, whatever it fills
@@ -81,12 +82,12 @@ above the plugin imports it, and it imports nothing of either
 
 **Each interface has a version,** a number that goes up when the interface changes so that a
 plugin written for it would not survive. Every interface is at 1 in this neojac but
-`transport`'s and `files`', which are at 2. A plugin says
+`transport`'s and `files`', which are at 2, and `auth`'s, which is at 3. A plugin says
 the version it was written for (`interface_ver`, [below](#writing-a-plugin)), and one written for
 another is refused before anything is asked of it (E2230): the message is that the interface
 moved on, and not that some method of the plugin's class is missing.
 
-**Eight are picked as a program starts, and two as a space is built.** A plugin of the first eight
+**Nine are picked as a program starts, and two as a space is built.** A plugin of the first nine
 is a class that runs with the program, so a program may hold several and start with one. `ui` and
 `bundler` decide what the compiler and the build make of a JavaScript space, so a space is built
 with one of each, and they have a page of their own:
@@ -185,13 +186,14 @@ Giving one a value in `jac.toml` is E1053.
 | Plugin | Carries out | Its settings |
 |---|---|---|
 | `sqlite` | `store`: a space's graph, as rows in a SQLite file, which the programs of one machine may keep together | `path`, the file: `graph.db` in the app's data directory |
-| `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; and signing in through GitHub, where the program runs with an OAuth app's ID and secret | `path`, `rounds`, `session_seconds`, `local_users`, `email_required`, `origin`, `github`, `github_api`, and the secrets `github_id` and `github_secret` ([Serving a space](server.md#the-accounts-plugin)) |
-| `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | None ([Serving a space](server.md#what-the-server-will-and-will-not-read)) |
+| `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; signing in through GitHub and through Google, where the program runs with an OAuth client's ID and secret; and addresses checked and passwords set again by mailed links, where the app sends mail | `path`, `rounds`, `session_seconds`, `local_users`, `email_required`, `registration`, `origin`, `github`, `github_api`, `google`, `google_api`, and the secrets `github_id`, `github_secret`, `google_id` and `google_secret` ([Serving a space](server.md#the-accounts-plugin)) |
+| `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | `client_header`, the header a gateway in front of it writes each request's client address into ([Serving a space](server.md#the-address-a-caller-calls-from)) |
 | `anthropic` | `llm`: a model behind Anthropic's Messages API | `model`, `address`, `timeout`, `retries`, and the secret `key` ([By and sem](../language/by-and-sem.md#the-anthropic-plugin)) |
 | `process_jobs` | `jobs`: each job in a copy of the program | `dir`, where a job's input and what it says are kept while it runs: `jobs` in the app's data directory |
 | `loop_schedule` | `schedule`: each scheduled function run by the thread that listens, when it is due | `tick`, how often its clock looks for one that is due, in seconds: `0.25` |
 | `memory_limits` | `limits`: uses counted in the program's memory | `sweep_at`, how many actors' uses are kept before those whose window has passed are let go: `1024` |
 | `local_files` | `files`: each file's bytes in a file of the app's data directory, and what is known of each in a SQLite file beside them, which the programs of one machine may keep together | `path`, the directory: `files` in the app's data directory ([Files](files.md#where-files-are-kept)) |
+| `smtp` | `mail`: each letter handed to an SMTP server. With no server, or no sender, the app sends no mail | `host`, `port`, `sender`, `user`, `starttls`, and the secret `password` ([Serving a space](server.md#the-mail-an-app-sends)) |
 | `react` | `ui`: React, with React Router's file routes. A browser space's standard | None |
 | `preact` | `ui`: Preact | None |
 | `solid` | `ui`: Solid, whose state is fine-grained | None |
@@ -205,7 +207,7 @@ each `ui` plugin does with a component, and what each bundler does, is on
 [UI plugins and bundlers](ui-bindings.md).
 
 An abstraction that every app has one of (`auth`, `transport`, `llm`, `jobs`, `schedule`,
-`limits`, `files`) is bound for the project, in `[<abstraction>]`. `store`, `ui` and `bundler` may also be
+`limits`, `files`, `mail`) is bound for the project, in `[<abstraction>]`. `store`, `ui` and `bundler` may also be
 bound for one space.
 
 ## Writing a plugin
@@ -312,8 +314,8 @@ program as a host, an interface the contract declares and the program implements
 
 | Host | Whose `open` is given it | What a plugin asks it |
 |---|---|---|
-| `common.contract`'s `Host` | `Store`, `Transport`, `Model`, `Scheduler`, `Limits`, `Files` | `data_dir()`, where the program keeps files beside itself, its app's data directory ([An app's data](data.md#where-it-is-kept)); `secret(s)`, what the place the program runs gives a `Secret`, or `""`; `upgraded(what)`, to have the program say as it starts what the plugin did to data it keeps |
-| `auth.contract`'s `AuthHost` | `Auth` | A `Host`'s, and `windowed()`, whether the app shows itself in a window of its own; `consume_limit(scope, actor, limit, seconds)`, a use counted by the project's `limits` |
+| `common.contract`'s `Host` | `Store`, `Transport`, `Model`, `Scheduler`, `Limits`, `Files`, `Mailer` | `data_dir()`, where the program keeps files beside itself, its app's data directory ([An app's data](data.md#where-it-is-kept)); `secret(s)`, what the place the program runs gives a `Secret`, or `""`; `upgraded(what)`, to have the program say as it starts what the plugin did to data it keeps |
+| `auth.contract`'s `AuthHost` | `Auth` | A `Host`'s, and `windowed()`, whether the app shows itself in a window of its own; `consume_limit(scope, actor, limit, seconds)`, a use counted by the project's `limits`; `sends_mail()` and `send_mail(to, subject, text)`, a letter sent by the project's `mail` |
 | `jobs.contract`'s `JobsHost` | `Jobs` | A `Host`'s, and `command()`, the command that runs the program again; `owner()`, the space whose jobs a copy's are; `run(name, input, note)` and `run_space(owner, name, input, note)`, which run a job where the plugin has it run |
 
 A plugin that asks its host later keeps it in a `postinit` field
@@ -340,18 +342,24 @@ sqlfile = { path = "../../../libraries/sqlfile" }
 ```
 
 **`accountbook` is a library of `auth` plugins:** accounts of a username and a password, their
-sessions, and signing in through GitHub, over a book that keeps them. It imports `auth.contract`,
+sessions, signing in through GitHub and Google, and the links mailed to their addresses, over a
+book that keeps them. It imports `auth.contract`,
 so only a plugin of `auth` declares it.
 
 - **`AccountsAuth` is an `Auth` but for where its accounts are kept.** A plugin's class extends it
   and gives `open_book(host)`, the `Book` it keeps them in. The library's settings are the
   plugin's, beside its own: `accounts` adds `path`
   ([Serving a space](server.md#the-accounts-plugin)).
-- **A `Book` is nine methods, each one step done whole:** a session by its token's hash, one
-  begun and one ended, an account found by its username or email, one made unless either is
+- **A `Book` is seventeen methods, each one step done whole:** a session by its token's hash,
+  one begun and one ended, an account found by its username or email, one made unless either is
   taken, the user an identity of another service names (as it is known, and made where it is
-  not), that service's identities, and `away_key()`, the key that signs what a caller carries
-  to another service and back.
+  not), that service's identities, `away_key()`, the key that signs what a caller carries
+  to another service and back, a program that shows no page kept waiting under its code
+  (`expect`), said to be someone's or turned away (`decide`), and collected once (`collect`);
+  an account's address and whether it is checked (`address`), an address given to an account
+  that has none unless another has it (`give_address`), a mailed link kept by its token's hash
+  (`link`), and a link followed once: one that checks the address (`check`), and one that sets
+  the password, ending the account's sessions (`reset`).
 - **What is taken is an answer, not an error:** `add` says whether the account was made. So a
   book over a database several programs reach is a statement or two for each method, and holds
   no transaction open.
@@ -429,6 +437,7 @@ example of its interface:
 | `queue_jobs` | `jobs` | One worker, which runs the jobs queued in their order |
 | `timer_schedule` | `schedule` | A thread for each scheduled function, which sleeps until it is due |
 | `file_limits` | `limits` | Uses counted in a SQLite file, so they outlast the program |
+| `spool_mail` | `mail` | Each letter a file of its own in a directory: nothing leaves the machine |
 | `flat_files` | `files` | Each file's bytes in one directory, and what is known of it in a JSON file beside it: no database. A piece of a file is five bytes |
 
 ## What is refused

@@ -1,0 +1,57 @@
+name: Status
+
+# Whether the launch platform answers, asked from outside it: every five
+# minutes the platform's own address and one launched app's are requested,
+# what came back is added to the record kept in the branch `status`, and
+# GitHub Pages serves that branch as status.neojac.dev. Nothing of it runs
+# on the platform, so the page answers when the platform does not.
+#
+# GitHub runs a schedule when it has a runner free, which may be minutes
+# late: the record holds when each check was made, not when it was due.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: status
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          path: source
+
+      # The record's branch, made the first time with nothing in it.
+      - name: The record so far
+        run: |
+          set -euo pipefail
+          git clone --quiet --depth 1 --branch status \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" record \
+            || {
+              git init --quiet --initial-branch status record
+              git -C record remote add origin \
+                "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+            }
+
+      - name: Ask, and add what came back
+        run: python3 -I source/status/check.py record
+
+      - name: Keep it
+        run: |
+          set -euo pipefail
+          cp source/status/index.html record/index.html
+          echo status.neojac.dev > record/CNAME
+          touch record/.nojekyll
+          cd record
+          git add -A
+          git -c user.name="status" -c user.email="status@users.noreply.github.com" \
+            commit --quiet -m "Checked at $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push --quiet origin status

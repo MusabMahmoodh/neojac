@@ -1,6 +1,6 @@
 ---
-description: The struct archetype, a value held in place and copied where it goes: how it is declared and made, what copying means, how fields and methods reach it in place, equality, and how it conforms to interfaces.
-keywords: struct, value type, held in place, temporary copy
+description: The struct archetype, a value held in place and copied where it goes: how it is declared and made, what copying means, how fields and methods reach it in place, equality, how it conforms to interfaces, and a union, a struct whose fields share their memory.
+keywords: struct, value type, held in place, temporary copy, union declaration, C union
 ---
 # Structs
 
@@ -99,8 +99,9 @@ Each field is at the first offset its alignment allows, as in a C struct
 with the same fields in the same order: a `bool` is a byte, an `f32` four
 bytes, an `i16` two, a `float` eight. A struct field of a struct type is
 held inside it. So `P` above is 16 bytes: `x` at 0, `y` at 8, and padding
-to its 8-byte alignment. `@align(n)` raises a struct's alignment (see
-[Decorators](decorators.md)).
+to its 8-byte alignment. `@align(n)` raises a struct's alignment, and `@packed` or
+`@packed(n)` lays its fields out with no padding, or each at most `n`-aligned, as C's packed
+records are (see [Decorators](decorators.md#packed)).
 
 A struct never holds itself (E1501): a field of its own type would have no
 size.
@@ -150,6 +151,19 @@ list's element.
   `a.shift(0.5)` changes `a`.
 - **`&mut p` lends the variable itself** to a parameter declared `&mut P`,
   which then changes the caller's struct. See [Borrows and owned places](ownership-borrows.md).
+- **A local declared `&` or `&mut` of a struct is the place it lends**, as
+  a parameter is: `at: &mut P = &mut o.at` reaches `o.at` itself, so
+  `at.x += 1.0` changes it, and `at = P(...)` writes it whole. Assigning it
+  `&x`, `&mut x` or a call that gives a borrow binds it to that place
+  instead. It may lend a struct local, in a function or in module code:
+  after `r: &mut P = &mut a`, `r.x -= 3.0` changes `a`, judged as a borrow
+  of an `own` value is ([Borrows](ownership-borrows.md#borrows)). A local
+  with no borrow annotation is a copy, as any assignment of a struct is. A closure or a generator cannot keep such a local
+  (E5090).
+- **A function declared `-> &mut P` or `-> &P` gives the place**, not a
+  copy: `def lend_at -> &mut P { return &mut self.at; }`. Its call is a
+  place, so `b.lend_at().scale(10.0)` changes `b.at`; assigned to a local
+  with no borrow annotation, it is copied.
 - **A temporary copy is no place.** What a call gives, an item of a tuple
   and a struct read out of an `any` are copies nothing else holds. Writing
   a field of one, calling a method that changes it on one, or lending it
@@ -169,18 +183,37 @@ def bump(p: &mut P) {
     p.x += 1.0;
 }
 
+obj Body {
+    has at: P = P();
+
+    def lend_at -> &mut P {
+        return &mut self.at;
+    }
+}
+
 with entry {
     a = P(x=1.0);
     bump(&mut a);
     print(a);
     reset(&mut a);
+    r: &mut P = &mut a;
+    r.x -= 3.0;
     print(a);
+    b = Body();
+    at: &mut P = b.lend_at();
+    at.x += 1.0;
+    at = P(x=at.x * 2.0);
+    copy = b.lend_at();
+    copy.x = 50.0;
+    b.lend_at().x += 0.5;
+    print(b.at, copy);
 }
 ```
 
 ```output
 P(x=2.0)
-P(x=-1.0)
+P(x=-4.0)
+P(x=2.5) P(x=50.0)
 ```
 
 ## Equality, hashing and None
@@ -279,6 +312,44 @@ mark no binding of one (E1507), and no field of a struct owns what it holds
 (E1506): every copy would own it. `&` and `&mut` lend a struct's place as
 they lend any.
 
+## Unions
+
+`union` declares a struct whose fields all start at its first byte, as a C union's do: its size
+is its largest field's, rounded up to its largest alignment. Writing one field and reading another
+reads the same bytes as the other field's type.
+
+```jac
+union Word {
+    has whole: u32,
+        half: u16,
+        ratio: f32;
+}
+
+with entry {
+    a = Word(whole=u32(0x3f800000));
+    print(a.ratio, a.half, Word().whole);
+    a.half = u16(1);
+    print(a.whole);
+}
+```
+
+```output
+1.0 0 0
+1065353217
+```
+
+The output is a little-endian machine's, which every target neojac builds for is.
+
+- **It is made zeroed, then from at most one field, given by name** (E2260 otherwise).
+  `Word()` is all zero bytes.
+- **Its fields take no default** (E2261): there is no one field whose default would stand.
+- **Every other rule is a struct's**: it is copied where it goes, compared and hashed by its
+  bytes' fields, and held in place in an `obj`, a list or C memory.
+- **A C header's `union`** is bound as a union by an import of C, and a union is passed to C by
+  address ([C modules](../interop/c-modules.md#what-jac-binds-from-the-headers)).
+- **`union` is a word only where a declaration starts**, as `struct` is.
+- A union is native: in a `cpython` or JavaScript space it is E5090.
+
 ## What is rejected
 
 A declaration's errors are reported first, as the program's declarations are
@@ -361,6 +432,20 @@ with entry {
 | E1506 | A struct's field is marked `own`. |
 | E1507 | A binding of a struct is marked `own`, `lin` or `imm`. |
 | E1562 | A struct is made a `dyn` of an interface that requires a method changing it. |
+| E2260 | A union is made from more than one field, or from one given by position. |
+| E2261 | A union's field has a default. |
+
+```jac
+# expect: E2260 x2
+union Word {
+    has whole: u32,
+        half: u16;
+}
+
+with entry {
+    print(Word(whole=u32(1), half=u16(2)).whole, Word(u32(1)).whole);
+}
+```
 
 ## Differences from Python and the reference design
 

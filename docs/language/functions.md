@@ -30,7 +30,8 @@ body in braces. The full rule, with its modifiers, is in [Abilities](abilities.m
 - **Every parameter has a type**: `def area(w: int, h: int)`.
 - **No `->`, no value.** A function without a return type returns `None`, and a value it returns
   is an error (E1003: declare `-> T`). `-> None` may be written; the lint rule
-  `unnecessary-none-return` (W3037) flags it where a project selects it.
+  `unnecessary-none-return` (W3037) flags it where a project selects it, but in a `cpython`
+  space, where it is the annotation Python reads.
 - **A function that declares a return type returns a value on every path** that reaches its end
   (E1004). A path that ends in `raise`, or a `forever` loop left only by `return`, needs none. A
   return type that includes `None` (`-> int | None`) lets the function end without a `return`, and
@@ -234,7 +235,9 @@ parentheses and typed, and its body is a block.
   `Callable[[], Scope | None]`) a longer body may end without a `return`, and gives `None`.
 - A lambda with no parameters has no parentheses (W3005 for `lambda ()`): `lambda { print("hi") }`,
   `lambda -> int { return 7; }`.
-- A lambda takes every parameter kind a `def` does, defaults included.
+- A lambda takes every parameter kind a `def` does, defaults and the `/` and `*` markers
+  included: `lambda (a: int, /, *, b: int = 2) -> int { a * b }` takes `a` by position alone and
+  `b` by keyword alone.
 
 ```jac
 with entry {
@@ -279,7 +282,9 @@ function's variables.
 - A `lambda` or a `def` inside a module's `with entry` block reads and assigns that block's
   locals.
 - A closure outlives the call that made it: what it captured lives as long as it does.
-- Nested functions may call each other, including one declared after its caller.
+- Nested functions may call each other, including one declared after its caller, which is
+  called by its parameters as it is written, its defaults and keyword arguments included. Its
+  defaults are made where its `def` stands, as Python makes them.
 
 ```jac
 def make_counter -> Callable[[], int] {
@@ -318,6 +323,26 @@ with entry {
 1 2 1 6
 [0, 1, 2]
 [0, 1, 99] [4, 4, 4]
+```
+
+```jac
+def parity(n: int) -> str {
+    def is_even(k: int) -> bool {
+        return k == 0 or is_odd(k - 1);
+    }
+    def is_odd(k: int, *, seen: int = 0) -> bool {
+        return k != 0 and is_even(k - 1);
+    }
+    return f"{is_even(n)} {is_odd(n)} {is_odd(n, seen=1)}";
+}
+
+with entry {
+    print(parity(4), parity(3));
+}
+```
+
+```output
+True False False False True True
 ```
 
 ## Recursion and `return tail`
@@ -362,6 +387,13 @@ Type parameters (`def first[T](xs: list[T]) -> T`) are in `neojac docs generics`
 parameters (`comptime n: int`) in `neojac docs comptime`, decorators in `neojac docs decorators`,
 `async def` in [Async](async.md), and generator functions in [Generators](generators.md).
 
+## `self` first, outside a class
+
+A function outside a class whose first parameter is named `self` is an ordinary function: Jac
+calls it with the object first (`bump(o, 2)`), on every host. Where JavaScript calls it (a node or
+browser space hands it to JavaScript, or a JavaScript file imports it), `self` is JavaScript's
+`this`, the object it is called on ([npm and Node](../interop/npm.md#jacs-values-in-javascript)).
+
 ## What is rejected
 
 | Code | Condition |
@@ -380,7 +412,7 @@ parameters (`comptime n: int`) in `neojac docs comptime`, decorators in `neojac 
 | E0160 | A lambda whose one statement only computes a value, with a `;` after it: `lambda (x: int) { x * 3; }` |
 | W3005 | `def f()` or `lambda ()`: empty parentheses |
 | E0050 | `/` or a bare `*` twice in one parameter list, or two parameters of one name |
-| E0052 | A parameter of a `def` without a type |
+| E0052 | A parameter of a `def` without a type, but in a `cpython` space ([Annotations](../interop/python-classes.md#annotations)) |
 | E0120 | `/` with no parameter before it |
 | E0121 | A default on `*rest` or `**opts` |
 | E0122 | A bare `*` with no parameter after it |
@@ -431,12 +463,19 @@ with entry {
 ```
 
 ```jac
-# expect: E0050 x2, E0052
+# expect: E0050 x2
 def f(a: int, /, b: int, /) -> int {
     return a;
 }
 
-def g(a: int, a: int, scale) -> int {
+def g(a: int, a: int) -> int {
+    return a;
+}
+```
+
+```jac
+# expect: E0052
+def scaled(a: int, scale) -> int {
     return a;
 }
 ```

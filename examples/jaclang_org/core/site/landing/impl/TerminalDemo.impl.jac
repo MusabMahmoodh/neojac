@@ -1,12 +1,13 @@
 impl TerminalDemo(className: str = "") -> JsxElement {
-    has shown: list[dict[str, any]] = [];
+    has shown: list[dict[str, any]] = [],
+        ticking: Ref[any] = Ref(None);
 
     can with entry {
         si = 0;
         ci = 0;
         pause = 18;
         done: list[dict[str, any]] = [];
-        interval = setInterval(
+        ticking.current = setInterval(
             lambda {
                 if pause > 0 {
                     pause = pause - 1;
@@ -52,7 +53,13 @@ impl TerminalDemo(className: str = "") -> JsxElement {
             },
             28,
         );
-        return lambda { clearInterval(interval) };
+    }
+
+    can with exit {
+        if ticking.current {
+            clearInterval(ticking.current);
+            ticking.current = None;
+        }
     }
 
     return <div className={"code-window rounded-xl overflow-hidden text-left " + className}>

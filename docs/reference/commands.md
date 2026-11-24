@@ -126,7 +126,7 @@ Several Jac programs are built into one executable that holds each of them and r
 
 In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's or a package's: the ones named, or every one, are each built into dist/, and where each one is is printed. A package (`package <name> { ship <space>; }`) of a space that holds a Python project is that project's wheel.
 
-A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it.
+A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. A Python project's wheel is built for this system alone. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it; with --target, for that platform, from the Jac its C module's files are ported to (an addon built from C and C++ is built on the system it is for).
 
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
@@ -303,20 +303,23 @@ Its guide: [toolchain/fmt](../toolchain/fmt.md) (`neojac docs toolchain/fmt`).
 Translate source in another language into Jac.
 
 ```sh
-neojac port [--check] [-o <out>] [<option>...] <path>...
+neojac port [--check [--json]] [-o <out>] [<option>...] <path>...
 neojac port --mapping <language>
 ```
 
 | Option | What it does |
 |---|---|
-| `--check` | Write nothing: report what would port and what is refused, and exit with status 1 if anything is |
-| `-o <out>` | Where to write: a .jac file for one source, else a directory (default: beside each source) |
+| `--check` | Write nothing: report what would port and what is refused, and in a project the plan, and exit with status 1 if anything is refused |
+| `--json` | With --check, print what would port and the plan as data |
+| `-o <out>` | Where to write, for sources outside a project: a .jac file for one source, else a directory (default: beside each source) |
 | `--mapping <language>` | Print what port makes of each construct of a language: c, c++, rust, python or javascript |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments.
 
-A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. The source is never changed, and an output that is already there is refused (E4003).
+A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. An output that is already there is refused (E4003).
+
+In a project, a path is read as the project says, and porting a file moves its module in one change: the Jac is written beside the source, the source is moved to replaced-by-neojac/, its imports of the project's modules become ++> wires and its tables in jac.toml are updated, all of it only if the project then checks (E4008). Outside a project, the source is never changed.
 
 | Example | What it does |
 |---|---|
@@ -363,33 +366,35 @@ Its guide: [toolchain/lint](../toolchain/lint.md) (`neojac docs toolchain/lint`)
 Launch an app on the hosting platform, and look after it there.
 
 ```sh
-neojac launch login [<address>] [--new]
+neojac launch login [<address>]
 neojac launch deploy <app> [--as <name>]
 neojac launch secrets [set <KEY>[=<value>] | unset <KEY>] [--as <name>]
 neojac launch logs [--lines <n>] [--as <name>]
 neojac launch domains [add <domain> | remove <domain>] [--as <name>]
+neojac launch delete [--as <name>] [--yes]
 ```
 
 | Option | What it does |
 |---|---|
-| `--new` | Make an account on the platform, and sign in to it |
 | `--as <name>` | The app's name on the platform, which begins its address (default: the project's name) |
 | `--lines <n>` | How many of each instance's last lines logs prints (default: 200) |
+| `--yes` | Delete the app without asking for its name |
 
-login signs in to the platform, at https://launch.neojac.dev unless an address is given, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
+login signs in to the platform, at https://launch.neojac.dev unless an address is given: it prints a link and a code. Whoever signs in on that page, or makes an account there, and says the program showing the code is theirs has signed it in; login waits for that, and keeps the session for the commands that follow. deploy, run in a project, sends the project's files; the platform builds the app from them, runs it, and deploy prints what the build says and then the app's address.
 
 The platform builds from source: the project's own directory is sent, without what a build or an install made in it, so its packages are ones jac.toml and jac.lock name by a version or a repository.
 
-An app is launched under one name, which is its address's first word. Every other command is about that app: its secrets are variables of its environment, which the app starts again with when one changes; its logs are what its running instances said; its domains are other names it answers at.
+An app is launched under one name, which is its address's first word. Every other command is about that app: its secrets are variables of its environment, which the app starts again with when one changes; its logs are what its instances said; its domains are other names it answers at. A domain is the app's once its owner has shown it is theirs: domains add prints the records to make where the domain's DNS is kept, and domains says how far each has got. delete takes the app away for good, with everything it keeps.
 
 | Example | What it does |
 |---|---|
-| `neojac launch login` | Sign in |
+| `neojac launch login` | Sign in, or make an account, in a browser |
 | `neojac launch deploy web` | Launch the project's app `web` |
 | `neojac launch deploy web --as shop` | Under a name of its own |
 | `neojac launch secrets set ANTHROPIC_API_KEY` | Set a secret, asked for and not echoed |
 | `neojac launch logs --lines 50` | What its instances said last |
 | `neojac launch domains add shop.example` | Another name for it |
+| `neojac launch delete --as shop` | Take an app away for good |
 
 Its guide: [toolchain/launch](../toolchain/launch.md) (`neojac docs toolchain/launch`).
 
@@ -507,11 +512,14 @@ neojac npx [<npx argument>...]
 
 The npm that Node ships, with its own command line. In a project it runs in an npm tree of jac.toml (the one whose directory it is run in or under, or the project's only one), and what it writes to the tree's package.json and package-lock.json is taken into jac.toml and jac.lock as it ends.
 
+Where some of the tree's sources are ported, `run`, `run-script`, `test` and `start`, and npx, run in the tree as its tools saw it: under .jac/test/spaces/, each ported source's place holds a file of its own name that gives the module, and what the tree's space emits is beside them.
+
 Its arguments, --help among them, are that program's own: `neojac npm --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac npm ls` |  |
+| `neojac npm run build` | The tree's own build, its ported sources too |
 
 Its guide: [interop/npm](../interop/npm.md) (`neojac docs interop/npm`).
 
@@ -523,15 +531,19 @@ Run neojac's CPython.
 
 ```sh
 neojac python [<python argument>...]
+neojac python <space directory> [-m <module> | -c <code>] [<argument>...]
 ```
 
 CPython 3.15, with its own command line. In a project with a virtual environment (.jac/venv), it is that environment's Python.
+
+A cpython space, as `neojac emit-py <space> -o <space directory>` writes it, is run by its directory: alone, its entry; with -m, a module run over its modules as `python -m` runs it (`-m pytest` runs a suite the space holds); with -c, code run over them as `python -c` runs it. A space with no entry takes -m or -c.
 
 Its arguments, --help among them, are that program's own: `neojac python --help` is its help.
 
 | Example | What it does |
 |---|---|
 | `neojac python -c 'import sys; print(sys.version)'` |  |
+| `neojac python py -m pytest tests --import-mode=importlib` | The suite of the cpython space emitted into py |
 
 Its guide: [interop/python](../interop/python.md) (`neojac docs interop/python`).
 
@@ -798,7 +810,7 @@ Its guide: [toolchain/inspect](../toolchain/inspect.md) (`neojac docs toolchain/
 Write a space's JavaScript, or its Python code.
 
 ```sh
-neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]]
+neojac emit-js <space> -o <dir> [<option>...]
 neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 ```
 
@@ -807,6 +819,7 @@ neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 | `-o <dir>` | The directory to write |
 | `--app <app>` | The space as that app's program of it, with its plan |
 | `--profile <profile>` | The app under that profile |
+| `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from a project's root: the modules of one space of its archwire, checked and written as an app's build would write them. emit-js is for a space on a JavaScript host (browser, node, hermes), emit-py for one on cpython.
@@ -839,3 +852,24 @@ neojac version
 ```
 
 Prints the release's version, the platform it runs on and the commit it was built from; `neojac --version` and `neojac -V` do the same. A neojac built from source says so.
+
+### `neojac telemetry`
+
+Show what neojac records of its use, or turn it off.
+
+```sh
+neojac telemetry
+neojac telemetry off
+neojac telemetry on
+```
+
+A release of neojac counts what it is used for: the commands run, how long each took and whether it failed, the options each was given by name, the codes of the diagnostics they reported, the kinds of program built and the platforms they were built for, and where in neojac an internal error was raised. Nothing a command was given, a file's name or its source among it, is recorded. A week's counts are one report, with a random ID made for that week; the first run on a machine says so on stderr.
+
+Alone, says whether recording is on and what decided that, then prints what is recorded and not yet sent: each week's report as it is sent. `off` stops recording and deletes what is recorded; `on` starts it again. NEOJAC_TELEMETRY=off or DO_NOT_TRACK=1 keeps it off wherever it is set, and a neojac built from source records nothing until `neojac telemetry on`.
+
+| Example | What it does |
+|---|---|
+| `neojac telemetry` | What is recorded on this machine |
+| `neojac telemetry off` | Stop recording, and delete what is recorded |
+
+Its guide: [toolchain/telemetry](../toolchain/telemetry.md) (`neojac docs toolchain/telemetry`).

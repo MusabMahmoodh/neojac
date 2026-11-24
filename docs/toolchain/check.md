@@ -184,7 +184,7 @@ neojac check --space web           # the space web alone, on its host
 ```
 
 - **An app** is checked as `neojac build <app>` compiles it: the program of the spaces it runs, and its program of each space it serves or carries, each on its own host. They are checked at once, each in a process of its own, so a project's check takes about as long as its slowest program's.
-- **A project** is every app, and every space that no app runs or serves, each checked the same way.
+- **A project** is every app, and every space that no app runs or serves, each checked the same way, and every module that no space holds and nothing imports, checked as a native program of its own, as `neojac check <file>` checks it: a mistake in it is reported `in module 'stray.jac'`. A module `[check] exclude` names is left out.
 - **`--space <space>`** checks one program. With an app named, it is the app's program of that space, with the app's plan (which spaces it runs, where the others are). With none, it is the space alone, as `neojac emit-js` and `emit-py` load it ([Inspect](inspect.md)). Either way the tests of its entry module are checked, and a cpython or node space is checked against what that host allows, so a program that compiles to native code can be refused there.
 
 An app's check finds what a space's alone cannot: what the app's plan gets wrong, such as a space it reaches and neither runs nor has an address for (E1212).

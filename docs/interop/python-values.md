@@ -14,19 +14,29 @@ operators, comparisons, `with`, `len`, `in` and iteration are Python's. `type(x)
 type, and `x is y` asks whether they are the same Python object.
 
 A `PyObject` fits wherever a Jac type is wanted, and becomes the Jac value it stands for when it
-arrives there: a Python int, float, str, bool, list or dict becomes Jac's. One that is not of the
+arrives there: a Python int, float, str, bool, list or dict becomes Jac's, and a set or a
+frozenset a Jac `set`. One that is not of the
 type wanted is a `TypeError` as it arrives. A Python int fits where a `float` is wanted, and a
 number that is neither an int nor a float (numpy's numbers, CPython's own `decimal.Decimal`) converts to a
 `float` by its `__float__` and to an `int` by its `__index__`. A `Decimal` has no `__index__`, so
 it does not fit where an `int` is wanted.
+
+`hasattr(x, "name")` of a Python value held as `any` asks the value, so a class whose
+`__getattr__` answers a name has it, as Python's `hasattr` says. `isinstance(x, list)` of one tests
+the Jac value it stands for: a Python list is a `list`,
+and a value that stays Python, an iterator or a generator, is no builtin collection. `next(it)` and
+`next(it, default)` of an iterator held as `any`, and a slice of a list held as `any` assigned
+(`m[1:] = [9]`), are Python's, on every host.
 
 `int()`, `float()`, `str()` and `bool()` of a Python value are Python's own, and give Jac's value:
 `int(d)` of a `Decimal` or a Python float truncates it, as `builtins.int(d)` does, and `int()` and
 `float()` read a number's text.
 
 `PyObject` is the runtime's name for such a value, not a type a program writes (`-> PyObject` is
-E2018), and a Python class is not a Jac type (`-> ast.Module` is E1163). Declare a Python
-value `any`, or convert it to the Jac type it stands for where it arrives:
+E2018). A Python class written as a type (`-> ast.Module`, `uuid.UUID`), and any subscript of one
+(`Literal["a", "b"]`), is `any` to the checker, and `Annotated[T, ...]` is `T`: Python reads the
+annotation as it is in a `cpython` space ([Annotations](python-classes.md#annotations)). Declare a
+Python value `any`, or convert it to the Jac type it stands for where it arrives:
 
 ```jac
 import builtins;
@@ -82,6 +92,66 @@ with entry {
 6
 ```
 
+A Python list that arrives where a list of sized numbers is wanted (`list[u8]` to `list[u64]`,
+`list[i8]` to `list[i64]`, `list[f16]`, `list[f32]`, `list[bool]`) stays Python's own list, shared
+both ways, as a `list[int]` is: what Jac stores, appends or inserts, Python sees, and what Python
+does to it, Jac sees. So a Jac function an extension module gives (`def decoded(tokens:
+list[u32])`) reads the list Python passed, item by item, and writes into it. Each item is held to
+the element's type as it arrives and again as Jac reads it, since Python may store any value in
+the list in between: an int out of the width is an `OverflowError`, a value of another type a
+`TypeError`.
+
+```jac
+import builtins;
+
+def bump(xs: list[u8]) -> int {
+    total = 0;
+    for x in xs {
+        total += int(x);
+    }
+    xs[0] = u8(9);
+    xs.append(u8(4));
+    return total;
+}
+
+def halve(xs: list[f32]) {
+    for i in range(len(xs)) {
+        xs[i] = xs[i] / f32(2);
+    }
+}
+
+with entry {
+    counts: any = builtins.list(builtins.range(3));
+    print(bump(counts), counts);
+    weights: any = builtins.list([1.0, 3.0]);
+    halve(weights);
+    print(weights);
+    for bad in [[256], [2.5]] {
+        try {
+            bump(builtins.list(bad));
+        } except (OverflowError, TypeError) as e {
+            print(builtins.type(e).__name__, e);
+        }
+    }
+    later: any = builtins.list([1, 2]);
+    small: list[u8] = later;
+    later.append(300);
+    try {
+        print(small[2]);
+    } except OverflowError as e {
+        print("OverflowError:", e);
+    }
+}
+```
+
+```output
+3 [9, 1, 2, 4]
+[0.5, 1.5]
+OverflowError integer overflow
+TypeError expected int, found float
+OverflowError: integer overflow
+```
+
 ## Jac's values in Python
 
 | Jac value | What Python gets |
@@ -97,7 +167,8 @@ with entry {
 
 Python calling a Jac function passes its arguments as Jac code's values arrive: each becomes the
 parameter's type by the rules above, and one of another type is a `TypeError`
-(`expected int, found str`).
+(`expected int, found str`). An int out of a sized parameter's range is an `OverflowError`, as
+a typed conversion's is: it is never wrapped.
 
 ```jac
 import builtins;
@@ -131,6 +202,31 @@ with entry {
 {'a': 1}
 4 2.50 0.5 2.0
 TypeError: expected str, found Decimal
+```
+
+```jac
+import builtins;
+
+def small(n: u8) -> int {
+    return int(n) * 2;
+}
+
+with entry {
+    s: set[str] = builtins.frozenset(["a", "b"]);
+    print(sorted(s), type(s).__name__);
+    print(builtins.list(builtins.map(small, [3, 200])));
+    try {
+        builtins.list(builtins.map(small, [300]));
+    } except OverflowError as e {
+        print("OverflowError:", e);
+    }
+}
+```
+
+```output
+['a', 'b'] set
+[6, 400]
+OverflowError: integer overflow
 ```
 
 A Jac object is the same object on both sides: Python's `getattr`, `setattr`, `len`, `iter` and
@@ -247,7 +343,10 @@ base class
 ```
 
 A Jac exception raised in a Jac function that Python called reaches Python as a Python exception
-of the Jac class's name, deriving from its base's, and comes back to Jac as itself. An uncaught
+of the Jac class's name, deriving from its base's, with its own arguments (`raise
+KeyError(b"k")` is Python's `KeyError(b'k')`, its `args` `(b'k',)`), and comes back to Jac as
+itself. One of a class of the program holds the Jac object, whose fields Python reads
+(`e.code`), and Python makes one by the class's `init`. An uncaught
 exception's report lists the Jac frames it passed through, then Python's, then Python's own last
 line.
 
@@ -412,10 +511,29 @@ JacCoroutine 6
 ```
 
 - Jac code holds no GIL while it computes, so a thread Python started runs alongside it.
-- Python's threads, a thread pool's among them, may call Jac functions. They run Jac code one at a
-  time, under one lock of Jac's runtime. A thread waiting for it gets its turn at a switch point,
-  and the switch points are the program's own loops: a Jac loop waiting on what such a thread sets
-  (the timer's `flip` above) sees it.
+- Python's threads, a thread pool's among them, may call Jac functions, an extension module's
+  from several threads at once. They run Jac code one at a time, under one lock of Jac's runtime,
+  the Jac lock. A thread waiting for it gets its turn at a switch point, and the switch points are
+  the program's own loops: a Jac loop waiting on what such a thread sets (the timer's `flip` above)
+  sees it. The Jac lock and Python's GIL keep to five rules:
+  1. Jac's runtime runs one thread at a time under the Jac lock, and Python's threads run beside it
+     under the GIL. Jac's runtime state is touched only by the thread holding the Jac lock.
+  2. A call from Python into Jac gives the GIL up and takes the Jac lock; a call from Jac into
+     Python gives the Jac lock up for the Python it runs.
+  3. Where the bridge between the two holds the GIL, to convert a value or call a Python object, it
+     runs its Jac code under the Jac lock too, kept while it waits for the GIL.
+  4. A thread may wait for the GIL holding the Jac lock, and never waits for the Jac lock holding
+     the GIL.
+  5. Every wait of Jac's runtime (for the Jac lock, in a blocking call, for a `flow for`'s threads)
+     gives the GIL up first, as CPython's own blocking calls do. So Python code run holding the Jac
+     lock, a collection's finalizers or a `__del__`, may give the GIL up and take it back.
+
+  While a Jac function called from Python waits for the Jac lock, other Python threads run: a
+  borrowed reference held across the wait may be let go by one of them, as across CPython's
+  `Py_BEGIN_ALLOW_THREADS`. Jac holds only owned references there.
+- A thread of Python's that ran Jac gives Jac's heap for it back as it ends, and a thread of
+  Python's entering Jac takes a heap an ended thread left before making one, as the program's own
+  threads do: a pool of Python threads made again and again does not grow the process.
 - A Jac coroutine reaching Python is a `JacCoroutine`, a `collections.abc.Coroutine`, which
   CPython's `asyncio.run` and `asyncio.gather` take and a Python coroutine awaits. A Jac async
   generator is a `JacAsyncGenerator`, a `collections.abc.AsyncGenerator`; an exception its
@@ -444,7 +562,7 @@ with entry {
 ```
 
 ```jac
-# expect: E2018, E1163
+# expect: E2018
 import ast;
 
 def total -> PyObject {
@@ -464,7 +582,6 @@ with entry {
 |---|---|
 | E2191 | A class deriving from a Python class derives from something else too |
 | E2018 | `PyObject` written as a type |
-| E1163 | A Python class written as a type |
 
 Misusing a Python value that its stubs describe is a compile error too; see
 [Python](python.md#checking).

@@ -6,7 +6,7 @@ kind = "plugin"
 
 [plugin]
 fills = "auth"
-interface_ver = 1
+interface_ver = 3
 class = "accounts.auth.Accounts"
 
 # What the accounts are, over the file that keeps them; and what opens that

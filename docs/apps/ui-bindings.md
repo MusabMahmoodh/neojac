@@ -20,7 +20,7 @@ and nothing where the program runs chooses another.
 
 | Plugin | Library | Model | Hosts | Packages it owns | Its bundler |
 |---|---|---|---|---|---|
-| `react` | React, React Router | rerender | browser | `react`, `react-dom`, `react-router-dom` | `vite` |
+| `react` | React, React Router | rerender | browser, node | `react`, `react-dom`, `react-router-dom` | `vite` |
 | `preact` | Preact | rerender | browser | `preact` | `vite` |
 | `solid` | Solid | fine-grained | browser | `solid-js` | `vite` |
 | `react_native` | React Native | rerender | hermes | `react`, `react-native` | `expo` |
@@ -207,6 +207,12 @@ tag = "For"
 prop = "each"
 ```
 
+A plugin whose `hosts` holds `node` names in `[ui.jsx]` the package whose `jsx-runtime` makes a
+node space's elements, `source = "react"`: a node space's JSX is a call of its `jsx`. A plugin
+that names none refuses JSX in a node space (E5178). `react` runs on a node space so: a node
+space whose `[spaces.<space>.ui] plugin` is `react` makes React's elements, which
+`react-dom/server` renders as React does, its components and hooks React's own.
+
 A rerender plugin names `[ui.ref]` (`useRef`) where a fine-grained one names `[ui.computed]`,
 `[ui.cleanup]`, `[ui.untrack]` and `[ui.each]`. Two more keys of `[ui]` are for a plugin that
 brings its own half of `@jac/runtime`, as `react` does for its routes and `react_native` for the
@@ -218,10 +224,12 @@ form a caller signs in by:
 | `boot` | The module whose `startApp` starts a routed app (`"@jac/runtime"`): what gives a space file routes |
 
 A plugin whose host has no page to draw on shows the sign-in form itself: its runtime calls
-`__showSignIn(show)` of `session.js`, and `show(asks, answer)` is then given what the app's auth
-asks for (its fields and its ways of signing in) and `answer(action, given)`, which tries one way
-and gives `{ok: true}` or `{ok: false, detail}`. It gives a promise of whether the caller signed
-in, or `null` to leave the form to the page. `abstractions/ui/react_native/runtime.js` is one.
+`__showSignIn(show)` of `session.js`, and `show(asks, answer, forgot)` is then given what the
+app's auth asks for (its fields, its ways of signing in, and `forgot`, the field a password's link
+is asked for by), `answer(action, given)`, which tries one way and gives `{ok: true}` or
+`{ok: false, detail}`, and `forgot(name)`, which asks for a link that sets a new password and gives
+`{ok, detail}`, what to tell the caller. It gives a promise of whether the caller signed in, or
+`null` to leave the form to the page. `abstractions/ui/react_native/runtime.js` is one.
 
 A plugin's `jac.toml` with no `[ui]` table, or one that is not at the path `[packages]` gives, is
 E2216.
@@ -270,7 +278,12 @@ each time it bundles, so it is never among the tree's packages. It:
 - takes one option, `jac({ assets: "public/img" })`, a directory of the project that the bundle
   serves as `static/assets/`;
 - records what Vite read, so a build with nothing changed does not bundle again
-  ([Building apps](building.md)).
+  ([Building apps](building.md));
+- resolves a project file's import of one of the space's Jac modules: a `.ts` or `.js` file of
+  the project that writes `import { tone } from "../tone.js";`, where `tone.jac` is a module of
+  the space, is given the module's forwarder in the compiled space, which `@jac/bundle.json`'s
+  `jac_modules` names (`{"tone.js": "tone.js"}`: the place in the project, the forwarder in the
+  space), with or without its `.js` ([A project's own JavaScript](../interop/npm.md#a-projects-own-javascript)).
 
 A Vite configuration may set its own `root` when the space's `index.html` is not at the top of
 the tree's directory: `defineConfig({ root: "demos", plugins: [jac(), preact()] })`, for
@@ -363,7 +376,7 @@ The build runs `build` as `neojac node tools/bundle/bundle.mjs <job>`. The job i
 | `top` | The project's root |
 | `tree` | The directory of the space's npm tree (`eco/web`), where its packages are installed and a bundler runs; `""` when the project has none |
 | `work` | The space's work directory |
-| `src` | The space's compiled modules, with `@jac/bundle.json` (its entry, the aliases of its imports, the spaces it reaches) |
+| `src` | The space's compiled modules, with `@jac/bundle.json` (its entry, the aliases of its imports, the spaces it reaches, and `jac_modules`, the forwarder of each Jac module a project file imports, by the place it stands at) |
 | `dist` | Where to write the bundle |
 | `public` | Files to serve beside it (the space's wasm modules) |
 | `base` | The space's `base` |

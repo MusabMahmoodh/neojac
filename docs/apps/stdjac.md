@@ -51,7 +51,7 @@ Every other name a program uses of stdjac is imported from `stdjac` itself:
 | For | Names | Page |
 |---|---|---|
 | The kept graph | `jobj`, `remove`, `allroots`, `grant`, `AccessLevel`, `commit`, `sweep`, `DataError`, and `StoreConflict`, what a write another's got ahead of raises | [Below](#the-kept-graph), and [An app's data](data.md) |
-| The server | `JobFailed`, `consume_limit`, `static_file` | [The server's words](stdjac-server.md) |
+| The server | `JobFailed`, `consume_limit`, `address_checked`, `static_file` | [The server's words](stdjac-server.md) |
 | Files | `FileError`, what a `File` made with a type that is none, or with bytes that are not its type's, raises | [Files](files.md) |
 | Crossings | The exceptions a failed crossing raises (`RemoteError`, `RemoteUnavailable`, `RemoteTimeout`, `RemoteRejected`, `RemoteDecodeError`, `RemoteFailed`), and the `Request` a program that answers one itself is given | [Below](#crossings), and [Crossings](crossings.md) |
 | The codec | `encode`, `decode`, `CodecError`: values to JSON's values and back, by their types, as a crossing sends them | [Below](#the-codec) |
@@ -67,13 +67,14 @@ The contracts, which a plugin imports and a program does not:
 | Contract | Its interface | What else it holds | Page |
 |---|---|---|---|
 | `store.contract` | `Store` | `Row`, `Changed`, `Writing`, `StoreConflict` | [Plugins](plugins.md#what-a-store-is-asked) |
-| `auth.contract` | `Auth` | `SignIn`, `SignInField`, `SignInAction`, `Session`, `Rejected`, `AuthHost`, `bearer_token` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
+| `auth.contract` | `Auth` | `SignIn`, `SignInField`, `SignInAction`, `Session`, `DeviceSignIn`, `Rejected`, `AuthHost`, `bearer_token` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `transport.contract` | `Transport` | `Request`, `Response`, `Tick`, `Claim`, `CannotListen`, `json_fail` | [Below](#transport) |
 | `llm.contract` | `Model` | `ModelRequest`, `ModelReply`, `ModelTool`, `Message`, `Part`, `PartKind`, `Stop`, `Effort`, and `ByEvent`, `ByEventKind`, `ByUsage`, `ByError` | [By and sem](../language/by-and-sem.md) |
 | `jobs.contract` | `Jobs` | `JobState`, `JobsHost` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `schedule.contract` | `Scheduler` | `Scheduled` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `limits.contract` | `Limits` | | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `files.contract` | `Files` | `Kept` | [Files](files.md#where-files-are-kept) |
+| `mail.contract` | `Mailer` | `MailNotSent` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `common.contract` | None: every plugin may use it | `Host`, `Secret`, `DataError` | [Plugins](plugins.md#what-a-plugin-imports) |
 
 A browser, hermes or node space compiles the stdjac module a name it imports is in with its own
