@@ -951,6 +951,8 @@ What npm does with a `pnpm-lock.yaml` or a `bun.lock`:
 Once `jac.toml`, `jac.lock` or a record stands in for a file of the repository, absorb moves the
 file into `replaced-by-neojac/`, a folder at the project's top that holds each one at the place
 it stood. The folder is what can be removed: delete it, and the clean-out is done.
+[`neojac port`](port.md#in-a-project) moves there each source it ports, and a C header with its
+source once no C that stays reads it.
 
 ```text
 moved to replaced-by-neojac/

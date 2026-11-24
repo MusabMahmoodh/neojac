@@ -219,6 +219,32 @@ shop/use.py -> replaced-by-neojac/shop/use.py
 - **The C that stays calls the Jac.** A C source of the module that is not ported, and called a
   function of the ported file, calls the Jac module's function through its wire, by the header
   beside the Jac module ([C modules](../interop/c-modules.md#calling-jac-from-c)).
+- **A header ported with its source stays only while C that stays reads it.** A header beside a
+  source of its stem (`count.h` beside `count.c`) is, once the source is Jac, the Jac module's
+  face to C, which the C that stays includes to call it. It moves to `replaced-by-neojac/`,
+  beside its source, in the run in which nothing that stays reads it: the run that ports its
+  last reader, or any later run, since every run judges every header whose source is Jac. What
+  reads it:
+  - a C or C++ source a C module's table lists, on each platform the module is recorded for,
+    whose compile opens it, through another header too;
+  - a C or C++ source in the module's directory that no table lists: another system's file, which
+    no record of this copy has read, so it cannot be said not to include the header. Every
+    ported header of its module stays until a record of its platform reads it, and the next run
+    moves those nothing reads.
+
+  A table's `headers` naming the header is not a read of it (a face is no C module's header,
+  [C modules](../interop/c-modules.md#the-manifest)), and a face written by hand, with no
+  source of its stem in `replaced-by-neojac/`, never moves. The move is one of the step's
+  changes: journalled, and put back with the sources where the project would not check. For a
+  header whose source ports in this run and that stays, port says why, in one of two forms:
+
+  ```text
+  native/count.h stays beside native/count.jac: native/unity.c, which stays C, includes it
+  native/count.h stays beside native/count.jac: 1 source of its C module that no record has read (native/beos.c) may include it, until a record of their platform reads them
+  ```
+
+  The run that moves it says so as it says a source's move,
+  `native/count.h -> replaced-by-neojac/native/count.h`.
 - **A C module's ported sources stay its code.** Port takes each off the module's `sources` and
   lists its Jac in the table's `jac` ([C modules](../interop/c-modules.md#the-manifest)): native
   code the module is built from, never an npm tree's space, even in a directory the tree's

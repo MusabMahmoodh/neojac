@@ -395,6 +395,14 @@ as a call of a Jac generic method may ([Generics](../language/generics.md)): `o.
 - **Its type arguments are Jac types**, as the interface writes C++ types: a class of the module, a
   `libcxx` class, or a number type (`i32` for `int`, `int` for a 64-bit integer, `float` for
   `double`).
+- **A type argument says what C++ instantiated**: `T` is the type by value, `&T` is
+  `const T &` and `&mut T` is `T &`, as a def's parameter given to C++ is read.
+  `said.emplace_back[std_string](s)` is the instance for an rvalue, which moves `s` into the
+  vector; `said.emplace_back[&mut std_string](s)` is `emplace_back<std::string &>`, the instance
+  C++ makes for `said.emplace_back(s)` of a local, which copies it, and `[&std_string]` the one
+  for a `const` string. A number given by reference is its place, a `ptr`:
+  `duos.emplace_back[&mut i32, &mut i32](a, b)` takes two cells (`a = ptr[i32](__alloca(4))`),
+  as port writes an `int` local whose address C++ takes.
 - **A template is named by its C++ name** where the class has one template of that name. Templates
   of one name are named as an overload set's members are, by the types of the parameters that do
   not name the template's own: `add(const T &)` is `add_`, `add(const char *, const T &)` is
@@ -1185,7 +1193,8 @@ the example takes it after the vector has its size.
   `said.emplace_back[std_string](std_to_string_i32(i32(42)))`, and a pointer from a pointer,
   `words.emplace_back[ptr[i8]](p)`. The instance `emplace_back[std_string]` takes its argument
   as C++'s `std::string &&`, so given a local string it moves the local's value out, as
-  `std::move(s)` would, and the local is left empty; `push_back(s)` copies it.
+  `std::move(s)` would, and the local is left empty; `emplace_back[&mut std_string](s)`, the
+  instance C++ makes for `v.emplace_back(s)`, copies it, and so does `push_back(s)`.
 - **`push_back` of a temporary is `push_back_move`**, the overload taking `T&&`, beside
   `push_back`, the one taking `const T&`, which copies.
 - **A member's `const char *` result is a `ptr[i8]`**, the pointer into the string: `told.c_str()`
@@ -1208,10 +1217,12 @@ with entry {
     said: own std_vector[std_string] = std_vector[std_string].make_();
     said.emplace_back[std_string](std_to_string_i32(i32(42)));
     said.push_back_move(std_to_string_i32(i32(7)));
+    kept: own std_string = std_to_string_i32(i32(9));
+    said.emplace_back[&mut std_string](kept);
     words: own std_vector[ptr[i8]] = std_vector[ptr[i8]]();
     words.emplace_back[ptr[i8]](ptr[i8]("first"));
     words.push_back(ptr[i8]("second"));
-    print(str(said.at(u64(0)).c_str()), str(said.at(u64(1)).c_str()), said.size());
+    print(str(said.at(u64(0)).c_str()), str(said.at(u64(1)).c_str()), said.size(), kept.size());
     print(str(words.at(u64(1))), words.size());
     rd: own std_random_device = std_random_device.make_();
     drawn = [rd.op_call() for _ in range(4)];
@@ -1220,7 +1231,7 @@ with entry {
 ```
 
 ```output
-42 7 2
+42 7 3 1
 second 2
 True True
 ```
@@ -1465,7 +1476,8 @@ double shapes_jac_scaled(double x, int32_t *calls) {
 - **A header beside a Jac module of its stem** (`cpu.h` beside `cpu.jac`) is that module's face to
   C: a C use of a name it declares is a use of the Jac module. This is how a C file that
   [`neojac port`](../toolchain/port.md#in-a-project) made Jac is still called by the C of its
-  module that stays.
+  module that stays; port moves the header to `replaced-by-neojac/` with its source once no C
+  that stays reads it.
 - **A C module built into a shared library** cannot call the program's Jac (E5183): a C module
   that calls Jac is linked into the program.
 - **The face header may give C macros of its own**: a wire from the Jac module into a C file
