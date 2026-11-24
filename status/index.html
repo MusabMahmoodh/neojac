@@ -76,7 +76,7 @@ when none were, and grey when no check was made.</p>
             bar.title = d + (of ? ": " + of.answered + " of " + of.checks + " answered" : ": not asked");
             bars.appendChild(bar);
         }
-        part.append(now, el("p", one.url, "muted"), bars,
+        part.append(now, el("p", one.at, "muted"), bars,
             el("p", "Answered: " + share(one.name, 89) + " today, " + share(one.name, 83) + " over 7 days, " + share(one.name, 0) + " over 90 days.", "muted"));
         addresses.appendChild(part);
     }
