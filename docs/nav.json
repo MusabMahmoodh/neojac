@@ -884,7 +884,7 @@
               "page": "reference/diagnostics/e01-1.md"
             },
             {
-              "title": "E0120 to E0181: parameters, assignments, patterns, spellings, layers, connects, defaults, defer and bit-fields",
+              "title": "E0120 to E0182: parameters, assignments, patterns, spellings, layers, connects, defaults, defer, bit-fields and access tags",
               "page": "reference/diagnostics/e01-2.md"
             },
             {

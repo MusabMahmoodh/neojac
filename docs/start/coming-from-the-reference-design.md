@@ -18,7 +18,7 @@ neojac refuses what the reference design only warned about. `neojac docs <code>`
 Most of a reference-design program reads the same here:
 
 - the archetypes `obj`, `node`, `edge` and `walker`, with `has` fields, `def` methods, `init` and
-  `postinit`, `static def`, `override`, `abst`, access tags (`:pub`, `:priv`, `:protect`);
+  `postinit`, `static def`, `override`, `abst`, the access tags `:pub` and `:priv`;
 - abilities, `can name with T entry|exit { ... }`, and `here`, `self`, `visitor` and `root`;
 - `spawn` in either operand order, `visit`, `visit ... else` and `visit ... by`, `disengage`,
   `report`;
@@ -117,6 +117,7 @@ with entry {
 | `lambda x: int : x * 2` | `lambda (x: int) -> int { return x * 2; }` | E0022 | A lambda's body is a block |
 | `for i = 0 to i < 10 by i += 1` | `for i = 0 while i < 10 with i += 1` | E0001 | |
 | `has y: int by postinit;` | `has y: int postinit;` | E0002 | |
+| `def:protect`, `walker:protect`, `has:protect` | `def:prot`, `walker:prot`, `has:prot` | E0182 | The three access tags are clipped alike: `pub`, `prot`, `priv` |
 | `test my_test { ... }` | `test "my test" { ... }` | E0001 | A test's name is a string |
 | `global x;`, `nonlocal x;` | assign `x` | E0002 | Assigning a global's or an enclosing function's name rebinds it |
 | `[node a -->]` | `[a -->]` | E5090 | One spelling |

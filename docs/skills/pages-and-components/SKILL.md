@@ -58,7 +58,7 @@ graph import {
 }
 ```
 
-Every function or walker a page calls is `:pub` or `:protect` in `svc.jac` (E1210 otherwise).
+Every function or walker a page calls is `:pub` or `:prot` in `svc.jac` (E1210 otherwise).
 
 2. **Add the page's packages and its bundler's two files.** Copy the `[npm."eco/web"]` tables into
    `jac.toml`, and `vite.config.ts` and `index.html` into `eco/web/`, exactly from
@@ -216,7 +216,7 @@ Close the browser session and stop the server before you finish.
 | E1278 | A crossing's result, or an `async def`'s coroutine, dropped | `await` it |
 | E1021 `cannot iterate AsyncIterator[...]`, E1041 `AsyncIterator[...] is not awaitable` | A server function that gives an iterator is a stream | Read it with `async for item in f(...) { ... }` in an `async def` |
 | The page reloads on submit | No `e.preventDefault()`, or one after an `await` | Call it first in the `onSubmit` handler |
-| E1210 | A page calls an untagged server function | Tag it `:pub` or `:protect` |
+| E1210 | A page calls an untagged server function | Tag it `:pub` or `:prot` |
 | E1217 | State changed in place (`items.append(x)`) | Assign: `items = items + [x]` |
 | E1215 | `has` inside an `if` or loop | Move it to the top of the body |
 | E1216 | A plain statement (`print(...)`) in a component's body | Move it into an effect |

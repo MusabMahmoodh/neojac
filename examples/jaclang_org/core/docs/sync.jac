@@ -23,4 +23,4 @@ def ingest(bundle: DocBundle);
 def retire_versions(keep: list[str]);
 
 @schedule(interval=SYNC_TICK_S)
-def:protect docs_sync_tick;
+def:prot docs_sync_tick;

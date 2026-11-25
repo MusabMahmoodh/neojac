@@ -71,7 +71,7 @@ def clean_text(raw: str, limit: int, label: str) -> FieldCheck;
 
 def find_profile_by_username(username: str) -> Profile | None;
 
-walker:protect setup_profile {
+walker:prot setup_profile {
     has username: str = "",
         bio: str = "",
         reports: list[ProfileBundle] = [];
@@ -80,7 +80,7 @@ walker:protect setup_profile {
     can apply with Profile entry;
 }
 
-walker:protect update_profile {
+walker:prot update_profile {
     has display_name: str = "",
         bio: str = "",
         location: str = "",
@@ -92,7 +92,7 @@ walker:protect update_profile {
     can apply with Profile entry;
 }
 
-walker:protect get_profile {
+walker:prot get_profile {
     has reports: list[ProfileBundle] = [];
 
     can run with Root entry;
@@ -107,7 +107,7 @@ walker:pub get_user_profile {
 }
 
 @accepts(most=MAX_AVATAR_BYTES, kinds=["image/jpeg", "image/png", "image/webp"])
-def:protect set_avatar(image: File | None) -> ProfileResult;
+def:prot set_avatar(image: File | None) -> ProfileResult;
 
 walker:pub get_all_profiles {
     has results: list[Profile] = [],
@@ -118,7 +118,7 @@ walker:pub get_all_profiles {
     can deliver with Root exit;
 }
 
-walker:protect get_trending {
+walker:prot get_trending {
     has counts: dict[str, int] = {},
         seen: dict[str, bool] = {},
         reports: list[list[TrendingTag]] = [];
@@ -128,7 +128,7 @@ walker:protect get_trending {
     can deliver with Root exit;
 }
 
-walker:protect load_feed {
+walker:prot load_feed {
     has search_query: str = "",
         feed: list[Tweet] = [],
         reports: list[list[Tweet]] = [];
@@ -138,7 +138,7 @@ walker:protect load_feed {
     can deliver with Root exit;
 }
 
-walker:protect get_channels {
+walker:prot get_channels {
     has seen: dict[str, bool] = {},
         results: list[ChannelBundle] = [],
         reports: list[list[ChannelBundle]] = [];
@@ -148,7 +148,7 @@ walker:protect get_channels {
     can deliver with Root exit;
 }
 
-walker:protect create_tweet {
+walker:prot create_tweet {
     has content: str,
         reports: list[Posted] = [];
 
@@ -156,7 +156,7 @@ walker:protect create_tweet {
     can make with Profile entry;
 }
 
-walker:protect create_channel {
+walker:prot create_channel {
     has name: str,
         description: str = "",
         reports: list[ChannelBundle] = [];
@@ -165,75 +165,75 @@ walker:protect create_channel {
     can make with Profile entry;
 }
 
-walker:protect find_profile {
+walker:prot find_profile {
     has target_id: str = "";
 
     can run with Root entry;
 }
 
-walker:protect follow_user(find_profile) {
+walker:prot follow_user(find_profile) {
     has reports: list[dict[str, bool]] = [];
 
     can act with Profile entry;
 }
 
-walker:protect unfollow_user(find_profile) {
+walker:prot unfollow_user(find_profile) {
     has reports: list[dict[str, bool]] = [];
 
     can act with Profile entry;
 }
 
-walker:protect find_tweet {
+walker:prot find_tweet {
     has tweet_id: str = "",
         actor: str = "";
 
     can run with Root entry;
 }
 
-walker:protect like_tweet(find_tweet) {
+walker:prot like_tweet(find_tweet) {
     has reports: list[Liked] = [];
 
     can act with Tweet entry;
 }
 
-walker:protect delete_tweet(find_tweet) {
+walker:prot delete_tweet(find_tweet) {
     has reports: list[dict[str, bool]] = [];
 
     can act with Tweet entry;
 }
 
-walker:protect add_comment(find_tweet) {
+walker:prot add_comment(find_tweet) {
     has content: str = "",
         reports: list[Commented] = [];
 
     can act with Tweet entry;
 }
 
-walker:protect find_channel {
+walker:prot find_channel {
     has channel_id: str = "";
 
     can run with Root entry;
 }
 
-walker:protect join_channel(find_channel) {
+walker:prot join_channel(find_channel) {
     has reports: list[dict[str, bool]] = [];
 
     can act with Channel entry;
 }
 
-walker:protect leave_channel(find_channel) {
+walker:prot leave_channel(find_channel) {
     has reports: list[dict[str, bool]] = [];
 
     can act with Channel entry;
 }
 
-walker:protect get_channel_detail(find_channel) {
+walker:prot get_channel_detail(find_channel) {
     has reports: list[ChannelBundle] = [];
 
     can act with Channel entry;
 }
 
-walker:protect create_channel_tweet(find_channel) {
+walker:prot create_channel_tweet(find_channel) {
     has content: str = "",
         reports: list[Posted] = [];
 

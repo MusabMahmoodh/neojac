@@ -211,7 +211,7 @@ with entry {
 
 ## Walkers in an app
 
-In an app, a walker tagged `:pub` or `:protect` in a served space is an
+In an app, a walker tagged `:pub` or `:prot` in a served space is an
 endpoint: a client spawns it by name, sending its fields, and receives its
 fields and reports back. See [Apps](../apps/index.md) (`neojac docs apps`) and
 [root](root.md) for the root such a walker starts at.

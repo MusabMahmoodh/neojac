@@ -140,7 +140,7 @@ curl -X POST http://127.0.0.1:8000/__jac/call/svc/api/where
   deployment's key), at `JAC_<APP>_LISTEN`, in the same request and reply form as a native space
   ([Serving a space](server.md)).
 - **Its calls of other spaces are awaited**, as in any JavaScript host, and it may call only their
-  `:pub` and `:protect` functions and walkers (E1210).
+  `:pub` and `:prot` functions and walkers (E1210).
 - **Its artifact**, when an app runs it alone, is `dist/<app>/`: the launcher `dist/<app>/<app>`
   that starts it, and beside it `dist/<app>/@app/`, which holds its modules (`.mjs`), Node and
   the project's npm packages. No app's name starts with `@`, so no app is named as a directory of
@@ -153,7 +153,7 @@ A node space refuses, with E5090, what Node cannot do yet:
 
 | Refused | Message |
 |---|---|
-| A `:protect` function | `` `:protect` in a node space `` |
+| A `:prot` function | `` `:prot` in a node space `` |
 | A walker as an endpoint | `a walker endpoint in a node space` |
 
 **JSX in a node space** is made by the JSX runtime its `ui` plugin names in `[ui.jsx]`'s
@@ -227,7 +227,7 @@ What differs from a native space:
 
 Walkers, nodes and edges work as they do natively. A cpython space with no `entry` serves exactly
 as a native one does: its functions, streams and walkers with their callers' roots, each call on a
-thread of its own, its graph kept in SQLite, accounts and `:protect`, `by`, scheduled functions
+thread of its own, its graph kept in SQLite, accounts and `:prot`, `by`, scheduled functions
 and jobs. A call it makes of another space blocks until the reply, and a stream it calls is read
 with `for`, as in a native one ([Crossings](crossings.md)).
 
@@ -437,7 +437,7 @@ where the window's program runs spaces of its own: in the example above, in the 
 - **A local user is a name.** `sign_in()` asks who is there, offering the names it knows, and
   signs the page in as them. The first time, it makes the account `local:<name>`, which no
   password signs in to.
-- **Each has a root of their own**, as every account does: `root` in a `:protect` endpoint is the
+- **Each has a root of their own**, as every account does: `root` in a `:prot` endpoint is the
   current user's.
 - **The current user is kept** in the data directory (the file `local-user`), so the app opens
   as them the next time: `sign_in()` then signs the page in at once. `sign_out()` makes the
@@ -475,4 +475,4 @@ defect.
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
 | E1220, E1221 | Text or a lowercase tag React Native does not show |
 | E5178 | In a node space, JSX where its `ui` plugin names no JSX runtime |
-| E5090 | In a node space: `:protect`, a walker endpoint. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |
+| E5090 | In a node space: `:prot`, a walker endpoint. In a cpython space: an import by path. In a node or wasm space: `File` and `@accepts` ([Files](files.md#by-host)). In an app: a wasm space in `run` beside native spaces, a wasm space naming no module, two cpython or two node spaces in one process, an app that runs no space (one that only serves pages), an app whose `profiles` hold no arrangement that runs every space the others run |

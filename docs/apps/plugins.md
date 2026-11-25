@@ -26,7 +26,7 @@ may then pick among the plugins the program was built with.
 | Abstraction | What source says | Its interface | One for each | Picked | Standard plugin |
 |---|---|---|---|---|---|
 | `store` | `root`, `root.shared`, `++>` | `store.contract.Store` | Space | As the program starts | `sqlite` |
-| `auth` | `:protect`, the caller's `root`, a page's `sign_in()` | `auth.contract.Auth` | Project | As the program starts | `accounts` |
+| `auth` | `:prot`, the caller's `root`, a page's `sign_in()` | `auth.contract.Auth` | Project | As the program starts | `accounts` |
 | `transport` | A call from outside, and a call to another app | `transport.contract.Transport` | Project | As the program starts | `http` |
 | `llm` | `by llm()` | `llm.contract.Model` | Project | As the program starts | `anthropic` |
 | `jobs` | `@job`, `flow f(x)`, `wait j` | `jobs.contract.Jobs` | Project | As the program starts | `process_jobs` |

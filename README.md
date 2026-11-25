@@ -132,7 +132,7 @@ with your own, with no change to the app's source and no rebuild of neojac.
 | What you write | The abstraction | The standard plugin |
 |---|---|---|
 | `root`, `root.shared`, `++>` | `store`: where the graph is kept | `sqlite` |
-| `:protect`, the caller's `root` | `auth`: who is calling | `accounts` |
+| `:prot`, the caller's `root` | `auth`: who is calling | `accounts` |
 | A call from outside, a call to another app | `transport`: how calls travel | `http` |
 | `by llm()` | `llm`: the model that answers | `anthropic` |
 | `@job`, `flow`, `wait` | `jobs`: work run apart | `process_jobs` |
