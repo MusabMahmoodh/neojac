@@ -62,7 +62,7 @@ Run `neojac help` for the commands.
 
 ## What one download contains
 
-A release is one file, `neojac` (`neojac.exe` for Windows), downloaded as `neojac-<version>-<platform>.gz`. It needs no system compiler, SDK, Python, Node or Rust, and nothing is installed beside it.
+A release is one file, `neojac` (`neojac.exe` for Windows), downloaded as `neojac-<version>-<platform>.gz` (`.exe.gz` for Windows). It needs no system compiler, SDK, Python, Node or Rust, and nothing is installed beside it.
 
 The file is the executable, and inside it, compressed, everything the executable reads and everything it links into the programs it builds:
 
@@ -79,7 +79,7 @@ The file is the executable, and inside it, compressed, everything the executable
 | `lib/rust` | Rust's standard library, for the `rustc` that is neojac |
 | `VERSION` | The release's version, the commit it was built from, and where its release is fetched from |
 
-Each of them is in the file once. neojac reads Clang's headers out of itself as it compiles; the rest it writes out, a part at a time, into its cache the first time something has to open that part as a file, and reads there from then on ([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). The cache can be deleted at any time.
+Each of them is in the file once. neojac reads Clang's headers out of itself as it compiles; the rest it writes out, a part at a time, into its cache the first time something has to open that part as a file, and reads there from then on ([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). The cache can be deleted at any time: the next command writes out again what it needs.
 
 What is for another platform (its C libraries, its CPython, its Node) is inside that platform's neojac. The first build for another platform fetches that file from the same release, checks it against the release's checksum, and reads those parts out of it.
 

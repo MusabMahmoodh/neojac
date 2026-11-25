@@ -63,9 +63,10 @@ curl -fsSL https://github.com/jaseci-labs/neojac/releases/latest/download/instal
 | Environment variable | What it changes | Default |
 |---|---|---|
 | `NEOJAC_BIN_DIR` | Where `neojac` goes | `~/.local/bin` |
+| `NEOJAC_CACHE_DIR`, `XDG_CACHE_HOME` | Read by `--uninstall` alone, as neojac reads them: where the cache it removes is | the per-user cache directory |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Sent with the request for the latest release, so the request is not held to GitHub's unauthenticated rate limit | none |
 
-These are read by the installer only. neojac itself reads none of them.
+neojac itself reads the two that say where its cache is, and none of the others.
 
 ## Where things are
 
@@ -83,7 +84,7 @@ Three more places are written when neojac runs, not when it is installed:
 
 ## Uninstalling
 
-`--uninstall` removes `$NEOJAC_BIN_DIR/neojac`, neojac's cache (the directory `NEOJAC_CACHE_DIR` names, if it is set) and `~/.neojac`, what is recorded of neojac's use. It leaves your projects' `.jac/` directories; delete those yourself.
+`--uninstall` removes `$NEOJAC_BIN_DIR/neojac`, neojac's cache and `~/.neojac`, what is recorded of neojac's use. Of the cache it removes what neojac keeps there (its formats' directories, `store/`, `linked/`, `cross/`, `fetched/`, `browse/`), and the directory itself when that leaves it empty: a directory `NEOJAC_CACHE_DIR` names that holds other things keeps them. It leaves your projects' `.jac/` directories; delete those yourself.
 
 ## Platforms the installer does not cover
 

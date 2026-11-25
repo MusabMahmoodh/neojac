@@ -755,7 +755,8 @@ neojac npx tsc --version
   Node's own Windows build does. So the native addons packages ship load as they do on Node:
   Node-API addons, and V8 addons built against the same C++ library, libc++. Their headers are
   neojac's `lib/node/include/node/`, which a C module's table names `{lib}/node/include/node` and
-  which are in neojac's cache beside the pages `neojac docs --path` names; build one with
+  which neojac's own compilers read in its cache, beside the pages `neojac docs --path` names,
+  whether or not they have been written out there; build one with
   [`neojac cc`](c-and-cpp.md) (`-shared -fPIC` on Linux,
   `-bundle -undefined dynamic_lookup` on macOS). An addon of Node's C++ API and V8's (`node.h`,
   `v8.h`) builds with `neojac c++` as node-gyp builds one: in C++20, with the module's name

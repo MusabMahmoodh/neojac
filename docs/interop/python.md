@@ -279,7 +279,9 @@ With `-target`, `neojac cc` builds another platform's extension from any machine
 
 - The interpreter is linked into the program. A program built with `neojac build main.jac`
   reads the standard library where neojac wrote it out in its cache, and packages from the
-  project's `.jac/venv`, at the paths they had when it was built.
+  project's `.jac/venv`, at the paths they had when it was built. With the cache deleted it finds
+  no standard library until a neojac command that needs Python has written it out again; an app's
+  build carries its own (next).
 - An app whose native space imports CPython's standard library ships it: `neojac build` writes the
   program with a `lib/` of its own beside it (`dist/<app>-<platform>/`), and the directory runs
   wherever it is moved, with no toolchain. See [Apps](../apps/index.md) (`neojac docs apps`).

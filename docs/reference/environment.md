@@ -1,6 +1,6 @@
 ---
 description: Every environment variable neojac reads, sets for the programs it runs, or that a program it built reads - NEOJAC_*, the names an app may not take, color and terminal variables, SDKROOT and the installer's - with what reads each and what it does.
-keywords: environment variables, NEOJAC_STORE, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_TELEMETRY, NEOJAC_TELEMETRY_URL, DO_NOT_TRACK, CI, HOME, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_HOME, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
+keywords: environment variables, NEOJAC_STORE, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_TELEMETRY, NEOJAC_TELEMETRY_URL, DO_NOT_TRACK, CI, HOME, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
 ---
 # Environment variables
 
@@ -94,6 +94,6 @@ The standard library reads the variables Python's does, with Python's meaning: `
 
 | Variable | What it changes | Default |
 |---|---|---|
-| `NEOJAC_HOME` | Where releases are unpacked | `~/.neojac` |
-| `NEOJAC_BIN_DIR` | Where the `neojac` link goes | `~/.local/bin` |
+| `NEOJAC_BIN_DIR` | Where `neojac` goes | `~/.local/bin` |
+| `NEOJAC_CACHE_DIR`, `XDG_CACHE_HOME` | Read by `--uninstall` alone, as neojac reads them: where the cache it removes is | the per-user cache directory |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Sent with the request for the latest release, so it is not held to GitHub's rate limit for unauthenticated requests | none |

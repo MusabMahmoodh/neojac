@@ -143,8 +143,7 @@ the notice again nor forgets that recording was turned off:
 Recording a run is one write of one line to the end of the week's file: no lock, and nothing read
 of what was recorded before, so it costs a run nothing it would notice, and many runs ending at
 once (`make -j` running `neojac cc`) each add their line. `install.sh --uninstall` removes
-`~/.neojac` where it is the installer's `NEOJAC_HOME`, as it is unless that names another
-directory, and these with it.
+`~/.neojac`, and these with it.
 
 ## Turning it off
 
