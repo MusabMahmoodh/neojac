@@ -471,7 +471,7 @@ defect.
 | Code | Cause |
 |---|---|
 | E1226 | A host that is not one of the six |
-| E1540 | In a cpython, node, browser or hermes space: a use of C, a C function, record or global ([C libraries](../interop/c-libraries.md)). In a node space: a standard-library module or function only the native runtime defines. In a hermes space: anything that needs a graph. In a browser, hermes or node space: an import of a stdjac name whose module needs the native runtime (`stdjac.remote`, `stdjac.graph`, `stdjac.plan`, `stdjac.server`) |
+| E1540 | In a cpython, node, browser or hermes space: a use of C, a C function, record or global ([C libraries](../interop/c-libraries.md)). In a node space: a standard-library module or function only the native runtime defines. In a hermes space: anything that needs a graph. In a browser, hermes or node space: a stdjac name, built in or imported, whose module needs the native runtime (`stdjac.remote`, `stdjac.graph`, `stdjac.plan`, and the modules of the server's words: `stdjac.auth`, `stdjac.jobs`, `stdjac.limits`, `stdjac.routes`, `stdjac.schedule`, `stdjac.static_files`) |
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
 | E1220, E1221 | Text or a lowercase tag React Native does not show |
 | E5178 | In a node space, JSX where its `ui` plugin names no JSX runtime |
