@@ -33,9 +33,10 @@ The documentation came with it. `neojac docs` prints the map of its pages, and `
 2. Asks GitHub for the latest release of `jaseci-labs/neojac`, unless `--version` names one.
 3. Downloads `neojac-<version>-<platform>.gz` and its `.sha256`, and stops unless the download matches the checksum. On a terminal it shows the download's progress.
 4. Unpacks it as `~/.local/bin/neojac`, in place of the neojac that was there: the file is written under another name beside it and renamed, so a neojac that is running is never a file half written.
-5. Builds and runs a one-line program with the installed compiler, started by its name as you will start it, with `NEOJAC_TELEMETRY=off`: the installer's build records nothing of its use. If that fails, the installer says so and exits with status 1; the file stays where it was put.
-6. Says that neojac collects anonymous usage statistics, and how to turn that off.
-7. If `~/.local/bin` is not on `PATH`, prints the line to add to your shell's profile.
+5. Removes what an older release's installer left in `~/.neojac`, when releases were unpacked archives: each version's directory and the link `current`. What is recorded of neojac's use stays.
+6. Builds and runs a one-line program with the installed compiler, started by its name as you will start it, with `NEOJAC_TELEMETRY=off`: the installer's build records nothing of its use. If that fails, the installer says so and exits with status 1; the file stays where it was put.
+7. Says that neojac collects anonymous usage statistics, and how to turn that off.
+8. If `~/.local/bin` is not on `PATH`, prints the line to add to your shell's profile.
 
 It needs `curl`, `gzip`, and `sha256sum` or `shasum`. Nothing else is installed: a release is that one file.
 

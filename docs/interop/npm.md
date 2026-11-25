@@ -743,7 +743,7 @@ neojac npx tsc --version
   neojac's own code, and runs in a process of its own. Its built-in modules are all there, `node:worker_threads`,
   `node:zlib`'s Brotli and `node:sqlite`'s sessions among them, and so is `Temporal` (dates,
   durations, time zones' rules and other calendars).
-- That program, `linked/<compiler>/node` in the cache, is the path `process.execPath` names, by
+- That program, `linked/<id>/node` in the cache, is the path `process.execPath` names, by
   which npm and `child_process` start Node again. `neojac node`, `npm` and `npx` put its directory
   first on `PATH`, so a script npm runs finds `node` there.
 - npm is the one Node ships, which neojac carries (`lib/node/npm/`) and writes out in its cache the

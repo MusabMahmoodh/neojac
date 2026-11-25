@@ -227,7 +227,7 @@ neojac's own code, and runs in a process of its own.
 
 | In the cache | What it is |
 |---|---|
-| `linked/<compiler>/python3.15` | The interpreter, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, the programs `python.exe` and `pythonw.exe` |
+| `linked/<id>/python3.15` | The interpreter, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, the programs `python.exe` and `pythonw.exe` |
 | `store/<id>/lib/cpython/lib/python3.15/` | The standard library, written out of neojac |
 | `store/<id>/lib/cpython/include/python3.15/` (`Include/` on Windows) | The headers a C extension builds against |
 | `store/<id>/lib/cpython/typeshed/` | typeshed's stubs of the standard library, which checking reads |
