@@ -213,10 +213,17 @@ there: a display (`[]`, `{}`), a comprehension, a constructor call,
 function returned and an item read back out of a container are not, even a
 container the call made.
 
+A destructor (`__del__`) is the call's where the call makes an object of
+its class: that object ends with the call, so what its `__del__` changes,
+the call changes. The destructor of an object the call is given is not the
+call's.
+
 What it reaches in the runtime's modules and in C (a file read, a
 subprocess, a request) the compiler does not follow: that it changes
-nothing is the declaration's word. A function that is not declared is never
-run alongside another, so leaving `@reads` off is always safe.
+nothing is the declaration's word. So is what a value whose class the
+compiler does not know (an `any`, what the runtime returned) does when it
+is called, compared, printed or iterated. A function that is not declared
+is never run alongside another, so leaving `@reads` off is always safe.
 
 ### A parameter the answerer takes whole
 
