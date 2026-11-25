@@ -78,11 +78,11 @@ jac.toml:5:22: error[E3057]: [check.lint] select names 'no-such-rule', which is 
 
 `style` is the style rules. `clean` is `style` and the policies for a project's layout and its comments: no comment, no docstring, every body in an `impl` in its module's annex. `fmt --fix` applies each rule of both, so selecting either never leaves work the fixer cannot do. The two rules in no group need their author, and are selected by name: `select = ["clean", "no-print", "too-many-params"]` is every rule.
 
-neojac's own `jac.toml` names no rules, so its compiler and its toolchain's build are held to `"clean"`: their source holds no comment or docstring and every body is in an annex. It names only the files the rules leave alone:
+neojac's own `jac.toml` names no rules, so its compiler, its runtime and its toolchain's build are held to `"clean"`: their source holds no comment or docstring and every body is in an annex. It names only the files the rules leave alone:
 
 ```toml
 [check.lint]
-exclude = ["rt/*", "tests/*", "examples/*", "scripts/*"]
+exclude = ["tests/*", "examples/*", "scripts/*"]
 ```
 
 ### The style group, in one program
@@ -450,6 +450,8 @@ A module is checked as a program of its own. One that is no program is fixed and
 | Another target's variant (`host.windows.jac` on Linux) | The check is of this machine's target | `neojac check <main.jac> --target <platform>` |
 | A file `jac.toml`'s `[check] exclude` names | The project says so: a fixture that must fail, say | The project's tests |
 
+A module's untagged file names the module. On a machine the module has a file of its own for (`host.linux.jac` beside `host.jac`, on Linux), that file is what is checked, once.
+
 A file of a project whose `archwire.jac` declares spaces is checked in its project, whose apps are its programs: precommit runs `neojac check` there once, however many of its files are staged ([Checking a project](check.md#checking-a-project)).
 
 `[check] exclude` is read from the `jac.toml` of the project precommit runs in, and from the file's own project where that is another:
@@ -459,14 +461,16 @@ A file of a project whose `archwire.jac` declares spaces is checked in its proje
 exclude = ["tests/*"]   # fnmatch patterns of file paths, relative to the project's root
 ```
 
-neojac's own names `rt/*` and `tests/*`: the runtime's modules are parts of programs (its internal ones are refused as a program, E5153), and the suites check the tests' programs.
+neojac's own names `tests/*`: the suites check the tests' programs.
+
+One of the runtime's own modules is checked as any module is. Named as a program it is the module neojac loads into every program, so its check is of the runtime it is part of.
 
 ## Which files the rules judge
 
 Selected rules judge the project's own modules as their author wrote them:
 
 - modules under the project's root (the directory of the `jac.toml`), but not what `[check.lint] exclude` names;
-- not the runtime's modules, which belong to the toolchain;
+- the runtime's modules only where the runtime stands in the project's own tree, as neojac's does: an installed toolchain's are outside it, and belong to the toolchain;
 - not the modules of a library or a plugin the project declares, which are their package's own wherever its directory is: one installed in the project's `eco/jac/`, or one declared by a directory inside the project's tree;
 - not code the compiler writes into a module.
 
