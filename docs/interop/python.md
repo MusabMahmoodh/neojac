@@ -227,7 +227,7 @@ in the cache that links back to neojac, which started by that name is that Pytho
 
 | In the cache | What it is |
 |---|---|
-| `2/names/<id>/bin/python3.15` | A link to neojac, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, a launcher that runs it |
+| `2/names/<id>/python/python3.15` | A link to neojac, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, a launcher that runs it |
 | `linked/<id>/` | CPython as the shared library neojac loads into its own process, built of the library below |
 | `store/<id>/lib/cpython/lib/python3.15/` | The standard library, written out of neojac |
 | `store/<id>/lib/cpython/include/python3.15/` (`Include/` on Windows) | The headers a C extension builds against |

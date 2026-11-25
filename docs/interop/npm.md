@@ -743,7 +743,7 @@ neojac npx tsc --version
   built-in modules are all there, `node:worker_threads`,
   `node:zlib`'s Brotli and `node:sqlite`'s sessions among them, and so is `Temporal` (dates,
   durations, time zones' rules and other calendars).
-- `node` is a name in the cache that links back to neojac (`2/names/<id>/bin/node`), which started
+- `node` is a name in the cache that links back to neojac (`2/names/<id>/node/node`, alone in its directory), which started
   by that name is that Node; it is the path `process.execPath` names, by which npm and
   `child_process` start Node again. `neojac node`, `npm` and `npx` put its directory
   first on `PATH`, so a script npm runs finds `node` there.
