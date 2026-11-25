@@ -58,7 +58,7 @@ These are neojac's own plumbing: a program you run under neojac sees them, and y
 
 ## Names an app may not take
 
-`JAC_<NAME>` is how an app's own settings are given where it runs: `JAC_<APP>_LISTEN`, `JAC_<APP>_DATA` and `JAC_<APP>_ARRANGEMENT` for an app, `JAC_REMOTE_<SPACE>` and `JAC_<SPACE>_CODE` for a space, `JAC_<ABSTRACTION>` and `JAC_<SPACE>_<ABSTRACTION>` for the plugin picked, and `JAC_<ABSTRACTION>_<FIELD>` for a plugin's setting ([Plugins](../apps/plugins.md)). neojac's own variables are `NEOJAC_<NAME>` and can't be one of these, but a few variables with this prefix are read by neojac or by a program's runtime for themselves. They are reserved, and an app or a space whose name would form one of them is refused where it is declared (E2232):
+`JAC_<NAME>` is how an app's own settings are given where it runs: `JAC_<APP>_LISTEN`, `JAC_<APP>_DATA` and `JAC_<APP>_ARRANGEMENT` for an app, `JAC_REMOTE_<SPACE>` and `JAC_<SPACE>_CODE` for a space, `JAC_<ABSTRACTION>` and `JAC_<SPACE>_<ABSTRACTION>` for the plugin picked, and `JAC_<ABSTRACTION>_<FIELD>` for a setting of the abstraction or of the plugin picked ([Plugins](../apps/plugins.md)). neojac's own variables are `NEOJAC_<NAME>` and can't be one of these, but a few variables with this prefix are read by neojac or by a program's runtime for themselves. They are reserved, and an app or a space whose name would form one of them is refused where it is declared (E2232):
 
 `JAC_THREADS`, `JAC_GC`, `JAC_CUDA`, `JAC_FRESH`, `JAC_APP`, `JAC_DEV_PAGE`, `JAC_DEV_SERVED`, `JAC_DEV_LISTEN`, `JAC_DEPLOY_KEY`, `JAC_TICKS_OFF` and `JAC_REMOTE_TOKEN` (each is in the tables on this page).
 
@@ -77,7 +77,7 @@ A program reads `JAC_GC` and `JAC_THREADS` from the environment it was started w
 |---|---|
 | `JAC_CUDA` | [Devices](../accel/devices.md) |
 | `JAC_LLM_MODEL` (the model `by llm(...)` asks), `ANTHROPIC_API_KEY` (the key the `anthropic` plugin sends), `JAC_LLM_ADDRESS` (a gateway to the API, in place of `https://api.anthropic.com`) | [by and sem](../language/by-and-sem.md) |
-| `JAC_<ABSTRACTION>` (which of the plugins it was built with a program runs with: `JAC_STORE`), `JAC_<ABSTRACTION>_<FIELD>` (a setting of that plugin: `JAC_STORE_PATH`), and `JAC_<SPACE>_<ABSTRACTION>` with `JAC_<SPACE>_<ABSTRACTION>_<FIELD>` for a space bound on its own. `ui` and `bundler` have none: they are picked as a space is built | [Plugins](../apps/plugins.md#picking-a-plugin-where-the-program-runs) |
+| `JAC_<ABSTRACTION>` (which of the plugins it was built with a program runs with: `JAC_STORE`), `JAC_<ABSTRACTION>_<FIELD>` (a setting of that plugin, `JAC_STORE_PATH`, or of the abstraction, `JAC_AUTH_REGISTRATION`), and `JAC_<SPACE>_<ABSTRACTION>` with `JAC_<SPACE>_<ABSTRACTION>_<FIELD>` for a space bound on its own. `ui` and `bundler` have none: they are picked as a space is built | [Plugins](../apps/plugins.md#picking-a-plugin-where-the-program-runs) |
 | `SSO_GITHUB_CLIENT_ID`, `SSO_GITHUB_CLIENT_SECRET` (a GitHub OAuth app's, with which the `accounts` plugin offers signing in through GitHub) | [Servers](../apps/server.md#signing-in-through-github) |
 | `SSO_GOOGLE_CLIENT_ID`, `SSO_GOOGLE_CLIENT_SECRET` (a Google OAuth client's, with which the `accounts` plugin offers signing in through Google) | [Servers](../apps/server.md#signing-in-through-google) |
 | `SMTP_PASSWORD` (the password the `smtp` plugin gives the server it hands mail to) | [Servers](../apps/server.md#the-mail-an-app-sends) |

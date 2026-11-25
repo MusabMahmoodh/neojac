@@ -108,10 +108,26 @@ only as long as it has callers and there may be several at once:
 | Scheduled functions | Run by the one process | Each run once a period, by one instance; an app asleep is woken for them, so one scheduled every few seconds never sleeps (`JAC_TICKS_OFF`, set as a secret, turns them off) |
 | Jobs | A copy of the program on the same machine | A copy started for the job, which outlives the instance that asked |
 
-The platform's build binds a plugin of its own for each of these, in place of the standard one
-([Plugins](../apps/plugins.md)). A project that binds one of them to a plugin of its own keeps its
-choice. The app's data directory still exists, and lasts as long as one instance: nothing an app
-means to keep belongs there.
+The platform builds the app for a place of its own, which provides a plugin of the platform's for
+each of these where this machine has the standard one
+([The place a program is built for](../apps/plugins.md#the-place-a-program-is-built-for)): the
+project is built as it is sent, and its `jac.toml` is read as its author wrote it.
+
+- **What the project leaves open, the platform provides.** A program launched holds the
+  platform's plugin for each abstraction its `jac.toml` names no plugin for, and runs with it.
+- **An abstraction's settings hold on the platform.** `[auth] registration = false` closes
+  registration there as here: they are the abstraction's, which whichever plugin runs is given
+  ([An abstraction's settings](../apps/plugins.md#an-abstractions-settings)).
+- **A standard plugin's own settings stay this machine's.** `[auth.accounts]` or
+  `[schedule.loop_schedule]` lists that plugin, which is then built into the app beside the
+  platform's; but the app starts with the platform's plugin, at that plugin's own settings, and
+  what the table says of the standard plugin (`rounds`, `tick`) does not reach it.
+- **A project that names a plugin itself keeps its choice** (`[store] plugin = "jsonstore"`), on
+  the platform as anywhere; where it keeps its data is then that plugin's, which may be the app's
+  data directory.
+
+The app's data directory still exists, and lasts as long as one instance: nothing an app means to
+keep belongs there.
 
 ## What an app is held to
 

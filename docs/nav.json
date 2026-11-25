@@ -984,11 +984,11 @@
               "page": "reference/diagnostics/e22-2.md"
             },
             {
-              "title": "E2226 on: a package's `[packages]`, its version, what it was written for, and a project's archwire",
+              "title": "E2226 on: a package's `[packages]`, its version, what it was written for, a project's archwire, and a place",
               "page": "reference/diagnostics/e22-3.md"
             },
             {
-              "title": "E2240 to E2335: imports in code, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, quoted paths, JavaScript's faces, C tags and C++ bases",
+              "title": "E2240 to E2336: imports in code, a place's plugins, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, Python names, quoted paths, JavaScript's faces, classes over values, TypeScript faces, C tags and C++ bases",
               "page": "reference/diagnostics/e22-4.md"
             },
             {

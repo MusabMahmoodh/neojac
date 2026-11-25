@@ -95,7 +95,7 @@ Compile a program, or a project's apps.
 
 ```sh
 neojac build [<program>...] -o <out> [<option>...]
-neojac build [<app>...] [--profile <profile>]
+neojac build [<app>...] [--profile <profile>] [--place <directory>]
 neojac build [<package>...]
 neojac build <directory>/pyproject.toml
 neojac build <directory>/package.json
@@ -116,6 +116,7 @@ neojac build <directory>/package.json
 | `--verify-reuse` | Compile every module, and check each one an earlier build made against what its sources make now |
 | `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--profile <profile>` | Build the apps as the archwire's profile of that name arranges them |
+| `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 A program is a file, known by its extension: a Jac program's main module (.jac), a C or C++ program (.c, .cc, .cpp), a Rust one (.rs) or a Python one (.py), each file built alone with its language's standard library. Or it is a directory, known by the first of these manifests it holds: an archwire.jac that declares spaces (a project's apps), jac.toml (a Jac project, whose program is its main.jac), Cargo.toml (a Rust package), cmodule.toml (a C module whose sources define main). With none named, it is the directory you are in.
@@ -128,6 +129,8 @@ In a project whose archwire.jac declares spaces, a name with no extension or pat
 
 A Python project the project holds ([pypi."<directory>"]), named by its pyproject.toml, is built into a directory of .jac/build/pypi/, which is printed: the files its wheel holds ([wheel."<directory>"]), each extension module of [extensions] built from its crate or its C module, and its metadata. It is what `neojac test` runs the project's own suite against. A Python project's wheel is built for this system alone. An npm tree, named by its package.json, has its extension modules built: each addon of [extensions] under it, from its C module, where the tree's code looks for it; with --target, for that platform, from the Jac its C module's files are ported to (an addon built from C and C++ is built on the system it is for).
 
+A program is built for a place, which provides a plugin for each of the language's abstractions the project leaves open: this machine, each abstraction's standard plugin, unless --place names the directory of another, whose jac.toml says `kind = "place"` and, in [provides], the plugin of each abstraction there. A plugin the project names itself is the project's choice wherever it is built.
+
 A build compiles each module on its own and keeps what it compiles in a cache (NEOJAC_CACHE_DIR, else neojac/ in your cache directory), so an edit recompiles only what it touched, and a build with nothing changed does nothing.
 
 | Example | What it does |
@@ -139,6 +142,7 @@ A build compiles each module on its own and keeps what it compiles in a cache (N
 | `neojac build count.jac sort.jac -o tools` | Two programs in one executable: `tools count` runs the first |
 | `neojac build` | Every app of the project in this directory |
 | `neojac build web --profile fleet` | One app, under a profile |
+| `neojac build web --place ../place` | One app, for the place in ../place |
 
 Its guide: [toolchain/build](../toolchain/build.md) (`neojac docs toolchain/build`).
 
@@ -148,7 +152,7 @@ Build a program, or one of a project's apps, and run it.
 
 ```sh
 neojac run [<program>] [<option>...] [-- <argument>...]
-neojac run <app> [--fresh] [--profile <profile>] [-- <argument>...]
+neojac run <app> [<option>...] [-- <argument>...]
 ```
 
 | Option | What it does |
@@ -162,6 +166,7 @@ neojac run <app> [--fresh] [--profile <profile>] [-- <argument>...]
 | `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--fresh` | Start the app with no data: what it kept in .jac/data/<app> is set aside, in a directory beside it named for the moment |
 | `--profile <profile>` | Build the app as the archwire's profile of that name arranges it |
+| `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `-- <argument>...` | What follows is the app's own command line |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
@@ -193,6 +198,7 @@ neojac dev <app> [<option>...] [-- <argument>...]
 | `--listen <address>` | Where the app is while it is worked on (default: 127.0.0.1:8000) |
 | `--fresh` | Start the app with no data, as `neojac run --fresh` does |
 | `--profile <profile>` | Build the app as the archwire's profile of that name arranges it |
+| `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `-- <argument>...` | What follows is the app's own command line |
 
 Run from a project's root. The app is built and started, and from then on a change to a file of the project builds again what the change reaches. The app's program is started again only when what it is made from changed; a build that fails says why and leaves what is running as it is.
@@ -212,7 +218,7 @@ Check a program, or a project's apps, for errors without building.
 
 ```sh
 neojac check [<program>] [<option>...]
-neojac check [<app>...] [--profile <profile>]
+neojac check [<app>...] [--profile <profile>] [--place <directory>]
 neojac check [<app>] --space <space> [<option>...]
 ```
 
@@ -224,6 +230,7 @@ neojac check [<app>] --space <space> [<option>...]
 | `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--space <space>` | Check one space's program on its host: an app's program of it where an app is named, else the space alone, as emit-js and emit-py load it |
 | `--profile <profile>` | Check the apps as the archwire's profile of that name arranges them |
+| `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Runs everything a build checks (syntax, names, types, ownership, the memory profile's contract) and reports every error it finds, the tests of the modules it checks among them. Exits with status 1 when there are any.
@@ -260,6 +267,7 @@ neojac test <file.jac> -o <runner> [<option>...]
 | `-o <runner>` | Build the one module's test runner, and don't run it |
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
 | `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
+| `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
@@ -815,7 +823,7 @@ Write a space's JavaScript, or its Python code.
 
 ```sh
 neojac emit-js <space> -o <dir> [<option>...]
-neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
+neojac emit-py <space> -o <dir> [--app <app> [<option>...]]
 ```
 
 | Option | What it does |
@@ -823,6 +831,7 @@ neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
 | `-o <dir>` | The directory to write |
 | `--app <app>` | The space as that app's program of it, with its plan |
 | `--profile <profile>` | The app under that profile |
+| `--place <directory>` | The app for the place in that directory |
 | `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 

@@ -105,7 +105,8 @@ The modules name abstractions and no mechanism: `root` for what is kept, `:prote
 `sign_in()` for who is calling, `by llm()` for the model, `@job` for work too long for the
 server's event loop, `File` for a profile's picture. What carries each out is a plugin `jac.toml`
 binds (`neojac docs plugins`): here the standard ones, `sqlite`, `accounts`, `anthropic`,
-`process_jobs` and `local_files`, with their settings in `[auth.accounts]` and `[llm.anthropic]`.
+`process_jobs` and `local_files`, with the settings of `auth` in `[auth]` and those of `anthropic`
+in `[llm.anthropic]`.
 
 A JacYac profile holds its picture as a `File` (`core/model/social.jac`): the page gives
 `set_avatar` what the file input gave it, the bytes go to the app in pieces and are kept under
@@ -164,7 +165,7 @@ stay off unless `NINJACLAW_DOCS_REPO` and `NINJACLAW_GITHUB_TOKEN` are set.
 
 Signing in is the `accounts` plugin's, its form included: a page calls `sign_in()`, and no
 module of the project holds a form, a password rule or an OAuth callback. An account has a
-username and an email (`[auth.accounts] email_required`). The username is the public handle, and
+username and an email (`[auth] email_required`). The username is the public handle, and
 either logs in. GitHub sign-in is offered where the app runs with a GitHub OAuth app's
 `SSO_GITHUB_CLIENT_ID` and `SSO_GITHUB_CLIENT_SECRET`; the OAuth app's callback is
 `<the site>/__jac/auth/github`, and `JAC_AUTH_ORIGIN` says where the site is when the OAuth app

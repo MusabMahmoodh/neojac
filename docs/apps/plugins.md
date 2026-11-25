@@ -1,22 +1,25 @@
 ---
-description: Plugins, the mechanisms behind the language's abstractions - the abstractions that take one and where each declares itself, binding a plugin in jac.toml, the plugins neojac ships, listing several and picking one where the program runs, the two that are picked as a space is built, settings and secrets, a project's own plugin by its path, writing one against its abstraction's contract, what a plugin imports and what its host gives it, and what is refused.
-keywords: binding a plugin, standard plugin, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, sqlfile, open_db, accountbook, AccountsAuth, Book, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin, mail plugin, smtp
+description: Plugins, the mechanisms behind the language's abstractions - the abstractions that take one and where each declares itself, the place a program is built for and the plugins it provides, binding a plugin in jac.toml, the plugins neojac ships, listing several and picking one where the program runs, the two that are picked as a space is built, an abstraction's settings and a plugin's, and secrets, a project's own plugin by its path, writing one against its abstraction's contract, what a plugin imports and what its host gives it, and what is refused.
+keywords: binding a plugin, standard plugin, kind = "place", [provides], --place, contract, store.contract, common.contract, Host, store, sqlite, Store, Secret, settle, an abstraction's settings, AuthSettings, give_settings, sqlfile, open_db, accountbook, AccountsAuth, Book, JAC_STORE, auth plugin, transport, http plugin, process_jobs, loop_schedule, memory_limits, files plugin, mail plugin, smtp
 ---
 # Plugins
 
 A plugin is what carries out one of the language's abstractions: where `root` is kept, who a
 caller is, what answers `by llm()`, which library a component becomes. A program's modules name
-the abstraction and never the plugin ([Principles](../language/principles.md)). The project names
-its plugins in `jac.toml`, and for most abstractions the place a program runs may pick among
-them.
+the abstraction and never the plugin ([Principles](../language/principles.md)). Three files say
+which plugin carries out each:
 
-```toml
-[store]
-plugin = "sqlite"
-```
+| Who | Writes | Says |
+|---|---|---|
+| An app's author | the project's `jac.toml` | what the app needs: the abstraction's settings, and a plugin only where the app must have that one |
+| A plugin's author | the plugin's `jac.toml` | which abstraction it fills, and its own settings |
+| Whoever runs a place | the place's `jac.toml` | which plugin provides each abstraction there |
 
-That is what a project with no `[store]` table has: each abstraction has a **standard plugin**,
-which neojac ships and a project uses until it names another.
+A project that names no plugin runs on a developer's machine with nothing set up, where each
+abstraction has its **standard plugin**, which neojac ships; and the same project, unchanged, is
+built for another place, whose plugins are its own ([The place a program is built
+for](#the-place-a-program-is-built-for)). For most abstractions, the machine a program runs on
+may then pick among the plugins the program was built with.
 
 ## The abstractions
 
@@ -43,7 +46,7 @@ release holds beside `rt/`:
 ```text
 abstractions/
   store/
-    jac.toml        the abstraction: its interface, its version, its standard plugin
+    jac.toml        the abstraction: its interface, its settings, its version, its standard plugin
     contract.jac    the contract: `Store`, and the types that cross it
     sqlite/         the standard plugin
   auth/  transport/  llm/  jobs/  schedule/  limits/  files/  mail/     each the same
@@ -68,6 +71,9 @@ standard = "sqlite"
 - **`interface`** is the class a plugin implements, in the abstraction's own contract:
   `<abstraction>.contract.<Interface>`. `ui` and `bundler` have none: their contract is a table of
   the plugin's `jac.toml`, which their own `jac.toml` describes.
+- **`settings`**, where an abstraction has settings of its own, is the class that holds them, in
+  its contract too: `auth`'s is `auth.contract.AuthSettings` ([Settings](#settings)). The others
+  have none.
 - **`interface_ver`** is the interface's version (below).
 - **`per`** is what has one plugin of it, `"project"` or `"space"`, and **`picked`** when that
   plugin is chosen, `"start"` or `"build"`.
@@ -82,7 +88,8 @@ above the plugin imports it, and it imports nothing of either
 
 **Each interface has a version,** a number that goes up when the interface changes so that a
 plugin written for it would not survive. Every interface is at 1 in this neojac but
-`transport`'s and `files`', which are at 2, and `auth`'s, which is at 3. A plugin says
+`transport`'s and `files`', which are at 2, and `auth`'s, which is at 4: since its version 4 an
+`auth` plugin's class derives from `AuthSettings`. A plugin says
 the version it was written for (`interface_ver`, [below](#writing-a-plugin)), and one written for
 another is refused before anything is asked of it (E2230): the message is that the interface
 moved on, and not that some method of the plugin's class is missing.
@@ -93,7 +100,75 @@ is a class that runs with the program, so a program may hold several and start w
 with one of each, and they have a page of their own:
 [UI plugins and bundlers](ui-bindings.md) (`neojac docs apps/ui-bindings`).
 
+## The place a program is built for
+
+A program is built for a place, which provides a plugin for each abstraction the project leaves
+open. With no `--place`, the place is this machine: each abstraction's standard plugin, `sqlite`
+for `store` and the rest ([The standard plugins](#the-standard-plugins)). Another place is a
+directory whose `jac.toml` says that it is one:
+
+```toml
+[project]
+name = "cloud"
+kind = "place"
+
+[packages]
+cloud_store = { path = "../plugins/cloud_store" }
+cloud_accounts = { path = "../plugins/cloud_accounts" }
+
+[provides]
+store = "cloud_store"
+auth = "cloud_accounts"
+transport = "http"
+llm = "anthropic"
+jobs = "process_jobs"
+schedule = "loop_schedule"
+limits = "memory_limits"
+files = "local_files"
+mail = "smtp"
+
+[store.cloud_store]
+schema = "apps"
+```
+
+```sh
+neojac dev web                        # this machine: sqlite, accounts, local_files, ...
+neojac build web --place ../cloud     # cloud_store, cloud_accounts, and neojac's for the rest
+```
+
+- **A place is named by its directory,** and `--place <directory>` is an option of every command
+  that builds or loads a program: `build`, `run`, `dev`, `check`, `test`, and `emit-js` and
+  `emit-py` with `--app`. A directory whose `jac.toml` does not say `kind = "place"`, or has no
+  `[provides]`, is no place (E2239).
+- **`[provides]` names the plugin of each abstraction there,** one picked as a program starts.
+  `ui` and `bundler` are picked as a space is built, by the project, and a place names neither
+  (E5158). A name that is no plugin is E2214, and a plugin of another abstraction E2215, at its
+  line.
+- **`[packages]` declares the place's plugins** as a project declares its own; a plugin neojac
+  ships needs no line. A plugin the place declares and `[provides]` does not name is E2227.
+- **A place gives the settings of the plugins it provides,** in `[<abstraction>.<plugin>]`
+  (`schema` above). An abstraction's own settings are the project's, and where a service is (a
+  database's address, a bucket) is the environment's, where the program runs. A place holds no
+  other table of an abstraction (E5158).
+- **The project's choice holds wherever it is built.** An abstraction the project names a plugin
+  for (`[store] plugin = "sqlite"`) has that plugin for every place: a place provides only what a
+  project leaves open. A plugin the project lists (`[store.jsonstore]`) is built in beside the
+  place's, and the project's table of the place's own plugin gives settings over the place's.
+- **The plugin the place provides is the one built in** for an abstraction the project leaves
+  open: a program built for `cloud` holds no `sqlite`, and `JAC_STORE` picks only among the
+  plugins it holds ([below](#picking-a-plugin-where-the-program-runs)).
+- **An abstraction the program uses that its place does not provide,** and its project leaves
+  open, is E2242, at the place's `[provides]`.
+- **The build cache tells places apart:** what a program built for one place is made of is not
+  taken for the same program built for another, and building for each in turn builds each.
+
+Nothing in the project changes from one place to another: no module, no line of `archwire.jac`,
+no line of `jac.toml`.
+
 ## Binding a plugin
+
+A project names a plugin itself where the app must have that one, wherever it is built; and lists
+the plugins a program holds to be picked among where it runs.
 
 ```toml
 [packages]
@@ -105,6 +180,9 @@ plugin = "sqlite"
 [store.jsonstore]
 file = "notes.json"
 indent = 2
+
+[auth]
+registration = false
 ```
 
 - **`[packages]` declares the plugins that are not neojac's own,** beside the project's
@@ -116,10 +194,12 @@ indent = 2
   says that it is one. A standard plugin needs no line there.
 - **A plugin the project declares is one it uses:** `plugin` names it or a table lists it, for
   the project or for a space. One that is declared and never used is E2227.
-- **`[<abstraction>] plugin`** names the plugin a program uses.
+- **`[<abstraction>] plugin`** names the plugin a program uses, whatever place it is built for.
 - **Each `[<abstraction>.<plugin>]` table lists a plugin.** Every listed plugin is compiled into
   the program, and the table holds its settings. The plugin `plugin` names needs a table only when
   it has settings.
+- **Every other key of `[<abstraction>]` is a setting of the abstraction,** which whichever plugin
+  the program runs with is given ([Settings](#settings)): `registration` above.
 - **`[spaces.<space>.<abstraction>]`** binds one space's, for an abstraction a space has one of.
   The spaces one program runs share one `store`, so they are bound alike (E5090 otherwise).
 - **`ui` and `bundler` have one plugin for a space,** the one `plugin` names, and only its table:
@@ -132,22 +212,23 @@ Nothing else changes: no module, and no line of `archwire.jac`.
 ## Picking a plugin where the program runs
 
 For an abstraction picked as a program starts (every one but `ui` and `bundler`), one program
-holds every plugin its project lists, and runs with one:
+holds every plugin its project lists, and the one its place provides, and runs with one:
 
 ```sh
 dist/api-linux-x86_64                        # sqlite, as jac.toml's `plugin` says
 JAC_STORE=jsonstore dist/api-linux-x86_64    # jsonstore
 ```
 
-- `JAC_<ABSTRACTION>` picks among the listed plugins as the program starts. For a space's own
-  binding it is `JAC_<SPACE>_<ABSTRACTION>`, which is read first.
+- `JAC_<ABSTRACTION>` picks among the plugins the program holds as the program starts. For a
+  space's own binding it is `JAC_<SPACE>_<ABSTRACTION>`, which is read first.
 - A name that is not listed ends the program with status 1:
 
   ```text
-  JAC_STORE=postgres: this program was not built with a plugin 'postgres' for `store`. jac.toml lists: sqlite, jsonstore
+  JAC_STORE=postgres: this program was not built with a plugin 'postgres' for `store`, only with: sqlite, jsonstore
   ```
 
-- Nothing is loaded as a program runs. A plugin `jac.toml` does not list is not in the program.
+- Nothing is loaded as a program runs. A plugin that neither `jac.toml` lists nor the place
+  provides is not in the program.
 
 So one artifact serves development and production: list both plugins, and say which where it is
 deployed.
@@ -173,6 +254,40 @@ JAC_STORE=jsonstore JAC_STORE_FILE=/var/lib/api/notes.json JAC_STORE_INDENT=0 di
 - **A value that is not of the setting's type where the program runs** ends it with status 1,
   naming the variable.
 
+### An abstraction's settings
+
+A setting that every plugin of an abstraction means the same by is the abstraction's, not one
+plugin's: that an app makes no new accounts, how long a session lasts, where callers reach the app.
+The project writes it under the abstraction, and it holds whichever plugin the program runs with:
+
+```toml
+[auth]
+registration = false
+origin = "https://example.org"
+
+[auth.accounts]
+path = "/var/lib/api/accounts.db"
+```
+
+- **They are the fields of a class the abstraction's contract declares,** which its `jac.toml`
+  names as `settings`: `auth`'s are `auth.contract.AuthSettings`'s. `auth` is the one abstraction
+  with settings of its own in this neojac
+  ([Serving a space](server.md#the-accounts-plugin) has them).
+- **Every plugin of the abstraction is given them:** its class derives from that class beside the
+  interface (`obj Accounts(Auth, AuthSettings)`), so they are fields of every plugin, and the
+  plugin reads them as it reads its own (`self.registration`). The program makes the plugin with
+  its own settings, gives it the abstraction's, then the environment's.
+- **`JAC_<ABSTRACTION>_<FIELD>` overrides them** as it does a plugin's own:
+  `JAC_AUTH_REGISTRATION=true`.
+- **A build holds `[<abstraction>]` to them** as it holds a plugin's table to its fields: a key that
+  is no setting of the abstraction is E1052 (a plugin's own setting is written under the plugin),
+  and a value of another type E1053. One written under a plugin's table, `[auth.accounts]
+  registration`, is E5158: it is the abstraction's. An abstraction with no settings takes no key
+  but `plugin` and plugins' tables (E5158).
+- **A setting is the abstraction's when every plugin of it must mean the same by it,** and one
+  plugin's when it is how that plugin keeps or does its work: a file's path, the rounds a password
+  is hashed with, how often a clock looks for work that is due.
+
 ### Secrets
 
 A setting of type `Secret` is never written in `jac.toml`, and is not in the program: it names a
@@ -186,7 +301,7 @@ Giving one a value in `jac.toml` is E1053.
 | Plugin | Carries out | Its settings |
 |---|---|---|
 | `sqlite` | `store`: a space's graph, as rows in a SQLite file, which the programs of one machine may keep together | `path`, the file: `graph.db` in the app's data directory |
-| `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; signing in through GitHub and through Google, where the program runs with an OAuth client's ID and secret; and addresses checked and passwords set again by mailed links, where the app sends mail | `path`, `rounds`, `session_seconds`, `local_users`, `email_required`, `registration`, `origin`, `github`, `github_api`, `google`, `google_api`, and the secrets `github_id`, `github_secret`, `google_id` and `google_secret` ([Serving a space](server.md#the-accounts-plugin)) |
+| `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; signing in through GitHub and through Google, where the program runs with an OAuth client's ID and secret; and addresses checked and passwords set again by mailed links, where the app sends mail | `path` and `rounds`, beside `auth`'s own ([Serving a space](server.md#the-accounts-plugin)) |
 | `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | `client_header`, the header a gateway in front of it writes each request's client address into ([Serving a space](server.md#the-address-a-caller-calls-from)) |
 | `anthropic` | `llm`: a model behind Anthropic's Messages API | `model`, `address`, `timeout`, `retries`, `rates`, and the secret `key` ([By and sem](../language/by-and-sem.md#the-anthropic-plugin)) |
 | `process_jobs` | `jobs`: each job in a copy of the program | `dir`, where a job's input and what it says are kept while it runs: `jobs` in the app's data directory |
@@ -278,6 +393,10 @@ obj JsonStore(Store) {
 ```
 
 - **Its fields are its settings.** `file` and `indent` are what `[store.jsonstore]` may give.
+- **A plugin of an abstraction with settings of its own derives from their class too,** beside
+  the interface: `obj TicketAuth(Auth, AuthSettings)`. They are then fields of the plugin, which
+  `[auth]` gives and the plugin honours. A class that does not derive from it is refused where it
+  is bound (E1053, `give_settings()`'s `plugin` expects `AuthSettings`).
 - **What it keeps for itself is a `postinit` field,** which no constructor takes: `rows` is no
   setting, and `[store.jsonstore] rows = ...` is E1052.
 - **`open(host)` is the first thing asked of it,** once, before anything else. The plugin is made
@@ -347,9 +466,9 @@ book that keeps them. It imports `auth.contract`,
 so only a plugin of `auth` declares it.
 
 - **`AccountsAuth` is an `Auth` but for where its accounts are kept.** A plugin's class extends it
-  and gives `open_book(host)`, the `Book` it keeps them in. The library's settings are the
-  plugin's, beside its own: `accounts` adds `path`
-  ([Serving a space](server.md#the-accounts-plugin)).
+  and gives `open_book(host)`, the `Book` it keeps them in. It derives from `AuthSettings`, and
+  adds a setting of its own, `rounds`, which is the plugin's beside its own: `accounts` adds
+  `path` ([Serving a space](server.md#the-accounts-plugin)).
 - **A `Book` is seventeen methods, each one step done whole:** a session by its token's hash,
   one begun and one ended, an account found by its username or email, one made unless either is
   taken, the user an identity of another service names (as it is known, and made where it is
@@ -444,18 +563,20 @@ example of its interface:
 
 | Code | Condition |
 |---|---|
-| E2214 | `jac.toml` names a plugin that `[packages]` does not declare and neojac does not ship |
+| E2214 | `jac.toml`, a project's or a place's, names a plugin that its `[packages]` does not declare and neojac does not ship |
 | E2215 | A plugin is bound to an abstraction it does not fill |
 | E2216 | A plugin's package is not where `[packages]` says, or its manifest does not say what it fills: its `class`, or for `ui` and `bundler` its table |
 | E2217 | A package declares an abstraction: the abstractions are neojac's own |
 | E2218 | A module imports a plugin |
 | E2221 | A library or a plugin declares a plugin: only a project does |
-| E2227 | The project declares a plugin that no binding names and no abstraction lists |
+| E2227 | The project declares a plugin that no binding names and no abstraction lists, or a place one that its `[provides]` does not name |
+| E2239 | `--place` names a directory that is no place: no `jac.toml`, no `kind = "place"`, or no `[provides]` |
+| E2242 | The program uses an abstraction that its project leaves open and its place does not provide |
 | E2230 | A plugin was written for another version of its abstraction's interface than this neojac's |
 | E2233 | A plugin, or a library a plugin declares, imports a module of stdjac or the contract of an abstraction it does not fill |
-| E1050, E1052, E1053 | A setting left out, a key that is no setting, a value of another type |
+| E1050, E1052, E1053 | A setting left out, a key that is no setting, a value of another type. E1053 too for a plugin's class that does not derive from its abstraction's settings |
 | E1281 | The plugin's class does not conform to the abstraction's interface |
-| E5158 | An abstraction's table holds something other than `plugin` and plugins' tables, or `[packages]` an entry that is no source. For `ui` and `bundler`: the table of a plugin the space is not built with, a setting the plugin does not list, or a form `jac.toml` had before (`ui = "preact"`, `bundler_config`) |
+| E5158 | An abstraction's table holds something other than `plugin`, plugins' tables and the abstraction's own settings; a plugin's table holds a setting of the abstraction; `[packages]` an entry that is no source; or a place's `[provides]` a key that is no abstraction picked as a program starts, or the place a table other than its plugins'. For `ui` and `bundler`: the table of a plugin the space is not built with, a setting the plugin does not list, or a form `jac.toml` had before (`ui = "preact"`, `bundler_config`) |
 | E1214 | A `ui` plugin that does not run on the space's host |
 | E5090 | Spaces that run in one program are bound to different plugins for an abstraction a space has one of; or a plugin is bound for one crossing (`[crossings.<a>.<b>.transport]`), which neojac does not build yet: every crossing of a project is carried by the plugin its `[transport]` binds |
 

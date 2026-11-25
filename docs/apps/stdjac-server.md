@@ -1,6 +1,6 @@
 ---
 description: The server's words - the built-in decorators that give a function a path of its own, a schedule, a limit or make it a job, what a job's handle offers, and JobFailed, consume_limit, address_checked and static_file, which a program imports from stdjac - with each name's signature; and the contracts a plugin for auth, jobs, schedules, limits or mail conforms to, with what each asks of the program that runs it.
-keywords: restspec, HTTPMethod, schedule, job, Job, JobNote, JobFailed, limit, consume_limit, address_checked, stdjac.server, auth.contract, jobs.contract, schedule.contract, limits.contract, mail.contract, Auth, AuthHost, SignIn, SignInField, SignInAction, Session, DeviceSignIn, Rejected, bearer_token, Jobs, JobsHost, JobState, Scheduler, Scheduled, Limits, Mailer, MailNotSent, static_file
+keywords: restspec, HTTPMethod, schedule, job, Job, JobNote, JobFailed, limit, consume_limit, address_checked, stdjac.jobs, stdjac.schedule, stdjac.limits, stdjac.routes, stdjac.auth, stdjac.mail, stdjac.static_files, auth.contract, jobs.contract, schedule.contract, limits.contract, mail.contract, Auth, AuthHost, SignIn, SignInField, SignInAction, Session, DeviceSignIn, Rejected, bearer_token, Jobs, JobsHost, JobState, Scheduler, Scheduled, Limits, Mailer, MailNotSent, static_file
 ---
 # The server's words
 
@@ -158,8 +158,11 @@ with entry {
   (`Cache-Control: public, max-age=31536000, immutable`); nothing else is.
 - `static_file("", path)` raises `ValueError: static_file needs the directory it serves`.
 
-## What else is in the module
+## What else stdjac holds of them
 
-The rest of what stdjac holds of the server (`auth_route`, `route_of`, `scheduled`, and the
-functions an app's start calls) is what `stdjac.app` serves a program with. A program does not
-import it.
+Each abstraction's words, with what connects them to its plugin, are a module of stdjac of its
+own: `stdjac.auth`, `stdjac.jobs`, `stdjac.schedule`, `stdjac.limits` and `stdjac.mail`.
+`@restspec`'s are `stdjac.routes`, and `static_file` is `stdjac.static_files`'. A program names
+none of them ([stdjac](stdjac.md#what-a-program-imports)). The rest of what they hold
+(`auth_route`, `route_of`, `scheduled`, and the functions an app's start calls) is what
+`stdjac.app` serves a program with. A program does not import it.

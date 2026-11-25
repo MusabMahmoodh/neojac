@@ -25,20 +25,22 @@ neojac run web                     # build the app, then run it
 neojac run cli -- docs status      # pass the app its own arguments
 neojac run web --fresh             # run it with no data
 neojac dev web                     # build it, run it, and rebuild as you edit
+neojac build web --place ../cloud  # an app for another place than this machine
 ```
 
 | Command | Does |
 |---|---|
-| `neojac build [<app>...] [--profile <profile>]` | Builds the apps named, or every app, and prints each artifact's path |
-| `neojac run <app> [--fresh] [--profile <profile>] [-- <argument>...]` | Builds one app as `build` does, then runs it in its own place with the arguments after `--`; the status it ends with is the app's |
-| `neojac dev <app> [--listen <address>] [--fresh] [--profile <profile>] [-- <argument>...]` | Builds one app, starts it, and from then on builds again what each edit reaches ([below](#working-on-an-app)) |
-| `neojac check [<app>...] [--profile <profile>]` | Checks the apps named, or every app and every space no app holds: each program an app is, on its host, as its build compiles it ([check](../toolchain/check.md#checking-a-project)) |
+| `neojac build [<app>...] [--profile <profile>] [--place <directory>]` | Builds the apps named, or every app, and prints each artifact's path |
+| `neojac run <app> [--fresh] [--profile <profile>] [--place <directory>] [-- <argument>...]` | Builds one app as `build` does, then runs it in its own place with the arguments after `--`; the status it ends with is the app's |
+| `neojac dev <app> [--listen <address>] [--fresh] [--profile <profile>] [--place <directory>] [-- <argument>...]` | Builds one app, starts it, and from then on builds again what each edit reaches ([below](#working-on-an-app)) |
+| `neojac check [<app>...] [--profile <profile>] [--place <directory>]` | Checks the apps named, or every app and every space no app holds: each program an app is, on its host, as its build compiles it ([check](../toolchain/check.md#checking-a-project)) |
 | `neojac check [<app>] --space <space>` | Checks one space's modules on its host: the app's program of it, with the app's plan, or the space alone |
 | `neojac emit-js <space> -o <dir> [--app <app>]` | Writes a JavaScript space's compiled modules (browser, node, hermes); with `--app`, as that app's build writes them, with its plan |
 | `neojac emit-py <space> -o <dir> [--app <app>]` | Writes a cpython space's compiled code and, in `<dir>/py/`, its Python source; with `--app`, with `stdjac.app` as its main module when it serves |
 
 `--profile` and `--fresh` are on [the archwire](archwire.md#profiles) and
-[An app's data](data.md#a-fresh-start). An app whose `jac.toml` lists `profiles` is built, with no
+[An app's data](data.md#a-fresh-start), and `--place`, the place an app is built for and the
+plugins it provides, on [Plugins](plugins.md#the-place-a-program-is-built-for). An app whose `jac.toml` lists `profiles` is built, with no
 `--profile`, as one artifact that holds them all
 ([below](#several-arrangements-in-one-artifact)). An app that cannot be built is reported after
 the others have been built, and the build exits with status 1.
@@ -373,7 +375,7 @@ plugin = "react"
 [llm.anthropic]
 model = "claude-sonnet-5-5"
 
-[auth.accounts]
+[auth]
 local_users = true
 ```
 
@@ -384,7 +386,7 @@ local_users = true
 | `[apps.<app>.window]` | `title`, `width`, `height`, `min_width`, `min_height` | [Hosts](hosts.md#desktop-apps) |
 | `[spaces.<space>]` | `base`, `npm` | [UI plugins and bundlers](ui-bindings.md#choosing-a-spaces-plugins), [Packages](../toolchain/packages.md#which-tree-a-spaces-imports-use) |
 | `[spaces.<space>.ui]`, `[spaces.<space>.bundler]` | The `ui` plugin and the `bundler` plugin a JavaScript space is built with, and the bundler's settings | [UI plugins and bundlers](ui-bindings.md#choosing-a-spaces-plugins) |
-| `[<abstraction>]`, `[<abstraction>.<plugin>]` | The plugin that carries out an abstraction (`store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`), and each listed plugin's settings | [Plugins](plugins.md) |
+| `[<abstraction>]`, `[<abstraction>.<plugin>]` | The plugin that carries out an abstraction (`store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files`, `mail`), the abstraction's own settings (`[auth] local_users`), and each listed plugin's settings | [Plugins](plugins.md) |
 
 An app that reaches a space it does not run, with no URL for it, does not build:
 
