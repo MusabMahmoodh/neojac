@@ -87,8 +87,8 @@ The tools are neojac itself, not separate installs:
 
 | Command | Runs |
 |---|---|
-| `neojac python` | CPython 3.15, with its own command line: a program neojac builds of its own CPython the first time, and keeps in its cache |
-| `neojac node`, `neojac npm`, `neojac npx` | Node, and the npm it ships: built and kept the same way |
+| `neojac python` | CPython 3.15, with its own command line, in neojac's own process: a part of it, loaded from a library it builds of the CPython it carries the first time |
+| `neojac node`, `neojac npm`, `neojac npx` | Node, and the npm it ships: a part of neojac the same way |
 | `neojac cc`, `neojac c++`, `neojac ar`, `neojac ld.lld`, ... | Clang and LLD, compiling C and C++ for any platform neojac builds for |
 | `neojac cargo`, `neojac rustc`, `neojac rustdoc` | The Rust toolchain, built against the same LLVM |
 

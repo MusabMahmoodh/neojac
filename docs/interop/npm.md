@@ -737,14 +737,15 @@ neojac npx tsc --version
 - Node is built from source by neojac, and neojac carries it once, as the libraries a Jac program
   that imports from npm links: its own C++ and libuv compiled by neojac, V8, ICU with every
   locale's data, and the OpenSSL, zlib, Zstandard, SQLite and libffi the toolchain also gives
-  CPython. `node` is such a program: the first time Node is needed, neojac builds it from those
-  libraries, says `building this neojac's Node`, and keeps it in its cache
-  ([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). Node is no part of
-  neojac's own code, and runs in a process of its own. Its built-in modules are all there, `node:worker_threads`,
+  CPython. neojac runs it as a part of itself, in its own process: the first time Node is needed,
+  it links those libraries into a shared library in its cache, says `building this neojac's Node`,
+  and loads it ([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). Its
+  built-in modules are all there, `node:worker_threads`,
   `node:zlib`'s Brotli and `node:sqlite`'s sessions among them, and so is `Temporal` (dates,
   durations, time zones' rules and other calendars).
-- That program, `linked/<id>/node` in the cache, is the path `process.execPath` names, by
-  which npm and `child_process` start Node again. `neojac node`, `npm` and `npx` put its directory
+- `node` is a name in the cache that links back to neojac (`2/names/<id>/bin/node`), which started
+  by that name is that Node; it is the path `process.execPath` names, by which npm and
+  `child_process` start Node again. `neojac node`, `npm` and `npx` put its directory
   first on `PATH`, so a script npm runs finds `node` there.
 - npm is the one Node ships, which neojac carries (`lib/node/npm/`) and writes out in its cache the
   first time it is run. In a Jac project, `neojac npm`

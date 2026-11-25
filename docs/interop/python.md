@@ -219,15 +219,16 @@ import. The project is the one the current directory is in. Anywhere else it is 
 Python.
 
 CPython is built from source by neojac, and neojac carries it once, as the library a Jac program
-using Python links. The interpreter is such a program: the first time Python is needed
-(`neojac python`, an install, a build that reads a package), neojac builds it from that library,
-says `building this neojac's CPython`, and keeps it in its cache
-([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). CPython is no part of
-neojac's own code, and runs in a process of its own.
+using Python links. neojac runs it as a part of itself, in its own process: the first time Python
+is needed (`neojac python`, an install, a build that reads a package), it links that library into
+a shared library in its cache, says `building this neojac's CPython`, and loads it
+([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). `python3.15` is a name
+in the cache that links back to neojac, which started by that name is that Python.
 
 | In the cache | What it is |
 |---|---|
-| `linked/<id>/python3.15` | The interpreter, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, the programs `python.exe` and `pythonw.exe` |
+| `2/names/<id>/bin/python3.15` | A link to neojac, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, a launcher that runs it |
+| `linked/<id>/` | CPython as the shared library neojac loads into its own process, built of the library below |
 | `store/<id>/lib/cpython/lib/python3.15/` | The standard library, written out of neojac |
 | `store/<id>/lib/cpython/include/python3.15/` (`Include/` on Windows) | The headers a C extension builds against |
 | `store/<id>/lib/cpython/typeshed/` | typeshed's stubs of the standard library, which checking reads |
@@ -242,10 +243,10 @@ is that `lib/cpython`. A file `<name>._pth` beside it, named for the name it is 
 
 A virtual environment made with it (`neojac python -m venv`, or the project's `.jac/venv`) is a
 standard one: its `bin/python` (`Scripts\python.exe` on Windows) runs that environment, and
-`bin/pip` installs into it. One made with `--copies` holds a copy of the interpreter, and is that environment's Python all
-the same: its `pyvenv.cfg`'s `home` names the interpreter in the cache, whose standard library it
-reads. When the cache has been deleted, the next neojac command in the project that needs Python
-builds the interpreter again, where it was.
+`bin/pip` installs into it. One made with `--copies` holds a copy of neojac under that name, and is that environment's Python all
+the same: its `pyvenv.cfg`'s `home` names the name's directory in the cache. When the cache has been
+deleted, the next neojac command in the project that needs Python makes the name again, where it
+was.
 
 In a virtual environment, `sysconfig`'s compilers are the toolchain's own: `CC`, `LDSHARED`,
 `BLDSHARED` and `LINKCC` are `neojac cc`, `CXX` and `LDCXXSHARED` are `neojac c++`, and `AR` is
