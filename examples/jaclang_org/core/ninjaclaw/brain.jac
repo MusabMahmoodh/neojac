@@ -55,9 +55,6 @@ sem TutorialOut.body = "Markdown without a top-level title: a short intro, then 
 glob WRITE_STEPS: int = 8,
      REPAIR_STEPS: int = 6,
      OUTPUT_TRIES: int = 2,
-     # The longest one call of the model may take, which the deadlines below
-     # are reckoned with: jac.toml's `[llm.anthropic]` gives each try
-     # `timeout` seconds, and `retries` more tries.
      CALL_MAX_S: int = 2 * 150,
      DEADLINE: dict[str, float] = {};
 

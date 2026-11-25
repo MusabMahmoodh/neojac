@@ -477,9 +477,6 @@ impl useJacYac -> JacYacState {
         refreshing = False;
         bridgeMessage = "";
     }
-
-    # Each profile here shows its picture from the file it holds: the caller's
-    # own last, which is the latest of it.
     shown: list[Profile] = list(allProfiles);
     if viewedProfile {
         shown.append(viewedProfile.profile);

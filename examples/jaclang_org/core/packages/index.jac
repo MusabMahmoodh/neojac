@@ -72,6 +72,4 @@ obj Registry {
 
 def registry_urls -> dict[str, str];
 
-def is_package_name(name: str) -> bool {
-    return name.count("/") == 1 and "" not in name.split("/");
-}
+def is_package_name(name: str) -> bool;

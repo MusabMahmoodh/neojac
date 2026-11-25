@@ -3,7 +3,3 @@
 [project]
 name = "common"
 kind = "contract"
-archwire = false
-
-[check.lint]
-select = []

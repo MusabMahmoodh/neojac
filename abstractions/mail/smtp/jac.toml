@@ -8,6 +8,3 @@ kind = "plugin"
 fills = "mail"
 interface_ver = 1
 class = "smtp.mail.Smtp"
-
-[check.lint]
-select = []

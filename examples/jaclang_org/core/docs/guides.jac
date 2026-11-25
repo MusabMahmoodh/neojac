@@ -1,6 +1,3 @@
-"""The docs the site serves: neojac's documentation tree, the Markdown under the
-repository's docs/, with `nav.json` saying their order and their sections."""
-
 import json;
 import os;
 import tomllib;
@@ -15,8 +12,6 @@ obj Guide {
         path: str;
 }
 
-"""A page nav.json names: its title, its place in nav.json's order of pages,
-and the titles of the sections it is in, outermost first."""
 obj NavPage {
     has page: str,
         title: str,
@@ -24,14 +19,7 @@ obj NavPage {
         section: list[str];
 }
 
-"""The docs tree: the directory `JAC_WEB_DOCS` names when it is set, else the
-repository's docs/ in the checkout this file is in."""
 def docs_dir -> Path;
-
-"""The version of neojac a docs tree documents. A release's docs/ has the
-release's VERSION file beside it, whose first line is the version; a
-checkout's has its `jac.toml`, whose `[project] version` it is. "" when the
-tree has neither."""
 def docs_version(docs_root: Path | None = None) -> str;
 
 def parse_guide(path: Path) -> Guide | None;

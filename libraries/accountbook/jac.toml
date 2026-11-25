@@ -6,7 +6,3 @@
 [project]
 name = "accountbook"
 kind = "library"
-archwire = false
-
-[check.lint]
-select = []

@@ -74,9 +74,9 @@ import_item ::= ("*" | "default" | any_word | NAME) ("as" NAME)?
 `archwire.jac` states them ([Import wiring](modules-wiring.md)), and one written in the module
 is E1144. The `import` statement is for everything else: the standard library, a package, a C or
 Rust library. It is also how a module that is of no project imports another, and a module of a
-project that says `archwire = false`
-([Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports)); the
-modules on this page are such modules.
+project of fixtures that no `archwire.jac` governs
+([Projects](../toolchain/projects.md#a-project-of-fixtures)); the modules on this page are such
+modules.
 
 | Form | Binds in the importing module |
 |---|---|

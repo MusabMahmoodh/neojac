@@ -80,15 +80,6 @@ typecheck = true
 [test]
 directories = ["."]
 
-[check.lint]
-select = ["style"]
-exclude = [
-    "core/site/source/FloatingSource.jac",
-    "core/site/landing/Reveal.jac",
-    "core/site/game/webgl_host.jac",
-    "core/async_utils.jac",
-]
-
 [memory]
 profile = "managed"
 enforce = ["arena", "core.site.game.sim", "core.site.game.gmath", "core.site.game.platform_rl"]

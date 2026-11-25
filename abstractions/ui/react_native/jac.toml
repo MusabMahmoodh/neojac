@@ -30,6 +30,3 @@ name = "useRef"
 [ui.effect]
 from = "react"
 name = "useEffect"
-
-[check.lint]
-select = []

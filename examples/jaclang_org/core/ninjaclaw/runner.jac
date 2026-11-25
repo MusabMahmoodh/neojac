@@ -42,13 +42,11 @@ obj RunResult {
         outcome: Outcome;
 }
 
-"""What a job needs: the question, and what it may answer from."""
 obj RunInput {
     has spec: JobSpec,
         catalog: list[IndexDoc];
 }
 
-"""The job running one question, read as it goes."""
 obj Runner {
     has job: Job[Outcome] | None = None,
         spec: JobSpec | None = None,

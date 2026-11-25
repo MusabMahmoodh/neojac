@@ -228,6 +228,8 @@ neojac check [<app>] --space <space> [<option>...]
 
 Runs everything a build checks (syntax, names, types, ownership, the memory profile's contract) and reports every error it finds, the tests of the modules it checks among them. Exits with status 1 when there are any.
 
+A project's modules are held to the rules every project keeps: no comment, no docstring, every body in an impl annex, and an archwire.jac that states the imports. A project written by hand may take rules out, by `human_mode = true` under [project] in jac.toml. An AI agent never writes that key: where a project it works in has it, the agent removes it with the [check.lint] `ignore` and `exclude` it allowed, and runs `neojac fmt --fix`.
+
 It takes what `neojac build` takes. A program is a Jac program's main module, or a directory, known by the first of these manifests it holds: an archwire.jac that declares spaces (a project's apps), jac.toml (a Jac project, whose program is its main.jac). With none named, it is the directory you are in.
 
 In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's. The apps named, or every app and every space no app holds, are each checked as their build makes them: every program an app is, on its host, all at once. --space checks one of them. --target, --memory, --lib and --rt are options of one program's check: a main module's, or a space's.
@@ -284,11 +286,13 @@ neojac fmt [--check] [--fix] <path>...
 | Option | What it does |
 |---|---|
 | `--check` | Change nothing: list the files that would change, and exit with status 1 if any would |
-| `--fix` | First rewrite what has a fix: each old spelling the language rejects, and each lint rule the file's project selects in jac.toml's [check.lint] |
+| `--fix` | First rewrite what has a fix: each old spelling the language rejects, and each rule the file's project keeps |
 
 Rewrites the .jac files the paths name in neojac's one layout. A directory means every .jac file under it, but those its jac.toml's [fmt] exclude patterns name.
 
-With --fix, a module and its annexes are fixed together, and nothing is written unless every file it would write parses.
+With --fix, a module and its annexes are fixed together, and nothing is written unless every file it would write parses. A comment and a docstring are removed; where jac.toml's [fmt] says `notes = true`, what each said is kept in the module's notes annex, notes/<module>.md, under the declaration it was about.
+
+The rules are the ones every project keeps. A project written by hand may take some out, by `human_mode = true` under [project]. An AI agent never writes that key: where a project it works in has it, the agent removes it with the [check.lint] `ignore` and `exclude` it allowed, and runs `neojac fmt --fix`.
 
 | Example | What it does |
 |---|---|
@@ -315,7 +319,7 @@ neojac port --mapping <language>
 | `--mapping <language>` | Print what port makes of each construct of a language: c, c++, rust, python or javascript |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
-Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments.
+Translates each source file into a Jac module that behaves as the file does, or refuses it and says why. A file is known by its extension, and a directory means every source under it that port translates. Each language is read by its own compiler, and the Jac is written in neojac's one layout, with the source's comments outside a project; in a project its rules hold, and the comments go as `neojac fmt --fix` has them go.
 
 A file ports whole or not at all: every construct port refuses is reported (E4001, E4005), nothing is written for that file, and the exit status is 1. An output that is already there is refused (E4003).
 
@@ -345,7 +349,7 @@ neojac precommit --install [--force]
 | `--install` | Install git's pre-commit hook, which runs `neojac precommit --verify`, and a commit-msg hook that refuses a commit naming an AI as its author |
 | `--force` | With --install, replace a hook neojac did not install, keeping it as a .bak file |
 
-Runs `neojac fmt --fix` on the .jac files staged for a commit (a module with its annexes), then checks each module as `neojac check` does, under the rules its project's jac.toml selects in [check.lint].
+Runs `neojac fmt --fix` on the .jac files staged for a commit (a module with its annexes), then checks each module as `neojac check` does, under the rules its project keeps.
 
 A module is checked as a program of its own, so one that is no program is fixed and not checked: a file that is another target's variant, and one that jac.toml's `[check] exclude` names. `neojac check <main> --target <platform>` checks a variant in the program it is part of.
 

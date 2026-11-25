@@ -639,7 +639,10 @@ starts with `W` is an error too. `neojac docs <code>` prints what the code means
 fix. Once `check` is clean, build and run. `neojac docs <word>` prints the page for any keyword,
 builtin, module or command, and `neojac docs search <text>` finds the rest.
 
-Unless a project's `jac.toml` selects other lint rules, `check` holds the code to the `"clean"`
-rules, by design: no comment, no docstring, and every body in its module's `impl` annex (W3050,
-W3051, W3055 on a first check). `neojac fmt --fix` rewrites a file to them; `neojac docs
-toolchain/lint` says where a comment's words go instead, and how to select other rules.
+Every project is held to the `"clean"` lint rules, by design, in `check`, `build`, `run` and
+`test`: no comment, no docstring, and every body in its module's `impl` annex (W3050, W3051, W3055
+on a first check). What a comment would say goes in the commit message or the project's README
+or docs, and a docstring's content in the README or docs. `neojac fmt --fix` rewrites a file to
+the rules, removing its comments and docstrings; a project whose `jac.toml` says `notes = true`
+under `[fmt]` keeps what they said in each module's notes annex, `notes/<module>.md`.
+`neojac docs toolchain/lint` says how.

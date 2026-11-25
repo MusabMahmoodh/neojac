@@ -57,9 +57,6 @@ impl build_version(bundle: DocBundle) -> DocVersion {
         fingerprint=bundle.fingerprint,
         pages=len(files),
     );
-
-    # nav.json's pages in its order, then the pages it does not name, by path:
-    # each is placed after the one before it, which is the order of the tree.
     named = sorted(
         [rel for rel in files.keys() if rel in bundle.nav],
         key=lambda (rel: str) { bundle.nav[rel].order },

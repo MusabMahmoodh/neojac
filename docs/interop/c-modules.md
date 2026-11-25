@@ -1645,7 +1645,7 @@ graph import {
 
 ## Declaring a C module's functions yourself
 
-A module of another top-level package, or of a project that says `archwire = false`, may also bind a C
+A module of another top-level package, or one that no `archwire.jac` governs (of no project, or of a project of fixtures), may also bind a C
 module's functions by declaring them, in the form that binds a [C library](c-libraries.md). The
 dotted name names the C module, which the program then builds. Under an `archwire.jac` this is a
 dependency's form alone: for a C module of the project's own it is E1144, since a wire from the

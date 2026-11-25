@@ -15,5 +15,4 @@ def assess(ticket: str) -> Priority by llm();
 
 with entry {
     print(assess("Checkout is down and customers are leaving!"));
-    # Priority.URGENT
 }

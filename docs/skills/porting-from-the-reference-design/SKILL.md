@@ -21,11 +21,11 @@ Every language page ends with how it differs from the reference design; read tha
 
 ## Steps
 
-1. **Make it a project.** Put a `jac.toml` (it may be empty) at the program's top directory, so imports resolve and settings apply (`starting-a-project`).
+1. **Make it a project.** Put a `jac.toml` (it may be empty) at the program's top directory, so imports resolve and settings apply (`starting-a-project`). **Never write `human_mode = true` in it, nor `kind = "fixtures"`, to keep the program's comments or to get out of the rules.** If its `jac.toml` already says `human_mode = true`, remove it and the `[check.lint]` `ignore` and `exclude` it allowed; steps 5 and 6 then bring the code to the rules every project keeps.
 2. **Rewrite the reference design's older import forms by hand:** `import:py os;` and `import:jac util;` (E0003, an import that names no module) are `import os;` and `import util;`.
 3. **Check it once to see the size of the job:** `neojac check main.jac`. The first report is syntax only; later phases appear as each is cleaned.
 4. **Fix by hand the W3010 of an impl that renames a parameter or leaves its parameters out:** copy the declaration's signature into the impl. Step 5 rewrites an impl that differs from its declaration only in a type, a default or the return type.
-5. **Let the formatter rewrite the old spellings:** `neojac fmt --fix .` (or the files you are porting). It rewrites `def f()`, `def __init__`, `@staticmethod`, `@property`, stray `;`, `case (a, b):`, `sem x is`, missing enum commas, `hasattr`/`getattr` null tests and the rest, then formats.
+5. **Let the formatter rewrite the old spellings:** `neojac fmt --fix .` (or the files you are porting). It rewrites `def f()`, `def __init__`, `@staticmethod`, `@property`, stray `;`, `case (a, b):`, `sem x is`, missing enum commas, `hasattr`/`getattr` null tests and the rest, then formats. In a project it also applies the rules every project keeps: it moves each body into `impl/<module>.impl.jac` and deletes every comment and docstring. Before it does, put what they say that is worth keeping in the commit message or the project's README or docs. Where `jac.toml` says `notes = true` under `[fmt]`, the fix keeps what each said in `notes/<module>.md` instead.
 6. **Check again and fix the rest by hand,** first error first, using the table below and `neojac docs <code>`. Repeat until `check` is quiet.
 7. **Review the silent changes** (below): code that compiles in both and means something else.
 8. **Build, run and compare** with the reference design's output on the same input: `neojac build main.jac -o main && ./main`.

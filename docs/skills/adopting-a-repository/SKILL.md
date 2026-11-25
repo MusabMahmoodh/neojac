@@ -27,6 +27,11 @@ own engines read, and writes every wire. Never write a table it could have writt
 edit `archwire.jac`'s wires by hand: `neojac fmt --fix archwire.jac` writes them from the
 sources. What is yours is each fact no manifest states.
 
+**Never write `human_mode = true` in the `jac.toml` absorb writes, nor `kind = "fixtures"`.** The
+project keeps the rules every project keeps. If a `jac.toml` already there says
+`human_mode = true`, remove it and the `[check.lint]` `ignore` and `exclude` it allowed, run
+`neojac fmt --fix .` at the root and `neojac check` on its programs, and fix by hand what is left.
+
 Work in a clean checkout, so that `git status` shows exactly what a step changed.
 
 ## Steps

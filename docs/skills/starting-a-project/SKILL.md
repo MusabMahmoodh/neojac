@@ -1,6 +1,6 @@
 ---
 name: starting-a-project
-description: Use when creating a new Jac project or adding structure to a loose .jac file: from an empty directory to a project with jac.toml and archwire.jac, modules with impl and test annexes, lint and format settings, that checks, builds, tests and formats with neojac.
+description: Use when creating a new Jac project or adding structure to a loose .jac file: from an empty directory to a project with jac.toml and archwire.jac, modules with impl and test annexes, the lint rules every project keeps, that checks, builds, tests and formats with neojac.
 ---
 # Starting a neojac project
 
@@ -17,6 +17,15 @@ neojac docs reference/jac-toml     # every key of jac.toml
 
 ## Steps
 
+**Never write `human_mode = true`.** If a `jac.toml` you find or extend already says it under
+`[project]`, switch the project over before anything else:
+
+1. Remove `human_mode`, and the `[check.lint]` `ignore` and `exclude` it allowed.
+2. Run `neojac fmt --fix .` at the project's root.
+3. Run `neojac check` on the project's programs, and fix by hand what it still reports.
+
+From then on the project keeps the rules every project keeps.
+
 ### 1. Make the directory and its jac.toml
 
 The directory that holds `jac.toml` is the project's root: neojac reads its settings there, imports stop climbing there, and neojac keeps what it makes in `.jac/` there.
@@ -31,38 +40,30 @@ mkdir shelf && cd shelf
 [project]
 name = "shelf"
 
-[check.lint]
-ignore = ["strip-comments", "strip-docstrings"]
-
 [test]
 directories = ["."]
 ```
 
 - `[project]` names the project. Its `exclude` lists what in the tree is not the project's source (`neojac docs toolchain/projects`).
-- `[check.lint]` chooses the lint rules `neojac check` reports. With none named they are `"clean"`, and that is intended: the style rules, every body in an `impl` in `impl/`, and no comment or docstring, where `neojac fmt --fix` takes the code. This project keeps its comments and docstrings, so it ignores the two rules that strip them; choose other rules by name from `neojac docs toolchain/lint`.
+- Every project keeps the `"clean"` lint rules, and that is intended: the style rules, every body in an `impl` in `impl/`, and no comment and no docstring. `neojac check`, `build`, `run` and `test` all report them, so a comment stops a build. `neojac fmt --fix` rewrites the code to them.
+- `[check.lint] select` only adds rules, the two in no group: `select = ["no-print"]`. Naming a rule the project keeps already (`"style"`, `"clean"`) is E3058.
+- Never write `human_mode = true`. It states that a person writes the project by hand, and only that person makes the statement; it is what makes `[check.lint] ignore` and `exclude` legal (E3059 without it). Never mark a project `kind = "fixtures"` to get out of the rules either: that is for a compiler's test programs.
 - `[test] directories` is where `neojac test` looks when it is given no paths.
 - Add `[fmt] exclude = ["gen/*"]` for generated code or programs meant not to compile.
+- `[fmt] notes = true` keeps what comments and docstrings said in notes annexes (step 2). Without it, the default, `neojac fmt --fix` deletes them.
 
-### 2. Write a module as declarations, with an impl annex
+### 2. Write a module as declarations, with its impl annex
 
-A module that other modules use reads best as its declarations and docstrings, with the bodies in its annex `impl/<module>.impl.jac`. The annex is part of the module: it sees the module's imports and names without importing them.
+A module reads as its declarations, with no comment and no docstring. Its bodies are in its impl annex, `impl/<module>.impl.jac`. The impl annex is part of the module: it sees the module's imports and names without importing them.
 
 `store.jac`:
 
 <!-- example: not checked: one module of a project; its bodies are in impl/store.impl.jac -->
 ```jac
-"""A shelf of items and their counts."""
-
 obj Shelf {
     has counts: dict[str, int] = {};
-
-    """Add `n` of `name`."""
     def add(name: str, n: int = 1);
-
-    """How many of `name` there are."""
     def count(name: str) -> int;
-
-    """Every name, most stocked first."""
     def ranked -> list[str];
 }
 ```
@@ -84,7 +85,32 @@ impl Shelf.ranked -> list[str] {
 }
 ```
 
-If you write the impls in the module first, `neojac fmt --fix .` moves them into `impl/` under `impls-in-annex`.
+If you write the impls in the module first, `neojac fmt --fix .` moves them into `impl/`.
+
+What a docstring or a comment would have said never goes in the source. Where it goes depends on the project's `jac.toml`:
+
+- **With no `[fmt] notes`, the default:** why the code is as it is goes in the commit message, and what a reader must know in the project's README or docs. `neojac fmt --fix .` deletes a comment or a docstring written in the source.
+- **Where `[fmt]` says `notes = true`:** in the module's notes annex, `notes/<module>.md`, under a heading for each declaration in dotted form (`## Shelf.add` for a method, `## Shelf.counts` for a field), the module's own notes under the title line, `# store`. `neojac fmt --fix .` moves there what a comment or a docstring written in the source said, adding to what is there. Nothing in the compiler reads the notes annex: it is for the people and agents who read the project.
+
+`notes/store.md`, in a project that says `notes = true`:
+
+```text
+# store
+
+A shelf of items and their counts.
+
+## Shelf.add
+
+Add `n` of `name`.
+
+## Shelf.count
+
+How many of `name` there are.
+
+## Shelf.ranked
+
+Every name, most stocked first.
+```
 
 ### 3. Write the tests in a test annex
 
@@ -154,7 +180,7 @@ dist/
 Run from the root:
 
 ```sh
-neojac check main.jac                 # quiet, status 0: main and what it imports, with lint
+neojac check main.jac                 # quiet, status 0: main and what it imports, with the lint rules
 neojac check store.jac                # quiet: store's own tests are checked here, not from main
 neojac build main.jac -o shelf && ./shelf
 neojac test                           # every module with tests under [test] directories
@@ -176,7 +202,10 @@ store.jac: 2 passed
 | E2087 | A declaration with no body: the annex is missing or misnamed | `impl/<module>.impl.jac`, named after the module |
 | W3010 | An impl's signature differs from its declaration's | Copy the declaration's signature |
 | E2016, E2017 | An impl for a body written inline, or a second impl | One body per declaration |
-| W3056 `[impls-in-annex]` | An impl in the module, or an annex beside it | `neojac fmt --fix .` |
+| W3055 `[separate-impls]`, W3056 `[impls-in-annex]` | A body written in its declaration, an impl in the module, or an annex beside it | `neojac fmt --fix .` |
+| W3050 `[strip-comments]`, W3051 `[strip-docstrings]` | A comment or a docstring in the source | Say what it said in the commit message or the docs, and run `neojac fmt --fix .`, which deletes it; where `[fmt]` says `notes = true`, the fix moves it into `notes/<module>.md` instead |
+| E3058 | `[check.lint] select` names a rule the project keeps already | Remove it: `select` adds only `no-print` and `too-many-params` |
+| E3059 | `[check.lint]` has `ignore` or `exclude` | Remove the key and keep the rules: `human_mode` is not yours to write. Where the project says it, switch it over as the top of Steps says |
 | E2231 | The project has no `archwire.jac` | Write it at the root (step 4) |
 | E1144 | A module imports another module of the project | Delete the import and add the wire the message gives to `archwire.jac` |
 | E2201 | A module, or a `.py` or `.js` file, that no layer names | Name it in a layer, or list what is not source under `[project] exclude` |
@@ -194,7 +223,8 @@ store.jac: 2 passed
 | Every `jac.toml` key | `neojac docs reference/jac-toml` |
 | Impl blocks and annex file names | `neojac docs language/impl` |
 | Imports, packages, how a module is found | `neojac docs language/modules` |
-| The lint rules to select | `neojac docs toolchain/lint` |
+| The lint rules, what `select` adds, `human_mode`, the notes annex | `neojac docs toolchain/lint` |
+| `[fmt] notes` | `neojac docs fmt.notes` |
 | Tests and `neojac test` | `neojac docs language/tests`, `neojac docs toolchain/test` |
 | Layers and wires (`archwire.jac`) | `neojac docs language/modules-wiring` |
 | Spaces and apps (`archwire.jac`) | `neojac docs apps/index` |
