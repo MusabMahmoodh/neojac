@@ -223,11 +223,11 @@ using Python links. neojac runs it as a part of itself, in its own process: the 
 is needed (`neojac python`, an install, a build that reads a package), it links that library into
 a shared library in its cache, says `building this neojac's CPython`, and loads it
 ([The build cache](../toolchain/cache.md#what-neojac-writes-out-of-itself)). `python3.15` is a name
-in the cache that links back to neojac, which started by that name is that Python.
+in the cache that is neojac's own file again, which started by that name is that Python.
 
 | In the cache | What it is |
 |---|---|
-| `2/names/<id>/python/python3.15` | A link to neojac, which run by that name, or as a virtual environment's `python`, is that Python. On Windows, a launcher that runs it |
+| `2/names/<id>/python/python3.15` | neojac's own file under its Python name (a hard link to it, not a symbolic one, so the file's real path is still a Python), which run by that name, or as a virtual environment's `python`, is that Python. Where the cache is on another disk than neojac it is a symbolic link. On Windows, a launcher that runs it |
 | `linked/<id>/` | CPython as the shared library neojac loads into its own process, built of the library below |
 | `store/<id>/lib/cpython/lib/python3.15/` | The standard library, written out of neojac |
 | `store/<id>/lib/cpython/include/python3.15/` (`Include/` on Windows) | The headers a C extension builds against |
