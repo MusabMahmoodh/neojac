@@ -136,9 +136,13 @@ neojac grammar compiler/parsing/parser.jac --page -o docs/reference/grammar.md
 ## emit-js and emit-py
 
 ```sh
-neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>]]
-neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>]]
+neojac emit-js <space> -o <dir> [--app <app> [--profile <profile>] [--place <directory>]]
+neojac emit-py <space> -o <dir> [--app <app> [--profile <profile>] [--place <directory>]]
 ```
+
+With `--app`, the space is written as that app's build writes it: under the archwire's profile
+`--profile` names, and for the place `--place` names
+([Plugins](../apps/plugins.md#the-place-a-program-is-built-for)).
 
 In a project with an `archwire.jac` ([Projects](projects.md)), a space whose host is not native compiles to another language: a `node`, `browser` or `hermes` space to JavaScript modules, a `cpython` space to Python code. These commands check one space's modules and write what an app's build would write for it, so you can read it, run it, or hand it to your own tools. Run them from the project's root.
 

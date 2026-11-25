@@ -16,7 +16,7 @@ neojac build hello.jac -o hello
 | Form | Builds | Documented in |
 |---|---|---|
 | `neojac build [<program>...] -o <out> [<option>...]` | A program: the one a Jac main module starts, or a C, C++, Rust or Python program; or several Jac programs in one executable | This page |
-| `neojac build [<app>...] [--profile <profile>]` | The apps of the project in this directory (one whose `archwire.jac` declares spaces), each into `dist/` | [Building apps](../apps/building.md) |
+| `neojac build [<app>...] [--profile <profile>] [--place <directory>]` | The apps of the project in this directory (one whose `archwire.jac` declares spaces), each into `dist/` | [Building apps](../apps/building.md) |
 
 Which form runs is decided by the arguments. In a project whose `archwire.jac` declares spaces, a name with no extension or path in it is an app's; anything else names a program.
 
@@ -76,6 +76,7 @@ The exit status is 0 when the output was built or was up to date, and 1 otherwis
 | `--rt <dir>` | The runtime to build against |
 | `--diagnostics <form>` | How diagnostics are written on stderr: `human` (the default), or `json`, one record a line ([check](check.md#diagnostics-as-json)) |
 | `--profile <profile>` | For app builds only: see [Building apps](../apps/building.md) |
+| `--place <directory>` | The place the program is built for, which provides a plugin for each abstraction the project leaves open: see [Plugins](../apps/plugins.md#the-place-a-program-is-built-for) |
 
 An option that takes a value takes it as the next argument, or, spelled with `--`, after `=` (`--rt=<dir>`); every command reads its arguments the same way ([Commands](../reference/commands.md#how-a-command-line-is-read)). A build takes one program, or several Jac programs for [one executable](#several-programs-in-one-executable). Mistakes are answered with the usage and the nearest option:
 
@@ -83,7 +84,7 @@ An option that takes a value takes it as the next argument, or, spelled with `--
 neojac build: it has no option '--relese' (did you mean '--release'?)
 
 Usage: neojac build [<program>...] -o <out> [<option>...]
-       neojac build [<app>...] [--profile <profile>]
+       neojac build [<app>...] [--profile <profile>] [--place <directory>]
 
 Run `neojac help build` for what it takes.
 ```

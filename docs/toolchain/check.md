@@ -41,7 +41,7 @@ main.jac:7:18: error[E1001]: expected int, found str
 
 ```sh
 neojac check [<program>] [<option>...]
-neojac check [<app>...] [--profile <profile>]
+neojac check [<app>...] [--profile <profile>] [--place <directory>]
 neojac check [<app>] --space <space> [<option>...]
 ```
 
@@ -65,6 +65,7 @@ A program of another language is refused (E5090): its own compiler checks it whe
 | `--rt <dir>` | The runtime to check against (default: the `rt/` beside neojac) |
 | `--space <space>` | Check one space's program on its host: an app's program of it where an app is named, else the space alone |
 | `--profile <profile>` | Check the apps as the archwire's profile of that name arranges them |
+| `--place <directory>` | Check the program as a build for that place compiles it, with the plugins it provides ([Plugins](../apps/plugins.md#the-place-a-program-is-built-for)) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: `human` (the default), or `json`, one record a line ([Diagnostics as JSON](#diagnostics-as-json)) |
 
 `check` takes one program. It checks that main module and every module it imports; there is no need to name the others, and naming two is an error. `--target`, `--memory`, `--lib` and `--rt` are options of one program's check: a main module's, or a space's named with `--space`.

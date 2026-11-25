@@ -12,6 +12,7 @@ import from urllib.parse { urlencode, urlsplit }
 import from auth.contract {
     Auth,
     AuthHost,
+    AuthSettings,
     DeviceSignIn,
     Rejected,
     Session,
@@ -20,7 +21,6 @@ import from auth.contract {
     SignInField,
     bearer_token,
 }
-import from common.contract { Secret }
 
 glob USERNAME: str = "[a-z0-9][a-z0-9._-]{2,31}",
      LOGIN_PER_USER: int = 5,
@@ -66,21 +66,8 @@ obj Book {
     def reset(key: str, password: str, now: float) -> str abst;
 }
 
-obj AccountsAuth(Auth) {
-    has rounds: int = 600000,
-        session_seconds: float = 604800.0,
-        local_users: bool = False,
-        email_required: bool = False,
-        registration: bool = True,
-        github_id: Secret = Secret(variable="SSO_GITHUB_CLIENT_ID"),
-        github_secret: Secret = Secret(variable="SSO_GITHUB_CLIENT_SECRET"),
-        github: str = "https://github.com",
-        github_api: str = "https://api.github.com",
-        google_id: Secret = Secret(variable="SSO_GOOGLE_CLIENT_ID"),
-        google_secret: Secret = Secret(variable="SSO_GOOGLE_CLIENT_SECRET"),
-        google: str = "https://accounts.google.com",
-        google_api: str = "https://oauth2.googleapis.com",
-        origin: str = "";
+obj AccountsAuth(Auth, AuthSettings) {
+    has rounds: int = 600000;
 
     has book: dyn Book | None postinit,
         host: dyn AuthHost | None postinit,

@@ -62,11 +62,13 @@ site_api = "https://jaclang.org"
 social = "https://jaclang.org"
 knowledge = "https://jaclang.org"
 
-# The plugins behind the abstractions the modules name: who a caller is and
-# how one signs in (accounts of a username, an email and a password, and
-# GitHub where the app runs with an OAuth app's SSO_GITHUB_CLIENT_ID and
-# SSO_GITHUB_CLIENT_SECRET), and the model `by llm()` asks.
-[auth.accounts]
+# The abstractions the modules name, and the plugins behind them: who a
+# caller is and how one signs in (every account has an email, whichever
+# plugin keeps the accounts; the standard one keeps them with a username and
+# a password, and signs in through GitHub where the app runs with an OAuth
+# app's SSO_GITHUB_CLIENT_ID and SSO_GITHUB_CLIENT_SECRET), and the model
+# `by llm()` asks.
+[auth]
 email_required = true
 
 [llm.anthropic]

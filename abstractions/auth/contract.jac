@@ -1,4 +1,4 @@
-import from common.contract { Host }
+import from common.contract { Host, Secret }
 
 obj SignInField {
     has name: str,
@@ -41,6 +41,22 @@ obj Rejected(Exception) {
         retry_after: int = 0;
 
     def __str__ -> str;
+}
+
+obj AuthSettings {
+    has session_seconds: float = 604800.0,
+        local_users: bool = False,
+        email_required: bool = False,
+        registration: bool = True,
+        origin: str = "",
+        github: str = "https://github.com",
+        github_api: str = "https://api.github.com",
+        github_id: Secret = Secret(variable="SSO_GITHUB_CLIENT_ID"),
+        github_secret: Secret = Secret(variable="SSO_GITHUB_CLIENT_SECRET"),
+        google: str = "https://accounts.google.com",
+        google_api: str = "https://oauth2.googleapis.com",
+        google_id: Secret = Secret(variable="SSO_GOOGLE_CLIENT_ID"),
+        google_secret: Secret = Secret(variable="SSO_GOOGLE_CLIENT_SECRET");
 }
 
 obj AuthHost(Host) {
