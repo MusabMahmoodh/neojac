@@ -412,7 +412,7 @@ profiles = ["default", "local"]
 [apps.desk.remote]
 api = "https://api.example.com"
 
-[auth.accounts]
+[auth]
 local_users = true
 ```
 
@@ -428,10 +428,10 @@ local_users = true
 
 ### Local users
 
-`local_users = true` in `[auth.accounts]`, a setting of the standard auth plugin, makes the people
-at the machine the app's users, with no password between them and it. It applies where the
-window's program runs spaces of its own: in the example above, in the arrangement `local`. As
-`default`, the app has no local users, and its user signs in to the server's accounts
+`local_users = true` in `[auth]`, a setting of the `auth` abstraction that its plugins honour,
+makes the people at the machine the app's users, with no password between them and it. It applies
+where the window's program runs spaces of its own: in the example above, in the arrangement
+`local`. As `default`, the app has no local users, and its user signs in to the server's accounts
 ([Pages](pages.md#signing-in)).
 
 - **A local user is a name.** `sign_in()` asks who is there, offering the names it knows, and

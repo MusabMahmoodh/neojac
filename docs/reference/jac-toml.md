@@ -381,6 +381,7 @@ An abstraction's own declaration. It is a table of neojac's own files, the `jac.
 | Key | Type | Meaning |
 |---|---|---|
 | `abstraction.interface` | string | The class a plugin of it implements, in the abstraction's own contract: `<abstraction>.contract.<Interface>` (`store.contract.Store`). `ui` and `bundler` have none: their contract is the `[ui]` or `[bundler]` table of a plugin's `jac.toml` |
+| `abstraction.settings` | string | The class of the abstraction's own settings, in its contract: `<abstraction>.contract.<Class>` (`auth.contract.AuthSettings`). A plugin's class derives from it, and a project gives its fields in `[<abstraction>]`. An abstraction with no settings of its own has none |
 | `abstraction.interface_ver` | integer | The interface's version: what a plugin's `plugin.interface_ver` has to be (E2230) |
 | `abstraction.per` | string | What has one plugin of it: `"project"` or `"space"` |
 | `abstraction.picked` | string | When that plugin is chosen: `"start"`, as a program starts, or `"build"`, as a space is built |
@@ -407,6 +408,7 @@ The plugin that carries out one of the language's abstractions, and the plugins 
 |---|---|---|---|
 | `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`, `smtp` for `mail`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
 | `<abstraction>.<plugin>` | table | | Lists the plugin `<plugin>`, which is then compiled into the program, and holds its settings: each key a field of the plugin's class. For `ui` and `bundler`, only the table of the plugin the space is built with, holding the settings that plugin's own `jac.toml` lists |
+| `<abstraction>.<setting>` | a setting's type | the setting's default | A setting of the abstraction itself, which whichever plugin the program runs with is given: a field of the class its `settings` names (`[auth] registration = false`). Only `auth` has settings of its own ([Plugins](../apps/plugins.md#an-abstractions-settings)) |
 | `spaces.<space>.<abstraction>` | table | the project's | The same table for one space, for an abstraction a space has one of: `store`, `ui` and `bundler` |
 
 ```toml
@@ -420,18 +422,18 @@ file = "notes.json"
 model = "claude-sonnet-5-5"
 timeout = 30
 
-[auth.accounts]
+[auth]
 local_users = true
 ```
 
-A setting is overridden where the program runs by `JAC_<ABSTRACTION>_<FIELD>` ([Environment variables](environment.md)).
+A setting, of the abstraction's or of a plugin's, is overridden where the program runs by `JAC_<ABSTRACTION>_<FIELD>` ([Environment variables](environment.md)).
 
 | Code | Cause |
 |---|---|
 | E2214 | `plugin`, or a plugin's table, names a plugin there is none of |
 | E2215 | The plugin fills another abstraction |
 | E1050, E1052, E1053 | A setting left out that has no default, a key that is no setting, a value of another type |
-| E5158 | A key of the table that is neither `plugin` nor a plugin's table. For `ui` and `bundler`: a string where the table is (`ui = "preact"`), the table of a plugin the space is not built with, or a setting its plugin does not list |
+| E5158 | A key of the table that is neither `plugin`, a plugin's table nor a setting of the abstraction; a setting of the abstraction written in a plugin's table (`[auth.accounts] registration`). For `ui` and `bundler`: a string where the table is (`ui = "preact"`), the table of a plugin the space is not built with, or a setting its plugin does not list |
 
 ## [spaces.\<space\>]
 

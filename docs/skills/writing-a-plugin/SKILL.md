@@ -131,6 +131,13 @@ obj WindowLimits(Limits) {
      give, and what `JAC_LIMITS_LONGEST_WAIT` overrides where the program runs. Give each a
      default unless a project must say it (an API's address): a field with none that is given no
      value is E1050.
+   - **An abstraction with settings of its own gives them to every plugin of it.** Its
+     `jac.toml` names their class (`settings = "auth.contract.AuthSettings"`), and the plugin's
+     class derives from it beside the interface: `obj MyAuth(Auth, AuthSettings)`. They are
+     then its fields (`self.registration`), which a project writes under `[auth]`, not under the
+     plugin. Honour each as the contract means it, and declare no field of the same name: a
+     setting that every plugin of the abstraction must mean the same by is the abstraction's,
+     and one that is only how this plugin does its work is the plugin's.
    - **State of its own is a `postinit` field,** which no constructor takes and no project sets.
    - **Do nothing in `postinit` but make empty state.** The plugin is made with `jac.toml`'s
      settings, then given the environment's, and only then opened: `open(host)` is the first
@@ -262,11 +269,13 @@ minify = true
 | E1281, E1282 at the plugin's class | The class lacks a method of the interface, or one has another signature | Define each method as the interface declares it |
 | E1052 at a line of `jac.toml` | A key under the plugin's table is no field of its class (a `postinit` field is none either) | Make it a field, or take the key out |
 | E1053 at a line of `jac.toml` | A value of another type than the field's, or a `Secret` written down | Fix the value; give a secret by its variable where the program runs |
+| E1053 at the plugin's table, `give_settings()`'s `plugin` expects `AuthSettings` | The abstraction has settings of its own and the class does not derive from their class | Derive from it beside the interface: `obj MyAuth(Auth, AuthSettings)` |
 | E1050 at the plugin's table | A field with no default is given no value | Give it in `jac.toml`, or give the field a default |
 | E2218 in a module | A module imports the plugin | Delete the import: use the abstraction (`root`, `by llm()`, `consume_limit`) |
 | E2217 | The plugin's `jac.toml` declares an abstraction (`kind = "abstraction"`, or an `[abstraction]` table) | Remove it: a plugin fills an abstraction and adds none |
 | E2233 in the plugin, or in a library it declares | An import of a stdjac module, or of another abstraction's contract | Take it from the plugin's own contract or `common.contract`, or ask the host `open` was given |
 | E5158 in a space's `ui` or `bundler` table | A second plugin's table there, or a setting the plugin's `settings` does not list | One plugin for a space; list the setting in the plugin's `jac.toml` |
+| E5158 at a key of the plugin's table | The key is a setting of the abstraction (`[auth.my_auth] registration`) | Write it under the abstraction, `[auth]` |
 | E2018 `unknown type` in the plugin, only in an app with a `cpython` space | A class of a Python module used as a type there | Leave such a value unannotated |
 | The program ends with status 1 naming a variable | `JAC_<ABSTRACTION>` names an unlisted plugin, or `JAC_<ABSTRACTION>_<FIELD>` holds a value that is not of the field's type | List the plugin; a `str` is taken as written, any other type as JSON |
 

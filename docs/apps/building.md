@@ -373,7 +373,7 @@ plugin = "react"
 [llm.anthropic]
 model = "claude-sonnet-5-5"
 
-[auth.accounts]
+[auth]
 local_users = true
 ```
 
@@ -384,7 +384,7 @@ local_users = true
 | `[apps.<app>.window]` | `title`, `width`, `height`, `min_width`, `min_height` | [Hosts](hosts.md#desktop-apps) |
 | `[spaces.<space>]` | `base`, `npm` | [UI plugins and bundlers](ui-bindings.md#choosing-a-spaces-plugins), [Packages](../toolchain/packages.md#which-tree-a-spaces-imports-use) |
 | `[spaces.<space>.ui]`, `[spaces.<space>.bundler]` | The `ui` plugin and the `bundler` plugin a JavaScript space is built with, and the bundler's settings | [UI plugins and bundlers](ui-bindings.md#choosing-a-spaces-plugins) |
-| `[<abstraction>]`, `[<abstraction>.<plugin>]` | The plugin that carries out an abstraction (`store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`), and each listed plugin's settings | [Plugins](plugins.md) |
+| `[<abstraction>]`, `[<abstraction>.<plugin>]` | The plugin that carries out an abstraction (`store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files`, `mail`), the abstraction's own settings (`[auth] local_users`), and each listed plugin's settings | [Plugins](plugins.md) |
 
 An app that reaches a space it does not run, with no URL for it, does not build:
 

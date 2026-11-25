@@ -453,12 +453,28 @@ curl -X POST http://127.0.0.1:8000/__jac/spawn/api/notes/MyNotes -H "Authorizati
   one client address in each 15 minutes, and one account may answer 10 codes
   (`too many attempts: try again later`). The plugin keeps the SHA-256 of a program's secret.
 
-Its settings, in `[auth.accounts]`:
+Its settings are `auth`'s, which every `auth` plugin is given and a project writes in `[auth]`,
+and two of its own, in `[auth.accounts]`
+([An abstraction's settings](plugins.md#an-abstractions-settings)):
+
+```toml
+[auth]
+registration = false
+email_required = true
+
+[auth.accounts]
+rounds = 1200000
+```
 
 | Setting | Type | Default | Meaning |
 |---|---|---|---|
-| `path` | `str` | `accounts.db` in the app's data directory | The SQLite file |
-| `rounds` | `int` | `600000` | The rounds of a password's hash, for a password set from now on |
+| `path` | `str` | `accounts.db` in the app's data directory | The plugin's: the SQLite file |
+| `rounds` | `int` | `600000` | The plugin's: the rounds of a password's hash, for a password set from now on |
+
+`auth`'s, `auth.contract.AuthSettings`:
+
+| Setting | Type | Default | Meaning |
+|---|---|---|---|
 | `session_seconds` | `float` | `604800.0`, a week | How long a session lasts |
 | `local_users` | `bool` | `false` | An app in a window of its own takes the people at its machine as its users, by a name each gives and no password ([Hosts](hosts.md#local-users)) |
 | `email_required` | `bool` | `false` | An account is made only with an email address (`an account needs an email address`), as it is wherever the app mails |
@@ -473,7 +489,8 @@ Accounts are one server's: the file is, and so is the key that signs a sign-in t
 Google.
 All of the above but the file is the library `accountbook`'s, which a plugin that keeps accounts
 where several servers reach them is built on
-([Plugins](plugins.md#what-a-plugin-imports)).
+([Plugins](plugins.md#what-a-plugin-imports)): such a plugin is given `auth`'s settings as this one
+is, and has `rounds` too.
 
 #### Signing in through GitHub
 
@@ -796,7 +813,7 @@ For TLS, compression and many connections at once, put the server behind a rever
 | `JAC_FRESH` | A serving app | `1`: start with no data ([An app's data](data.md)) |
 | `JAC_<APP>_ARRANGEMENT` | An app whose artifact holds several arrangements | The arrangement it runs as ([Building apps](building.md#several-arrangements-in-one-artifact)) |
 | `JAC_TICKS_OFF` | A serving app | Scheduled functions to skip: `all`, or their names |
-| `JAC_<ABSTRACTION>`, `JAC_<ABSTRACTION>_<FIELD>` | A program | Which of its plugins it runs with, and a setting of that plugin ([Plugins](plugins.md)) |
+| `JAC_<ABSTRACTION>`, `JAC_<ABSTRACTION>_<FIELD>` | A program | Which of its plugins it runs with, and a setting of that plugin or of its abstraction ([Plugins](plugins.md)) |
 | `JAC_DEPLOY_KEY` | Servers and callers | The deployment's key ([Crossings](crossings.md)) |
 | `JAC_REMOTE_<SPACE>` | A caller | Where a space it does not run is |
 | `JAC_REMOTE_TOKEN` | A native or cpython caller | The session it calls as |
