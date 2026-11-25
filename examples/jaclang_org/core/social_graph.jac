@@ -14,8 +14,6 @@ glob MAX_DISPLAY_NAME: int = 50,
      MAX_LOCATION: int = 60,
      MAX_WEBSITE: int = 200;
 
-"""The most bytes a profile's picture may have: 384 KB, which a picture a
-page has cut to its square is far under."""
 comptime MAX_AVATAR_BYTES: int = 393216;
 
 edge Follow: Profile --> Profile {}
@@ -47,12 +45,7 @@ glob NINJACLAW: str = "ninjaclaw",
 def mentions_ninjaclaw(text: str) -> bool;
 
 def strip_mention(text: str) -> str;
-
-"""Every root a profile hangs off: each caller's own, and the shared one,
-which holds ninjaclaw's: it is no caller's, and its desk runs for none."""
 def everyones_roots -> list[Root];
-
-"""ninjaclaw's profile, made the first time: under the shared root."""
 def ninjaclaw_profile -> Profile;
 
 def help_channel(claw: Profile) -> Channel;
@@ -113,9 +106,6 @@ walker:pub get_user_profile {
     can run with Root entry;
 }
 
-"""The caller's profile shows `image` as its picture from now on, or none
-for None. The picture is a file: the profile holds the File that names it,
-and the one it held before is no one's, and goes with the next sweep."""
 @accepts(most=MAX_AVATAR_BYTES, kinds=["image/jpeg", "image/png", "image/webp"])
 def:protect set_avatar(image: File | None) -> ProfileResult;
 

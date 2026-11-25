@@ -10,6 +10,3 @@ interface_ver = 1
 [bundler]
 build = "expo.mjs"
 serve = "expo.serve.mjs"
-
-[check.lint]
-select = []

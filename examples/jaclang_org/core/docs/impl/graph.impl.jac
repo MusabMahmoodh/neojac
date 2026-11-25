@@ -395,7 +395,6 @@ impl _llms_sections(
         if n.kind == "section" {
             _llms_sections(n.children, trail + [n.title], by_path, lines);
         } elif not trail {
-            # A page nav.json names outside every section heads itself.
             lines.extend(["## " + n.title, "", _llms_entry(n, by_path), ""]);
         }
     }

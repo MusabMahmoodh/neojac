@@ -1,7 +1,3 @@
-"""A version under `hub` laid out as nav.json lays out a docs tree: a page
-outside every section, two sections nested in one whose pages share one
-directory, a section with pages before and after a nested one, and a last
-section holding a page nav.json does not name."""
 def _nav_shaped(hub: DocsHub, label: str) -> DocVersion;
 
 test "slugify matches heading anchors" {
@@ -227,13 +223,10 @@ test "a page's view names its sections and the nearest page stands in for a miss
     assert view("reference/commands").sections == ["Reference"];
     assert view("language/scratch").sections == ["Other pages"];
     assert view("about").sections == [];
-    # A path that names a directory shows its first page in reading order; one
-    # that names nothing shows the nearest page, said to be missing.
     front = view("");
     assert (front.path, front.missing) == ("about", False);
     within = view("language/");
     assert (within.path, within.missing) == ("language/variables", False);
-    # A directory's own page is its path's page, though a page in it comes first.
     assert view("reference").title == "Overview";
     near = view("reference/diagnostics/e99");
     assert (near.path, near.missing) == ("reference/diagnostics/e13", True);
@@ -252,8 +245,6 @@ test "llms txt describes neojac and lists the latest version's pages by section"
     assert "`neojac docs <word>`" in got and "`neojac docs search <text>`" in got;
     assert "`neojac skills`" in got;
     assert "jac guide" not in got and "jac mcp" not in got;
-    # A nested section's heading says the titles of the sections it is in,
-    # and a section's own pages come before the sections nested in it.
     assert [ln for ln in got.split("\n") if ln.startswith("## ")] == [
         "## About",
         "## Language: Basics",

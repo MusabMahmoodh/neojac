@@ -92,8 +92,7 @@ numpy = ">=2"
   from source is no release, and refuses none.
 - **`shapes.area` is `area.jac` in the library's directory,** and `import shapes;` its
   `__init__.jac`. Inside the library, its modules import each other as a project's do: by the
-  wires of the library's own `archwire.jac`, or, in a library that says `archwire = false`, by a
-  relative import (`import from .names { label }`) or from the library's root.
+  wires of the library's own `archwire.jac`.
 - **A module imports the libraries its own package declares.** `shapes` uses `units`, so `shapes`
   declares it. A module of the project that imports `units` is E2219 until the project declares it
   too: what a dependency brought is not the project's to use by accident.
@@ -817,7 +816,7 @@ Where the project has no `archwire.jac`, `absorb` writes one with a single layer
 `layer all { *; }`: nothing of the project's layering is known yet. It then writes a wire for
 every import between the project's files, as each language's own engine reads them
 ([Declared wires](../language/modules-wiring.md#declared-wires---)), which is what
-`neojac fmt --fix archwire.jac` does. A project that says `archwire = false` gets none.
+`neojac fmt --fix archwire.jac` does.
 
 It declares a space for each npm tree that is a program's
 ([A space of a tree](../apps/archwire.md#a-space-of-a-tree)), named for its package, in the

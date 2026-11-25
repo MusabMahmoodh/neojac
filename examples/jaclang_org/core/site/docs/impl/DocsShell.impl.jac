@@ -39,11 +39,9 @@ impl DocsShell -> JsxElement {
             }
         }
         p = await (root spawn doc_page(version=want_version, path=want_path));
-        # What the walk reported: `page` is read as this render has it, the page before.
         landed = (p.reports[0] if p.reports else None) as DocPageView | None;
         page = landed;
         if landed is not None {
-            # The sections holding the page are open, whatever was closed.
             holding = [section_key(landed.sections[:k + 1]) for k in range(len(landed.sections))];
             closed = [c for c in closed if c not in holding];
         }

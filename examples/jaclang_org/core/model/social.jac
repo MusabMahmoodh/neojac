@@ -60,19 +60,16 @@ obj PostingDenied {
         retry_after_seconds: int;
 }
 
-"""What posting gives: the tweet made, or why it wasn't (`denied`)."""
 obj Posted {
     has tweet: Tweet | None = None,
         denied: PostingDenied | None = None;
 }
 
-"""What a like leaves: whether its caller likes the tweet now, and who does."""
 obj Liked {
     has liked: bool,
         likes: list[str];
 }
 
-"""What commenting gives: the comment added, or why it wasn't (`denied`)."""
 obj Commented {
     has comment: dict[str, str] = {},
         denied: PostingDenied | None = None;

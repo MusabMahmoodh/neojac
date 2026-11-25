@@ -1,6 +1,6 @@
 ---
-description: What makes a directory a project (jac.toml and archwire.jac), how its files are laid out (impl and test annexes, variants), the .jac/ and dist/ directories neojac writes, and what neojac shows while it works, on a terminal and off one.
-keywords: project, project root, .jac, dist, status line, progress, color
+description: What makes a directory a project (jac.toml and archwire.jac), a project of fixtures, how its files are laid out (impl and test annexes, the notes annexes [fmt] notes = true keeps, variants), the .jac/ and dist/ directories neojac writes, and what neojac shows while it works, on a terminal and off one.
+keywords: project, project root, .jac, dist, status line, progress, color, fixtures
 ---
 # Projects
 
@@ -44,7 +44,7 @@ The root decides:
 |---|---|
 | Settings | `jac.toml` is read from the root: the memory profile, lint rules, test directories, `fmt`'s exclusions, Python packages ([jac.toml](../reference/jac-toml.md)) |
 | Imports | `import x` looks for `x.jac` beside the importing file, then in each directory above it up to the root ([Modules](../language/modules.md#how-a-module-is-found)) |
-| Lint rules | The rules `jac.toml` selects judge the modules under the root ([Lint rules](lint.md#which-files-the-rules-judge)) |
+| Lint rules | The rules the project keeps judge the modules under the root ([Lint rules](lint.md#which-files-the-rules-judge)) |
 | What neojac makes | It goes in `.jac/` at the root (below) |
 
 `neojac test` with no paths finds the root from the current directory instead, and `neojac fmt` from each directory it is given: the nearest directory at or above it with a `jac.toml`.
@@ -65,10 +65,10 @@ An `archwire.jac` governs the modules in its directory and below, up to the root
 neojac: `neojac emit-py` writes a space of the project in this directory, and there is no archwire.jac here
 ```
 
-Every project has one. Each command judges it whole, as [`neojac arch`](arch.md) does: every module under it is in a layer, whether the program at hand loads the module or not, and every import between the project's files, in Jac and in Python, JavaScript, TypeScript, Rust, C and C++, is a wire it declares ([Import wiring](../language/modules-wiring.md#what-a-command-judges)). A module of a project that no `archwire.jac` governs is refused, once for the project, at its `jac.toml`:
+Every project has one, but a [project of fixtures](#a-project-of-fixtures). Each command judges it whole, as [`neojac arch`](arch.md) does: every module under it is in a layer, whether the program at hand loads the module or not, and every import between the project's files, in Jac and in Python, JavaScript, TypeScript, Rust, C and C++, is a wire it declares ([Import wiring](../language/modules-wiring.md#what-a-command-judges)). A module of a project that no `archwire.jac` governs is refused, once for the project, at its `jac.toml`:
 
 ```text
-jac.toml:1:1: error[E2231]: 'main.jac' is a module of the project 'shop', and no archwire.jac governs it: a project states its modules' imports as wires in one, so write it, or say `archwire = false` under [project] in jac.toml for a project whose modules write their own imports
+jac.toml:1:1: error[E2231]: 'main.jac' is a module of the project 'shop', and no archwire.jac governs it: a project puts each of its modules in a layer and states their imports of each other as wires in one, at its root
 ```
 
 A [library](packages.md#jac-packages) and a [plugin](../apps/plugins.md) are projects too, and each has its own.
@@ -82,19 +82,24 @@ graph layers {
 }
 ```
 
-### A project whose modules write their own imports
+A directory with no `jac.toml` is not a project, and a program in one needs neither file. No
+[lint rule](lint.md#which-files-the-rules-judge) judges it.
 
-`archwire = false` under `[project]` in `jac.toml` says the project has no `archwire.jac`. Each of its modules writes its own `import` statements, and nothing judges which module imports which:
+### A project of fixtures
+
+`kind = "fixtures"` under `[project]` says the project's programs are written to exercise a
+compiler: a compiler's test corpus, programs that must fail to compile.
 
 ```toml
 [project]
-name = "shop"
-archwire = false
+name = "corpus"
+kind = "fixtures"
 ```
 
-An `archwire.jac` in a directory of such a project still governs that directory and what is below it: the key speaks for the modules no `archwire.jac` governs.
-
-A directory with no `jac.toml` is not a project, and a program in one needs neither file.
+- It needs no `archwire.jac`. Its modules that none governs write their own `import` statements, of each other too, and nothing judges which imports which.
+- An `archwire.jac` in one of its directories still governs that directory and what is below it.
+- No lint rule judges it but those its `[check.lint] select` names ([Lint rules](lint.md#a-project-of-fixtures)).
+- It is neither a library nor a plugin, so no project declares it as a package.
 
 ### What is not the project's source
 
@@ -115,7 +120,7 @@ name = "shop"
 exclude = ["build/*", "scripts/bench/*"]
 ```
 
-`exclude` is a list of fnmatch patterns of paths relative to the root, with `/` between parts. A directory that matches is not entered.
+`exclude` is a list of fnmatch patterns of paths relative to the root, with `/` between parts. A directory that matches is not entered. A file that matches is no file of a module, so `shooter.py` that `exclude` names beside `shooter.jac` is no second file of the module `shooter` (E2224).
 
 ## How the files are laid out
 
@@ -130,6 +135,29 @@ An impl annex holds the bodies of what its module declares. For `cart.jac` the c
 3. `cart.impl/cart.impl.jac`
 
 and, in each, any parts `cart.<part>.impl.jac`. `impl/` is the convention: the lint rule `impls-in-annex` reports an annex beside its module, and `neojac fmt --fix` moves it ([Lint rules](lint.md#layout-policies), [Impl blocks](../language/impl.md)).
+
+### Notes annexes
+
+A module's source carries no comments and no docstrings, and `neojac fmt --fix` deletes them. A
+project that keeps what they said says `notes = true` under `[fmt]` in `jac.toml`, and has a
+notes annex beside `impl/` for each module that has notes:
+
+```text
+shop/
+    jac.toml
+    archwire.jac
+    cart.jac
+    impl/
+        cart.impl.jac
+    notes/
+        cart.md
+```
+
+A notes annex holds what is said of a module and its declarations, in Markdown: `notes/cart.md`
+for `cart.jac`. It opens with `# cart` and the module's own notes, and has a `## <declaration>`
+heading for each declaration a note is about (`## Cart.add`). There `neojac fmt --fix` moves what
+each comment and docstring said ([The notes annex](lint.md#the-notes-annex)). People read it, and
+nothing in the compiler does. A project that does not say `notes = true` has no `notes/`.
 
 ### Test annexes
 

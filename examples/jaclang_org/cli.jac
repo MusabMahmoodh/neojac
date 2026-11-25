@@ -46,7 +46,6 @@ obj Invocation {
         text: str = "";
 }
 
-"""What the arguments ask for, or why they can't be read: `error` is what to say."""
 obj Parsed {
     has inv: Invocation = Invocation(),
         error: str = "",

@@ -12,6 +12,3 @@ class = "sqlite.store.SqliteStore"
 # What opens its file at a layout, and upgrades an older one.
 [packages]
 sqlfile = { path = "../../../libraries/sqlfile" }
-
-[check.lint]
-select = []

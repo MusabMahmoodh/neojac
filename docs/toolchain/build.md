@@ -51,7 +51,7 @@ What is no program is refused: a file of another extension (E5150), a directory 
 ## What a build does
 
 1. Loads the main module and everything it imports, with their annexes ([Projects](projects.md)).
-2. Checks the whole program: syntax, names, types, ownership, the memory profile's contract. Any error stops the build, after every error of that phase is reported ([check](check.md)). A build does not check `test` blocks and does not judge lint rules; `neojac check` does both.
+2. Checks the whole program: syntax, names, types, ownership, the memory profile's contract, and the [lint rules](lint.md) the project keeps, so a comment in one of the project's modules stops the build. Any error stops the build, after every error of that phase is reported ([check](check.md)). A build does not check `test` blocks; `neojac check` does.
 3. Generates code, compiles each module on its own (reusing what the [build cache](cache.md) holds), and links.
 
 On a terminal it shows the step it is at and ends with `✓ Built hello in 1.94s`. Run again with nothing changed, it does nothing and says `✓ hello is up to date`. Not on a terminal, a build that succeeds prints nothing ([Projects](projects.md#what-neojac-shows-while-it-works)).

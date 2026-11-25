@@ -25,11 +25,25 @@ neojac docs crossings         # access tags, what crosses, remote spaces
 `jac.toml` marks the project's root; `archwire.jac` beside it holds the spaces. Read an existing
 archwire before adding to it: `neojac build` with no app builds every app it declares.
 
-A `jac.toml` with no `[check.lint]` holds the code to the `"clean"` rules, and that is intended:
-they report every comment, every docstring and every body written inline (W3050, W3051, W3055),
-and `neojac fmt --fix` rewrites the code to them. The steps below write bodies inline: run
-`neojac fmt --fix` before `check`, or select the style rules alone, `select = ["style"]` under
-`[check.lint]`, or lay the project out as `starting-a-project` does.
+**Never write `human_mode = true`.** If the project's `jac.toml` says it under `[project]`, switch
+the project over before you change anything else:
+
+1. Remove `human_mode`, and the `[check.lint]` `ignore` and `exclude` it allowed.
+2. Run `neojac fmt --fix .` at the project's root.
+3. Run `neojac check`, and fix by hand what it still reports.
+
+From then on the project keeps the rules every project keeps. Never write `kind = "fixtures"` to
+get out of them either: that is for a compiler's test programs.
+
+Every project is held to the `"clean"` rules, and that is intended: `check`, `build`, `run` and
+`test` report every comment, every docstring and every body written inline (W3050, W3051, W3055),
+and `neojac fmt --fix` rewrites the code to them, moving bodies into `impl/<module>.impl.jac` and
+deleting comments and docstrings. The steps below write bodies inline to be short: run
+`neojac fmt --fix` before `check`, or lay the project out as `starting-a-project` does. Never
+write a comment or a docstring: why the code is as it is goes in the commit message, and what a
+reader must know in the project's README or docs. Where the project's `jac.toml` says
+`notes = true` under `[fmt]`, it goes in `notes/<module>.md` instead, under the declaration's
+heading, and `fmt --fix` moves what a comment or a docstring said there.
 
 ## Steps
 

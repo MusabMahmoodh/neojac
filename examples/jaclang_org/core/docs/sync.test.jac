@@ -1,12 +1,7 @@
 import os;
 import tempfile;
 import from pathlib { Path }
-
-"""A docs tree of the form neojac's has, in a checkout of version 9.8.7 under
-`base`: its docs/ directory."""
 def _tree(base: Path) -> Path;
-
-"""Run `body` with JAC_WEB_DOCS set to `value`, or unset for None."""
 def _with_docs_env(value: str | None, body: Callable[[], None]);
 
 test "label of maps a version to a docs series" {
@@ -57,8 +52,6 @@ test "the docs tree is the checkout's docs unless JAC_WEB_DOCS names another" {
             assert corpus_bundle().version == "9.8.7";
         }
         _with_docs_env(str(tree), named);
-
-        # A release's tree: its VERSION file says the version, a line of it.
         (Path(tmp) / "VERSION").write_text("9.9.1\n0f4f3e70\n");
 
         def released {
@@ -96,8 +89,6 @@ test "the checkout's corpus has every page as a reader sees it and a stable fing
         for rel in b.nav.keys() {
             assert rel in b.pages, rel;
         }
-        # Each page is in a section, as nav.json nests them: a language page
-        # in one of the sections nested in the language's.
         for rel in ["start/index.md", "reference/grammar.md", "reference/commands.md"] {
             assert b.nav[rel].section, rel;
         }
@@ -137,9 +128,6 @@ test "ingest grows one version labelled with neojac's version then settles" {
             assert vers[0].version == "9.8.7";
             assert vers[0].fingerprint == b.fingerprint;
             assert vers[0].pages == len(b.pages) == 10;
-            # nav.json's tree: two sections whose pages share language/, a
-            # section with pages before and after a nested one, a skill's page
-            # as itself, and last the page nav.json does not name.
             top = vers[0].tree();
             assert [(n.kind, n.title) for n in top] == [
                 ("section", "Start here"),
@@ -182,7 +170,6 @@ test "ingest grows one version labelled with neojac's version then settles" {
                 "Scratch",
             ];
             assert [order[0] ->:NextPage:->];
-            # From the last page of a section to the first of the next.
             assert order[5].path == "reference/grammar";
             assert jid([order[4] ->:NextPage:->][0]) == jid(order[5]);
             e13 = order[6];

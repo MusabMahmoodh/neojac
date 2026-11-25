@@ -233,8 +233,8 @@ never imported.
 
 ## Lint rules for impls
 
-Two rules of the `clean` group, which a project selects unless its
-`jac.toml`'s `[check.lint]` names other rules, make the split a policy.
+Two rules of the `clean` group, which every project keeps, make the split a
+policy.
 
 | Rule | Code | Reports |
 |---|---|---|
@@ -242,7 +242,9 @@ Two rules of the `clean` group, which a project selects unless its
 | `impls-in-annex` | W3056 | An `impl` in its module's own file, or an annex beside its module rather than in `impl/` |
 
 `neojac fmt --fix` applies both: it moves each body or impl into
-`impl/<module>.impl.jac` with the comments inside it. In every project it
+`impl/<module>.impl.jac`. The comments inside it are removed, as every comment
+of a project's source is, or kept in the module's notes annex,
+`notes/<module>.md`, where `jac.toml`'s `[fmt]` says `notes = true`. In every project it
 writes the declaration's signature into an impl that restates it with
 another type, default or return type (W3010), wherever the impl is; it
 leaves an impl whose parameter names differ from its declaration's for its

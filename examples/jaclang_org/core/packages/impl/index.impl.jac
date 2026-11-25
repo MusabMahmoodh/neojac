@@ -208,3 +208,7 @@ impl Registry.list_names -> list[str] {
 impl registry_urls -> dict[str, str] {
     return {DEFAULT_REGISTRY_NAME: os.environ.get(REGISTRY_ENV, DEFAULT_REGISTRY_URL)};
 }
+
+impl is_package_name(name: str) -> bool {
+    return name.count("/") == 1 and "" not in name.split("/");
+}

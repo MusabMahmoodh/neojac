@@ -210,9 +210,10 @@ display and no raylib, so it runs anywhere.
 
 ## The project
 
-`jac.toml` makes this directory a project, which is what `vendor.raylib` is found from. It says
-`archwire = false`: the Jac programs here import nothing of each other, and the C, Rust and
-Python twins are programs of their own that stand beside them.
+`jac.toml` makes this directory a project, which is what `vendor.raylib` is found from.
+`archwire.jac` puts the two Jac programs in one layer and has no wires: they import nothing of
+each other. `jac.toml`'s `[project] exclude` sets the C, Rust and Python twins aside: they are
+programs of their own that stand beside them, and no modules of the project.
 
 The Jac source holds no comments and no docstrings, and each module's bodies are in its annex
 under `impl/`: the layout `neojac fmt --fix` gives every project, with what a comment would say

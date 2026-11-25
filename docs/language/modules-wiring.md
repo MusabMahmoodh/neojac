@@ -13,9 +13,9 @@ other: the names a wire gives a module are in scope there as if the module had i
 Every project has an `archwire.jac`, and every command holds the whole project to it
 ([What a command judges](#what-a-command-judges)). It declares the project's layers too: every
 module an `archwire.jac` governs is in a layer ([Layers](modules-layers.md)). A module that is
-of no project, and one of a project that says `archwire = false` in `jac.toml`, writes ordinary
+of no project, and one of a project of fixtures that no `archwire.jac` governs, writes ordinary
 `import` statements instead; see [Modules](modules.md) and
-[Projects](../toolchain/projects.md#a-project-whose-modules-write-their-own-imports).
+[Projects](../toolchain/projects.md#a-project-of-fixtures).
 
 ## Syntax
 

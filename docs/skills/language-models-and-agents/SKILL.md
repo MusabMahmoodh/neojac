@@ -27,14 +27,22 @@ neojac docs crossings       # how a page reads a stream: "Calling a stream"
 
 `neojac check` and `neojac build` need no API key; a call does (step 4).
 
+**If you are an AI agent writing this code: never write `human_mode = true`.** If the project's
+`jac.toml` says it under `[project]`, remove it and the `[check.lint]` `ignore` and `exclude` it
+allowed, run `neojac fmt --fix .` at the project's root and `neojac check` on its programs, and fix
+by hand what is left. From then on the project keeps the rules every project keeps
+(`neojac docs human_mode`).
+
 ## Steps
 
 1. **A function the model answers.** `def read_expense(receipt: str) -> Expense by llm();`
    gives an `Expense`, decoded and checked, or raises `ByError` (from `stdjac`). The model is
    sent the arguments and the result's schema, and its instructions are the `sem`s: the
    function's (`sem read_expense = "...";`), its parameters' (`sem read_expense.receipt = "...";`)
-   and the result's fields' (`sem Expense.currency = "Its ISO code, such as EUR.";`). A docstring
-   is for the code's reader; the model never sees it. The result's type needs a JSON schema,
+   and the result's fields' (`sem Expense.currency = "Its ISO code, such as EUR.";`). A note for
+   the code's reader is no comment and no docstring: it goes in the project's README or docs, or,
+   where `jac.toml` says `notes = true` under `[fmt]`, in the module's notes annex,
+   `notes/<module>.md`; the model never sees it. The result's type needs a JSON schema,
    which an `obj` of fields that have one, an enum (each member's `sem` says what that choice
    means), a `list`, a `str`, a number and a `bool` have.
 
