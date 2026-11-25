@@ -55,8 +55,9 @@ A string is never a comment. A string that documents a declaration is a docstrin
 [Modules](modules.md).
 
 A project's own modules carry no comments and no docstrings, unless the project is written by hand
-and takes those rules out: what they would say goes in the module's notes annex,
-`notes/<module>.md`, and `neojac fmt --fix` moves them there
+and takes those rules out. What a comment would say goes in the commit message or the project's
+README or docs, and `neojac fmt --fix` removes it; where `jac.toml`'s `[fmt]` says
+`notes = true`, the fix keeps what it said in the module's notes annex, `notes/<module>.md`
 ([Lint rules](../toolchain/lint.md#the-notes-annex)).
 
 ## Names

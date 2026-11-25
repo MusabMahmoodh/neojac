@@ -1,6 +1,6 @@
 ---
 name: testing-and-formatting
-description: Use when writing or running tests for Jac code, reading a failing neojac test run, formatting Jac source with neojac fmt, or satisfying the lint rules a project keeps: test blocks, neojac test with -k, fmt, fmt --check, fmt --fix, the notes annex and [check.lint].
+description: Use when writing or running tests for Jac code, reading a failing neojac test run, formatting Jac source with neojac fmt, or satisfying the lint rules a project keeps: test blocks, neojac test with -k, fmt, fmt --check, fmt --fix, [fmt] notes, human_mode and [check.lint].
 ---
 # Testing and formatting
 
@@ -120,11 +120,19 @@ There are no layout options. `fmt` never changes meaning, keeps every comment, a
 
 ### 4. Satisfy the lint rules
 
+**Never write `human_mode = true` under `[project]`.** If the project's `jac.toml` says it, switch the project over first:
+
+1. Remove `human_mode`, and the `[check.lint]` `ignore` and `exclude` it allowed.
+2. Run `neojac fmt --fix .` at the project's root.
+3. Run `neojac check` on the project's programs, and fix by hand what it still reports.
+
+From then on the project keeps the rules every project keeps. `human_mode` states that a person writes the project by hand, and only that person makes the statement. Never mark a project `kind = "fixtures"` to get out of the rules either: that is for a compiler's test programs.
+
 Every project keeps the `"clean"` rules: the `"style"` rules, every body in an `impl` in `impl/`, and no comment and no docstring. `neojac check`, `build`, `run` and `test` all report them, so a comment stops a build. A program in no project (no `jac.toml` above it) is judged by none.
 
-- What a comment or a docstring would say goes in the module's notes annex, `notes/<module>.md`, under a heading for the declaration it is about, in dotted form (`## Cart.add`, `## Cart.owner` for a field, `## test adds` for a test), with the module's own notes under its title line, `# <module>`. Write notes there, never as comments or docstrings.
-- `[check.lint] select` only adds the two rules in no group: `select = ["no-print"]`. A name the project keeps already (`"style"`, `"clean"`) is E3058.
-- Never write `human_mode = true` under `[project]`: it states that a person writes the project by hand, and only that person makes it. Without it `[check.lint] ignore` and `exclude` are E3059. Never mark a project `kind = "fixtures"` to get out of the rules: that is for a compiler's test programs.
+- What a comment would say goes in the commit message when it is why the code is as it is, and in the project's README or docs when it is what a reader must know; a docstring's content goes in the README or docs. Never write either in the source.
+- Where the project's `jac.toml` says `notes = true` under `[fmt]`, what a comment or a docstring would say goes in the module's notes annex instead, `notes/<module>.md`, under a heading for the declaration it is about, in dotted form (`## Cart.add`, `## Cart.owner` for a field, `## test adds` for a test), with the module's own notes under its title line, `# <module>`.
+- `[check.lint] select` only adds the two rules in no group: `select = ["no-print"]`. A name the project keeps already (`"style"`, `"clean"`) is E3058. Without `human_mode`, `[check.lint] ignore` and `exclude` are E3059.
 
 ```toml
 [check.lint]
@@ -138,7 +146,7 @@ calc.jac:3:5: error[W3002]: a `has` after one with the same modifiers belongs in
 calc.jac:23:5: error[E3012]: print() is not allowed in this project [no-print]
 ```
 
-`neojac fmt --fix <files>` rewrites every finding that has a fix (every rule of the `clean` group) and every old spelling the language rejects, then formats: it moves bodies into `impl/<module>.impl.jac`, and comments and docstrings into `notes/<module>.md` under their declarations' headings, adding to what is there. `no-print` and `too-many-params` need you. `neojac fmt --fix --check <files>` lists what `--fix` would change, the notes annex among them, writing nothing.
+`neojac fmt --fix <files>` rewrites every finding that has a fix (every rule of the `clean` group) and every old spelling the language rejects, then formats: it moves bodies into `impl/<module>.impl.jac`, and deletes comments and docstrings. Where `[fmt]` says `notes = true`, it moves what they said into `notes/<module>.md` under their declarations' headings, adding to what is there. `no-print` and `too-many-params` need you. `neojac fmt --fix --check <files>` lists what `--fix` would change, a notes annex among them, writing nothing.
 
 ## What a correct result looks like
 
@@ -157,10 +165,10 @@ neojac fmt --check prices.jac      # quiet, status 0
 | Status 5, `no tests found` | No module under the paths has a test, or `-k` matched nothing | Name the module; check `[test] directories` |
 | A test's print is missing | Output is shown only for a failing test | Assert on the value instead |
 | The program's own work runs during `neojac test` | Its main code is in a plain `with entry` | Move it into `with entry:__main__` |
-| W3050 `[strip-comments]`, W3051 `[strip-docstrings]` | A comment or a docstring in a project's source | `neojac fmt --fix <files>`, which moves it into `notes/<module>.md`; write notes there from then on |
+| W3050 `[strip-comments]`, W3051 `[strip-docstrings]` | A comment or a docstring in a project's source | Say what it said in the commit message or the docs, and run `neojac fmt --fix <files>`, which deletes it; where `[fmt]` says `notes = true`, the fix moves it into `notes/<module>.md` instead |
 | E3057 | A name in `select` that is no rule | Use a rule name from `neojac docs toolchain/lint` |
 | E3058 | `select` names a rule the project keeps already | Remove it |
-| E3059 | `[check.lint]` has `ignore` or `exclude` | Remove the key and satisfy the rules; `human_mode` is not yours to write |
+| E3059 | `[check.lint]` has `ignore` or `exclude` | Remove the key and satisfy the rules; `human_mode` is not yours to write. Where the project says it, switch it over (step 4) |
 | `internal error: neojac fmt would change the syntax tree` | A formatter defect; the file is left as it was | Report it with the file (`resolving-diagnostics`) |
 | A test annex's errors not shown by `check main.jac` | Only the main module's tests are checked | `neojac check <module>.jac`, or `neojac test` |
 
@@ -172,5 +180,6 @@ neojac fmt --check prices.jac      # quiet, status 0
 | `neojac test`, `[test]` keys | `neojac docs toolchain/test`, `neojac docs test.directories` |
 | `assert` | `neojac docs assert` |
 | The layout `fmt` writes | `neojac docs toolchain/fmt` |
-| Every lint rule and its fix, the notes annex | `neojac docs toolchain/lint` |
+| Every lint rule and its fix, `human_mode`, the notes annex | `neojac docs toolchain/lint` |
 | `[check.lint]` keys | `neojac docs check.lint.select` |
+| `[fmt] notes` | `neojac docs fmt.notes` |

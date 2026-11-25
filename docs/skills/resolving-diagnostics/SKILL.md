@@ -88,7 +88,17 @@ W3001, W3004, W3005, W3007, W3009, W3013, W3039, W3043, E0155 to E0163 and E2084
 
 ### 6. A lint finding
 
-(`[rule-name]` at the end) comes from a rule the project keeps: `"clean"`, which every project keeps, or one its `jac.toml` adds. Most have a fix: `neojac fmt --fix <file>`. `neojac docs toolchain/lint` says which. A comment or a docstring (W3050, W3051) is moved by the fix into the module's notes annex, `notes/<module>.md`, under its declaration's heading: write notes there, not in the source, and never add `human_mode = true` or `kind = "fixtures"` to `jac.toml` to quiet a rule.
+(`[rule-name]` at the end) comes from a rule the project keeps: `"clean"`, which every project keeps, or one its `jac.toml` adds. Most have a fix: `neojac fmt --fix <file>`. `neojac docs toolchain/lint` says which.
+
+**Never add `human_mode = true` or `kind = "fixtures"` to `jac.toml` to quiet a rule.** If the project's `jac.toml` already says `human_mode = true` (E3059 names it when it does not), switch the project over:
+
+1. Remove `human_mode`, and the `[check.lint]` `ignore` and `exclude` it allowed.
+2. Run `neojac fmt --fix .` at the project's root.
+3. Run `neojac check` on the project's programs, and fix by hand what it still reports.
+
+From then on the project keeps the rules every project keeps.
+
+A comment or a docstring (W3050, W3051) is deleted by the fix. Say what it said elsewhere, never in the source: why the code is as it is in the commit message, and what a reader must know in the project's README or docs. Where the project's `jac.toml` says `notes = true` under `[fmt]`, the fix moves it into the module's notes annex instead, `notes/<module>.md`, under its declaration's heading, and notes are written there.
 
 ### 7. An error whose location is not your code
 

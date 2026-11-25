@@ -20,7 +20,8 @@ A docstring is a string literal written immediately before the declaration it do
   document both, write two strings.
 
 In a project, a module carries no docstrings (W3051): what a docstring would say goes in the
-module's notes annex, `notes/<module>.md`, and `neojac fmt --fix` moves it there
+project's README or docs, and `neojac fmt --fix` removes it. Where `jac.toml`'s `[fmt]` says
+`notes = true`, the fix keeps what it said in the module's notes annex, `notes/<module>.md`
 ([Lint rules](../toolchain/lint.md#the-notes-annex)). A module of a `cpython` space keeps its
 docstrings, which are the `__doc__` Python reads, and a project written by hand may take the rule
 out.

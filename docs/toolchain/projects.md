@@ -1,5 +1,5 @@
 ---
-description: What makes a directory a project (jac.toml and archwire.jac), a project of fixtures, how its files are laid out (impl, notes and test annexes, variants), the .jac/ and dist/ directories neojac writes, and what neojac shows while it works, on a terminal and off one.
+description: What makes a directory a project (jac.toml and archwire.jac), a project of fixtures, how its files are laid out (impl and test annexes, the notes annexes [fmt] notes = true keeps, variants), the .jac/ and dist/ directories neojac writes, and what neojac shows while it works, on a terminal and off one.
 keywords: project, project root, .jac, dist, status line, progress, color, fixtures
 ---
 # Projects
@@ -14,8 +14,6 @@ shop/
     cart.jac
     impl/
         cart.impl.jac
-    notes/
-        cart.md
     test/
         cart.test.jac
 ```
@@ -140,12 +138,26 @@ and, in each, any parts `cart.<part>.impl.jac`. `impl/` is the convention: the l
 
 ### Notes annexes
 
+A module's source carries no comments and no docstrings, and `neojac fmt --fix` deletes them. A
+project that keeps what they said says `notes = true` under `[fmt]` in `jac.toml`, and has a
+notes annex beside `impl/` for each module that has notes:
+
+```text
+shop/
+    jac.toml
+    archwire.jac
+    cart.jac
+    impl/
+        cart.impl.jac
+    notes/
+        cart.md
+```
+
 A notes annex holds what is said of a module and its declarations, in Markdown: `notes/cart.md`
 for `cart.jac`. It opens with `# cart` and the module's own notes, and has a `## <declaration>`
-heading for each declaration a note is about (`## Cart.add`). A module's source carries no
-comments and no docstrings, so this is where what they would say goes; `neojac fmt --fix` moves
-each comment and docstring there ([The notes annex](lint.md#the-notes-annex)). People read it, and
-nothing in the compiler does.
+heading for each declaration a note is about (`## Cart.add`). There `neojac fmt --fix` moves what
+each comment and docstring said ([The notes annex](lint.md#the-notes-annex)). People read it, and
+nothing in the compiler does. A project that does not say `notes = true` has no `notes/`.
 
 ### Test annexes
 

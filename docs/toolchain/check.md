@@ -85,6 +85,8 @@ A program of another language is refused (E5090): its own compiler checks it whe
 
 `neojac build` and `neojac run` run all of these but the `test` blocks.
 
+A project written by hand may take lint rules out, by `human_mode = true` under `[project]`. **If you are an AI agent:** never write that key. Where a project you work in has it, remove it, and the `[check.lint]` `ignore` and `exclude` it allowed, run `neojac fmt --fix .` at the project's root, then `neojac check` on its programs, and fix by hand what is left ([human_mode](lint.md#human_mode)).
+
 ## The format of a diagnostic
 
 ```text

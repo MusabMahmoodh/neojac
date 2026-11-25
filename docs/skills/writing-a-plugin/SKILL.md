@@ -118,10 +118,15 @@ obj WindowLimits(Limits) {
 
    - **The package keeps the lint rules, as every project does.** The class is written whole
      here to be read at once; `neojac fmt --fix` moves its bodies into `impl/limits.impl.jac`.
-     What is said of it goes in `notes/limits.md`, under a heading for each declaration
-     (`## WindowLimits.longest_wait`: how many seconds a refused caller is told to wait, at most;
-     `## WindowLimits.open`: nothing to open, since it keeps its counts in memory), never in a
-     comment or a docstring.
+     What is said of it (`longest_wait` is how many seconds a refused caller is told to wait, at
+     most; `open` has nothing to open, since it keeps its counts in memory) goes in the package's
+     README or docs, never in a comment or a docstring. Where its `jac.toml` says `notes = true`
+     under `[fmt]`, it goes in `notes/limits.md` instead, under a heading for each declaration
+     (`## WindowLimits.longest_wait`, `## WindowLimits.open`).
+   - **Never write `human_mode = true` in the package's `jac.toml`.** If a package you change
+     says it, remove it and the `[check.lint]` `ignore` and `exclude` it allowed, run
+     `neojac fmt --fix .` at the package's root and `neojac check` on a program that takes the
+     plugin, and fix by hand what is left. From then on it keeps the rules every project keeps.
    - **A field is a setting.** `longest_wait` is what a project's `[limits.window_limits]` may
      give, and what `JAC_LIMITS_LONGEST_WAIT` overrides where the program runs. Give each a
      default unless a project must say it (an API's address): a field with none that is given no
