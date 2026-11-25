@@ -1,6 +1,6 @@
 ---
-description: Decorators, compile-time calls that record facts on the declaration they precede; the facts jaclang.comptime provides (inline, noinline, cold, align, packed, fast_math), writing your own, and what replaces a run-time wrapper, @staticmethod and @property.
-keywords: decorator, decorators, @, inline, noinline, cold, align, packed, fast_math, fast-math
+description: Decorators, compile-time calls that record facts on the declaration they precede; the facts jaclang.comptime provides (inline, noinline, cold, align, packed, fast_math, reads), writing your own, and what replaces a run-time wrapper, @staticmethod and @property.
+keywords: decorator, decorators, @, inline, noinline, cold, align, packed, fast_math, fast-math, reads, only_reads
 grammar: decorators, decorated
 ---
 # Decorators
@@ -68,12 +68,14 @@ A decorator is `@` and a name, optionally called with arguments
   (E1491).
 - **The facts change how a function is compiled, never what it computes.**
   A host they mean nothing to (a `cpython`, `node`, `browser` or `hermes`
-  space) compiles the function as it is.
+  space) compiles the function as it is. `reads` is of another kind: it
+  says something of the function that the compiler checks, on every host.
 
 ## The facts
 
-`jaclang.comptime` provides these. Each is of a function with a body, but
-`packed`, which is of a [struct](structs.md), and `align`, which is of either.
+`jaclang.comptime` provides these. Each is of a function with a body, a
+method among them, but `packed`, which is of a [struct](structs.md), and
+`align`, which is of either.
 
 | Decorator | Fact |
 |---|---|
@@ -83,6 +85,7 @@ A decorator is `@` and a name, optionally called with arguments
 | `@align(n)` | Its code starts at a multiple of `n` bytes, `n` a power of two up to 4096 (E1495). Of a struct, see below. |
 | `@packed`, `@packed(n)` | Of a struct: its fields are laid out with no padding, or each at most `n`-aligned. See below. |
 | `@fast_math(*flags)` | Its float operations may be computed as LLVM's fast-math flags allow. See below. |
+| `@reads` | Calls of it may run at the same time as one another: it changes nothing but what it makes. The compiler holds it to that in the program's own code (E1643), and a tool made of it is one a model's round runs with its other reads. See [By and sem](by-and-sem.md#tools-that-only-read-reads). `only_reads(f)` asks whether `f` was declared so. |
 
 ### align of a struct
 
@@ -441,6 +444,7 @@ with entry {
 | E1496 | A decorator before an `impl` or a `test`. Write it before the declaration the `impl` is of. |
 | E1561 | `@align(n)` of a struct with `n` less than its fields' alignment. |
 | E1572 | `fast_math` given a name that is not one of its flags. |
+| E1643 | A `@reads` function that assigns a name outside itself, changes an object it did not make, or changes a graph. |
 | E0033 | A decorator's argument is not known at compile time (a `glob`). |
 | E1052 | A decorator's argument is passed by keyword (`@align(n=32)`). |
 | W3001, W3043 | `@staticmethod`, `@property` or `@name.setter`. |

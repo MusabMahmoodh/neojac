@@ -170,7 +170,7 @@ These compile in both and mean something else. Search the code for each:
 - Running `fmt --fix` before reading the first report: fine, but read the second report in full; the hand edits are there.
 - Editing to restore the reference design's meaning (a shim, a flag): port the program to neojac's meaning instead.
 - Porting the reference design's server decorators (`@schedule`, `@job`, `@restspec`) as they were: they are built-in decorators here, said without an import, with other arguments (`@schedule(interval=60.0)`), and a job is started with `flow` (`neojac docs apps/stdjac-server`).
-- Porting a `by llm()` method as a method: only a function may be `by`. Make it a function that takes the object, with the object's methods as its tools (`tools=[r.read_file]`), described by `sem Reviewer.read_file = "...";`.
+- Porting byllm's options as they were: a `by llm()` method stays a method, and its tools are `tools=[self.read_file]`, described by `sem Reviewer.read_file = "...";`. `parallelize` and `mark_serialize` are gone: declare each tool that only reads `@reads` (from `jaclang.comptime`), and the rest run alone, in order. `compaction_enabled` is `latest_turns(history, most)`, and a call's cost is `ByUsage.cost`, by the `rates` `jac.toml` gives the plugin (`neojac docs by-and-sem`).
 - Porting `visit [-->] by llm(...)` over mixed nodes: the nodes are a list of one node type (E1574), so filter them (`[-->][?:City]`); `llm` is built in, and takes `select` and `intent`.
 - Porting a streamed model answer as polling: a `by` function declared `-> Iterator[ByEvent]` gives the answer as it is written, and a server function that returns an iterator sends it on as a stream.
 

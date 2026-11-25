@@ -46,13 +46,22 @@ by hand what is left. From then on the project keeps the rules every project kee
    which an `obj` of fields that have one, an enum (each member's `sem` says what that choice
    means), a `list`, a `str`, a number and a `bool` have.
 
-2. **An agent: give it tools.** A tool is an ordinary typed function with a `sem`, listed in the
+2. **An agent: give it tools.** A tool is an ordinary typed function with a `sem`, given in the
    `by` call: `by llm(tools=[add_task, list_tasks])`. The model calls tools in rounds, and the
    library runs each and sends the model what it returned (as JSON, a `str` as it is) until the
    model answers, which after `max_react_iterations` rounds (8) it must. A tool that raises does
-   not end the call: the model is told it failed, and why. A method of a parameter is a tool too
-   (`tools=[r.read_file]`). Avoid, for now, a list held in a variable (`tools=TOOLS`): a known
-   defect compiles it and gives the model no tools.
+   not end the call: the model is told it failed, and why.
+   - **A method of an object is a tool too** (`tools=[r.read_file]`), and a method may itself be
+     answered `by llm(tools=[self.read_file])`, with its object among the arguments.
+   - **Tools are values, `ByTool`s** (from `stdjac`): a module may keep
+     `glob TOOLS: list[ByTool] = [add_task, list_tasks];` and give `tools=TOOLS`, or
+     `tools=TOOLS + [r.read_file]`.
+   - **Declare a tool that only reads `@reads`** (from `jaclang.comptime`). A round's calls run
+     one at a time, in the order the model asked, except consecutive `@reads` calls, which run at
+     once. A tool that adds, changes, sends or shows something stays undeclared. The compiler
+     refuses a `@reads` function that assigns a global, changes an object it did not make or
+     changes the graph (E1643); what it reaches through the runtime (a file, a subprocess, a
+     request) is yours to answer for.
 
 3. **Stream the answer and keep the conversation.** Declared `-> Iterator[ByEvent]`, the
    function returns at once and its events come as the model writes: `TEXT` pieces, a
@@ -63,6 +72,7 @@ by hand what is left. From then on the project keeps the rules every project kee
 
 ```jac
 import sys;
+import from jaclang.comptime { reads }
 import from stdjac { ByError, ByEvent, ByEventKind, Message }
 
 node Task {
@@ -78,6 +88,7 @@ def add_task(title: str) -> str {
 sem add_task = "Add a task to the user's list.";
 sem add_task.title = "The task, in a few words.";
 
+@reads
 def list_tasks -> list[str] {
     return [t.title + (" (done)" if t.done else "") for t in [root --> [?:Task]]];
 }
@@ -181,18 +192,20 @@ the tool's arguments.
 |---|---|---|
 | E0033 | A `by` function with no result type | Declare `-> T`, or `-> Iterator[ByEvent]` |
 | E1229, E0109 | A result type with no JSON schema: `any`, a `tuple`, a function type | An `obj` of fields that have one |
-| E5090 | `by` on a method | A function; the method becomes a tool, `tools=[r.method]` |
+| E1643 | A `@reads` tool changes something: a global, an object it was given, the graph | Drop `@reads`: the tool then runs alone, in order |
+| E1229 on a tool | The function is not a tool: generic, `async`, a generator, a static method | A plain function or a method, with typed parameters |
 | E2234 on `llm` | `llm` is imported | Drop the import: `llm` is built in |
 | E1308 on an endpoint | It streams `ByEvent`s, which do not cross | Stream a type of your own (step 5) |
 | `ByError`: `ANTHROPIC_API_KEY isn't set` | No key where the call runs | Step 4 |
-| The model never calls a tool | It is not in the list written in the `by` call, or its `sem` does not say when to use it | List it there, and say when in its `sem` |
+| The model never calls a tool | It is not among the tools the `by` call gives, or its `sem` does not say when to use it | Give it there, and say when in its `sem` |
 | `ByError`: `<name>: the model's reply doesn't fit its result` | The reply did not decode as the type, after the retries | Say more in the fields' `sem`s; `max_output_retries=2` |
 
 ## Where to look things up
 
 - `neojac docs by-and-sem`: the rest of `llm()`'s arguments (`system_prompt`, `max_tokens`,
-  `on_iteration` to stop a long turn, `parallelize` to run a round's tools at once), the
-  `[llm.anthropic]` settings, `on_usage` and `ByUsage` for what calls use, `Message` and `Part`,
+  `on_iteration` to stop a long turn), how a round's tools run, the `[llm.anthropic]` settings
+  (`rates` among them, which give `ByUsage` its `cost`), `on_usage` and `ByUsage` for what calls
+  use, `Message` and `Part`, `latest_turns` for a conversation grown long,
   an answerer of one's own (`By`, `ByStreams`), a plugin for another provider (`Model`), and
   `visit ... by llm()`.
 - `neojac docs apps/server`: streams, calls answered at once, `commit()` in a long stream.

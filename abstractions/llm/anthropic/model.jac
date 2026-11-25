@@ -24,13 +24,15 @@ def reply_message(m: dict[str, any]) -> Message;
 def strict_schema(schema: dict[str, any]) -> dict[str, any] | None;
 def strict_result(schema: dict[str, any]) -> dict[str, any] | None;
 def usage_of(reply: dict[str, any], model: str) -> ByUsage;
+def cost_of(used: ByUsage, rates: dict[str, list[float]]) -> float | None;
 
 obj Anthropic(Model) {
     has key: Secret = Secret(variable="ANTHROPIC_API_KEY"),
         model: str = "claude-sonnet-5-5",
         address: str = "https://api.anthropic.com",
         timeout: int = 60,
-        retries: int = 0;
+        retries: int = 0,
+        rates: dict[str, list[float]] = {};
 
     has given_key: str postinit;
 
