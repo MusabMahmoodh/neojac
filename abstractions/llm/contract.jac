@@ -59,7 +59,8 @@ obj ByUsage {
         cache_read_tokens: int = 0,
         cache_write_tokens: int = 0,
         seconds: float = 0.0,
-        model: str = "";
+        model: str = "",
+        cost: float | None = None;
     def add(more: ByUsage);
 }
 
@@ -71,6 +72,13 @@ enum ByEventKind {
     DONE = "done",
 }
 
+enum ByEnd {
+    ANSWERED = "answered",
+    STOPPED = "stopped",
+    ROUNDS = "rounds",
+    CUT = "cut",
+}
+
 obj ByEvent {
     has kind: ByEventKind,
         text: str = "",
@@ -79,6 +87,7 @@ obj ByEvent {
         args: dict[str, any] = {},
         result: str = "",
         usage: ByUsage | None = None,
+        ended: ByEnd = ByEnd.ANSWERED,
         value: any = None;
 }
 
