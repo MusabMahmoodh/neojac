@@ -56,7 +56,6 @@ A Jac file is checked as part of a program, and the server picks the program:
 | The file | Its program |
 |---|---|
 | A module | The module as its own program: it and what it imports, as `neojac check <module>` checks it |
-| A module of the runtime that is no program itself (`rt/core.jac`) | The largest program the server knows that holds it |
 | An impl annex (`impl/x.impl.jac`) or a test annex (`x.test.jac`) | Its module's. A test annex is checked with its module as the main module, so its tests are checked |
 | A module of a project whose `archwire.jac` declares spaces | The program of the space that places it, on that space's host (as `neojac check --space <space>`) |
 | A target variant (`x.windows.jac`) | The variant as the main module of its own program, checked for its target (as `neojac check --target`) |
