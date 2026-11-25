@@ -26,7 +26,7 @@ Which of them a call has:
 
 | The call is for | A walker spawned by the request starts at | `root` in its code |
 |---|---|---|
-| A signed-in caller, on a `:pub` or `:protect` endpoint | That caller's root | That caller's root |
+| A signed-in caller, on a `:pub` or `:prot` endpoint | That caller's root | That caller's root |
 | No one, on a `:pub` endpoint | `root.shared` | Raises `RuntimeError` |
 | No one: a scheduled function | | Raises `RuntimeError` |
 
@@ -67,7 +67,7 @@ def:pub everyone -> int {
 Called without a session, `mine` fails (the server answers 500 and prints
 `` `root` is no one's here: this runs for no caller, which has `root.shared` and `allroots()` ``).
 A function meant for anonymous callers uses `root.shared`; one that needs the caller's root is
-tagged `:protect`, which refuses anonymous callers before the function runs.
+tagged `:prot`, which refuses anonymous callers before the function runs.
 
 A program that does not serve (one with an `entry`, or any program built outside an app) has one
 root, which `root` always is.
@@ -292,7 +292,7 @@ api keeps its data where JAC_API_DATA says, in /var/lib/api: only a project's ow
 
 | Symptom | Cause |
 |---|---|
-| A `:pub` endpoint answers 500, and the server prints `` `root` is no one's here `` | It reads `root` for an anonymous caller. Use `root.shared`, or tag it `:protect`. |
+| A `:pub` endpoint answers 500, and the server prints `` `root` is no one's here `` | It reads `root` for an anonymous caller. Use `root.shared`, or tag it `:prot`. |
 | `<app> can't start with the data it kept in ...` | A node type changed under kept data. Give the new field a default, or start fresh. |
 | Data vanishes after a rebuild on another machine | The default data directory is an absolute path from the build. Set `JAC_<APP>_DATA`. |
 | A node is gone after a restart | Nothing connected it to a root when its call returned |

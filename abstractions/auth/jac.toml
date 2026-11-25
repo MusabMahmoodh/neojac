@@ -1,5 +1,5 @@
 # The `auth` abstraction: who a caller is, and how one signs in. Source says
-# `:protect`, the caller's `root`, and a page's `sign_in()`.
+# `:prot`, the caller's `root`, and a page's `sign_in()`.
 [project]
 name = "auth"
 kind = "abstraction"

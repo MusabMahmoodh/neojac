@@ -1,11 +1,11 @@
 ---
-description: The access tags :pub, :protect and :priv on archetypes, fields, methods, functions, globals, enums and type aliases, and what each one means today.
-keywords: access tag, access tags, pub, priv, protect, :pub, :priv, :protect, visibility, public, private
+description: The access tags :pub, :prot and :priv on archetypes, fields, methods, functions, globals, enums and type aliases, and what each one means today.
+keywords: access tag, access tags, pub, priv, prot, :pub, :priv, :prot, visibility, public, private
 grammar: access_tag
 ---
 # Access tags
 
-An access tag is `:pub`, `:protect` or `:priv` written directly after a
+An access tag is `:pub`, `:prot` or `:priv` written directly after a
 declaration's keyword. It says who the declaration is for. Its main effect
 today is on a project's spaces: a tagged function or walker of a space is an
 endpoint that code outside the space may call.
@@ -13,7 +13,7 @@ endpoint that code outside the space may call.
 ## Syntax
 
 ```ebnf
-access_tag ::= (":" ("protect" | "pub" | "priv"))?
+access_tag ::= (":" ("prot" | "pub" | "priv"))?
 ```
 
 The tag follows the keyword and comes before the name. `neojac fmt` writes
@@ -22,7 +22,7 @@ declaration without one is untagged.
 
 | Declaration | With a tag |
 |---|---|
-| Archetype | `obj:pub Point {`, `node:priv Cache {`, `walker:protect my_notes {`, `struct:pub P {` |
+| Archetype | `obj:pub Point {`, `node:priv Cache {`, `walker:prot my_notes {`, `struct:pub P {` |
 | Enum | `enum:pub Level {` |
 | Function or method | `def:pub greet(name: str) -> str {`, `static def:priv make -> T {` |
 | Ability | `can:priv log with Room entry {` |
@@ -74,7 +74,7 @@ with entry {
 | Tag | Meaning |
 |---|---|
 | `:pub` | For anyone: other modules, other spaces, callers outside the program |
-| `:protect` | For a narrower audience: on an endpoint, a signed-in caller |
+| `:prot` | For a narrower audience: on an endpoint, a signed-in caller |
 | `:priv` | For the declaring module or archetype alone |
 | none | For the program's own code |
 
@@ -89,21 +89,21 @@ other spaces, pages and outside clients may call.
 | Declaration in a space | Who may call it across spaces |
 |---|---|
 | `def:pub` or `walker:pub` | Anyone |
-| `def:protect` or `walker:protect` | A signed-in caller |
+| `def:prot` or `walker:prot` | A signed-in caller |
 | Untagged, and wired into a module of another space | The deployment's own apps only |
 | Untagged otherwise, or `:priv` | No one: it is not an endpoint |
 
 Two errors keep the tags honest:
 
 - **E1210**: code of a browser or other JavaScript space calls a function
-  or spawns a walker of another space that carries no `:pub` or `:protect`
+  or spawns a walker of another space that carries no `:pub` or `:prot`
   tag. Such a call comes from outside the deployment, so the declaration
   must say who may make it.
-- **E1211**: a function or walker is tagged `:pub` or `:protect` in a
+- **E1211**: a function or walker is tagged `:pub` or `:prot` in a
   module that no space holds, in a project that has spaces. The tag would
   promise an endpoint that is never served.
 
-A `node` space serves `:pub` functions; `:protect` and walker endpoints
+A `node` space serves `:pub` functions; `:prot` and walker endpoints
 there are refused for now (E5090).
 
 Spaces are declared in the project's [archwire](../apps/archwire.md)
@@ -125,22 +125,26 @@ they are:
 
 - reach a `:priv` member only from the archetype that declares it;
 - reach a `:priv` function, global or archetype only from its own module;
-- treat `:protect` members as for the archetype and its subclasses.
+- treat `:prot` members as for the archetype and its subclasses.
 
 ## What is rejected
 
 | Code | When |
 |---|---|
 | E1210 | A JavaScript space calls an untagged function or walker of another space |
-| E1211 | `:pub` or `:protect` on a function or walker of a module no space holds |
-| E5090 | `:protect`, or a walker endpoint, in a `node` space |
-| E0003 | A tag that is not one of the three words: `obj:public` |
+| E1211 | `:pub` or `:prot` on a function or walker of a module no space holds |
+| E5090 | `:prot`, or a walker endpoint, in a `node` space |
+| E0182 | A tag that is not one of the three words: `obj:public`, `def:protect` |
 | E0013 | A tag written after the name: `obj Point :pub {` |
 
 ```jac
-# expect: E0003
+# expect: E0182 x2
 obj:public Point {
     has x: int = 0;
+}
+
+def:protect origin -> Point {
+    return Point();
 }
 ```
 
@@ -153,6 +157,9 @@ obj:public Point {
   same is true here**, tagged or not.
 - **In the reference design reading a `:priv` member from outside its archetype is a warning
   (W2034); neojac reports nothing.**
+- **The reference design spells the middle tag `:protect`; here it is `:prot`**, clipped as
+  `:pub` and `:priv` are. `:protect` is E0182, as any other word after the `:` is, and `protect`
+  is a name like any other.
 
 ## See also
 

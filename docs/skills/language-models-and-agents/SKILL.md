@@ -138,7 +138,7 @@ node Chat {
     has history: list[Message] = [];
 }
 
-def:protect say(message: str) -> Iterator[Piece] {
+def:prot say(message: str) -> Iterator[Piece] {
     chat = Chat();
     found = [root --> [?:Chat]];
     if len(found) > 0 {

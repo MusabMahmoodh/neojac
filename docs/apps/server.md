@@ -20,7 +20,7 @@ library code compiled into the app, and what carries each thing out is a
 | What a module says | The abstraction | Its standard plugin |
 |---|---|---|
 | A call from outside, and a call to another app | `transport` | `http`: HTTP, with JSON |
-| `:protect`, the caller's `root` | `auth` | `accounts`: usernames and passwords |
+| `:prot`, the caller's `root` | `auth` | `accounts`: usernames and passwords |
 | `@limit`, `consume_limit` | `limits` | `memory_limits`: counts in the program's memory |
 | `@schedule` | `schedule` | `loop_schedule`: the thread that listens runs each when it is due |
 | `@job`, `flow`, `wait` | `jobs` | `process_jobs`: a copy of the program for each |
@@ -69,7 +69,7 @@ walker:pub AddNote {
     }
 }
 
-walker:protect MyNotes {
+walker:prot MyNotes {
     can show with Root entry {
         report [n.text for n in [here --> [?:Note]]];
     }
@@ -150,7 +150,7 @@ any other.
 |---|---|---|
 | 200 | | The call returned |
 | 400 | `rejected` | The body is not JSON, or the arguments do not fit: `greet: no parameter 'nam'`, `greet: .name: expected a str, got 3`, `greet: missing field 'name'` |
-| 401 | `rejected` | A `:protect` endpoint, and no signed-in caller |
+| 401 | `rejected` | A `:prot` endpoint, and no signed-in caller |
 | 403 | `rejected` | An untagged endpoint, and no deployment key: `an internal endpoint` |
 | 404 | `failed` | No such endpoint |
 | 409 | `conflict` | What the call changed in the graph, other instances of the app changed first, each of the 4 times it ran ([An app's data](data.md#several-instances-on-one-store)) |
@@ -299,7 +299,7 @@ def:pub sell -> bool {
 ## Signing in
 
 Who a caller is, and how one signs in, is the project's `auth` plugin's to say
-([Plugins](plugins.md)). A module says only `:protect` and `root`, and a page only `sign_in()`
+([Plugins](plugins.md)). A module says only `:prot` and `root`, and a page only `sign_in()`
 ([Pages](pages.md#signing-in)). Whatever the plugin, the app serves:
 
 | Request | Reply's `data` |
@@ -378,7 +378,7 @@ What an unchecked account may not do is the app's to say. An endpoint asks
 ```jac
 import from stdjac { address_checked }
 
-def:protect publish(text: str) -> str {
+def:prot publish(text: str) -> str {
     if not address_checked() {
         return "check your address first: follow the link mailed to it";
     }
@@ -684,7 +684,7 @@ compiles, and nothing is registered as the module starts.
 | `headers` | Headers an unenveloped body is sent with, a dict written at the decorator: what a page says of where it may be shown and what it may load (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control`). A refusal and a failure are the JSON envelope, sent with none of them |
 
 The function takes no parameters. Its access tag guards the route as it guards its endpoint:
-`:pub` for anyone, `:protect` for a signed-in caller (401 otherwise), untagged for requests with
+`:pub` for anyone, `:prot` for a signed-in caller (401 otherwise), untagged for requests with
 the deployment's key (403 otherwise).
 
 Its arguments are checked as the program compiles: a missing `method` is E1050, an `envelope`
@@ -776,7 +776,7 @@ Calling `doubled` with `{"args": {"n": 21}}` answers `"running"` until the job h
   keep.
 - A job of the module a program starts at cannot be started (E5090): put it in a module of its
   own.
-- **A job is its own space's to start.** It is no endpoint: one tagged `:pub` or `:protect`, or
+- **A job is its own space's to start.** It is no endpoint: one tagged `:pub` or `:prot`, or
   wired to a module of another space, is E2223. What another space or a caller wants of a job, a
   function of the job's space gives them, as `doubled` does above.
 

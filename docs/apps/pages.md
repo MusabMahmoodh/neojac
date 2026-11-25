@@ -243,7 +243,7 @@ the result, since every crossing is asynchronous in a browser:
 
 The call goes to the app that served the page, at the page's own origin. What the page may call is
 what the archwire wires to its modules, and each function or walker it calls must be `:pub` or
-`:protect` (E1210). [Crossings](crossings.md) has the rules (`neojac docs crossings`).
+`:prot` (E1210). [Crossings](crossings.md) has the rules (`neojac docs crossings`).
 
 A page can make crossings in an effect (`async can with entry`, as above) or in an event handler.
 A wasm space the app serves is called the same way: its module is loaded into the page, and a call
@@ -251,7 +251,7 @@ of one of its functions is awaited ([Hosts](hosts.md)).
 
 ## Signing in
 
-A `:protect` function or walker needs a signed-in caller. A page says that it wants one, and
+A `:prot` function or walker needs a signed-in caller. A page says that it wants one, and
 names no way of signing in: the project's `auth` [plugin](plugins.md) says what signing in takes,
 and the functions of `@jac/runtime` carry it out. Each is awaited:
 
@@ -298,7 +298,7 @@ def:pub page -> JsxPage {
 }
 ```
 
-Before signing in, `MyNotes` (a `walker:protect`) is refused and the page shows
+Before signing in, `MyNotes` (a `walker:prot`) is refused and the page shows
 `This needs a signed-in caller.`; after, it lists the notes.
 
 What `sign_in()` shows is the plugin's:
@@ -382,7 +382,7 @@ Opened for the first time, the app of [Hosts](hosts.md#one-program-with-a-server
 the buttons `default` and `local`. `local` starts it again running its own server. Where the
 project's `accounts` plugin takes the people at the machine as its users
 ([Hosts](hosts.md#local-users)), `sign_in()` asks who is there, by name and with no password, and
-knows them the next time; every `:protect` endpoint the page calls then runs for them, on their
+knows them the next time; every `:prot` endpoint the page calls then runs for them, on their
 own root.
 
 The app answers the arrangement at `/__jac/app/arrangement`: a `GET` reads, and a `POST` of
@@ -425,7 +425,7 @@ installed after a build that failed for want of it is seen by the next build.
 | E1227 | A module under `pages/` with no `page` function, or `pages/layout.jac` with no `layout` |
 | E1228 | A `page` parameter that is not `name: str` or `*name: str` |
 | E1279 | A page in a space whose `ui` plugin has no file routes (any but `react`) |
-| E1210 | A page calls a function or walker of another space that is not `:pub` or `:protect` |
+| E1210 | A page calls a function or walker of another space that is not `:pub` or `:prot` |
 | E1540 | An import of a stdjac name that is native code's (`RemoteError`, from `stdjac`): the classes are `"@jac/runtime"`'s here |
 | E1219 | An import of a package another `ui` plugin owns |
 | E1145 | An import of a name a typed npm package does not export |

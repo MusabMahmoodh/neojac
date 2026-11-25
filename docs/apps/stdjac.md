@@ -5,7 +5,7 @@ keywords: stdjac, stdjac.remote, stdjac.graph, stdjac.codec, stdjac.plan, stdjac
 # stdjac
 
 stdjac is the library of the language's abstractions, written in Jac and shipped in neojac's
-`rt/stdjac/`. It holds what source says of each (`root`, a call to another space, `:protect`,
+`rt/stdjac/`. It holds what source says of each (`root`, a call to another space, `:prot`,
 `by llm()`, `@job`), and what is the same whatever the plugin: it starts an app, hands each
 request to what answers it, knows the graph's nodes and what changed, and runs a model's tools.
 It holds no mechanism: where a graph is kept, who a caller is, what carries a request and which

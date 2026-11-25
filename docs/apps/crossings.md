@@ -263,12 +263,12 @@ who may call it:
 |---|---|---|
 | `:priv` | No one | Never |
 | none | Code of this project | Served only to the project's own programs: a request must carry the deployment's key |
-| `:protect` | A signed-in caller | Served to requests carrying a session's token |
+| `:prot` | A signed-in caller | Served to requests carrying a session's token |
 | `:pub` | Anyone | Served to every request |
 
 The endpoints of a space are:
 
-- every `:pub` or `:protect` function or walker at the top level of one of its modules, whether or
+- every `:pub` or `:prot` function or walker at the top level of one of its modules, whether or
   not anything in the project calls it;
 - every untagged one that is wired to a module of another space.
 
@@ -279,7 +279,7 @@ Three rules follow from who can be trusted:
 
 - **A `browser` or `hermes` space cannot call an untagged function or walker of another space**
   (E1210). Code on a device the project does not control can make any request the page can, so
-  what a page calls says who may call it: `:pub` or `:protect`. The same holds for a `node` space's
+  what a page calls says who may call it: `:pub` or `:prot`. The same holds for a `node` space's
   calls.
 - **An access tag in an unplaced module is an error** (E1211). The module has no space to be
   served from.
@@ -304,7 +304,7 @@ JAC_DEPLOY_KEY=s3cret dist/cli-linux-x86_64   # the same call succeeds
 
 ### Calling as a signed-in user
 
-A `:protect` endpoint needs a session's token ([Serving a space](server.md) says how one is made).
+A `:prot` endpoint needs a session's token ([Serving a space](server.md) says how one is made).
 
 - A page keeps the token its sign-in returned and sends it with every crossing
   ([Pages](pages.md)).
@@ -411,7 +411,7 @@ refused at the import, with E1540
 |---|---|
 | `RemoteUnavailable` | The space has no URL, or nothing answers there; a stream that stopped before its `end` event |
 | `RemoteTimeout` | Nothing from the server for 30 seconds while a native or cpython caller waits for a reply (a call may take longer: the server says every 15 seconds that it is still answering it), or for 60 seconds while it reads a stream |
-| `RemoteRejected` | The request was refused: no key for an untagged endpoint, no session for a `:protect` one, or arguments that do not decode |
+| `RemoteRejected` | The request was refused: no key for an untagged endpoint, no session for a `:prot` one, or arguments that do not decode |
 | `RemoteDecodeError` | The reply, or a stream's item, is not what the callee's result type says |
 | `RemoteFailed` | The endpoint raised, or does not exist; a stream called on a space the process runs itself |
 
@@ -453,7 +453,7 @@ no URL for space 'api'
 | E1146 | A type wired into the calling module that the module never names: annotate the result with it |
 | E1182 | A crossing whose signature, or whose walker's fields, name a type that is not wired into the calling module |
 | E1210 | A browser, hermes or node space calls an untagged function or walker of another space |
-| E1211 | `:pub` or `:protect` in a module no space holds |
+| E1211 | `:pub` or `:prot` in a module no space holds |
 | E1212 | An app reaches a space it does not run, with no URL in `[apps.<app>.remote]` |
 | E1264 | Another space's function used as a value |
 | E1276 | A space in an app calls a space that is in no app |

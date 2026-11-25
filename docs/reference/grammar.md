@@ -98,7 +98,7 @@ package_decl ::= "package" NAME "{" ("ship" name_list)* "}"
 
 layer_decl ::= "layer" NAME "{" (STRING layer_decl | layer_decl | module_pattern ("|" module_pattern)* ";")* "}"
 
-access_tag ::= (":" ("protect" | "pub" | "priv"))?
+access_tag ::= (":" ("prot" | "pub" | "priv"))?
 
 type_params ::= type_param ("," type_param)* ","?
 
@@ -472,7 +472,7 @@ KEYWORD ::=
     | "return" | "yield" | "break" | "continue" | "raise" | "del" | "assert" | "skip"
     | "report" | "visit" | "spawn" | "entry" | "exit" | "disengage" | "here" | "visitor"
     | "root" | "async" | "await" | "flow" | "wait" | "and" | "or" | "not" | "in" | "is"
-    | "lambda" | "own" | "lin" | "mut" | "imm" | "pub" | "priv" | "protect" | "self"
+    | "lambda" | "own" | "lin" | "mut" | "imm" | "pub" | "priv" | "prot" | "self"
     | "init" | "super" | "postinit" | "True" | "False" | "None"
 
 ARCHWIRE_KEYWORD ::=

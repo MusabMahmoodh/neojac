@@ -130,7 +130,7 @@ imports it, and a call to it is an ordinary call, never a crossing. This is wher
 pure logic go: the `obj` a server function returns and a page reads is declared in an unplaced
 module that both wire in.
 
-Because an unplaced module has no space to be served from, a `:pub` or `:protect` function or
+Because an unplaced module has no space to be served from, a `:pub` or `:prot` function or
 walker in one is E1211.
 
 A JavaScript or TypeScript file of the project that no space holds is loaded the same way: into
