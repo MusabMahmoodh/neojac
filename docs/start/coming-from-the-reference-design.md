@@ -126,7 +126,7 @@ with entry {
 | An enum member equal to another's value; `A = 1 + 1` | distinct int or str literals | E5090 | A member is one value, written as a literal |
 | `impl Color { RED = 1, }`, `obj A;` | the body in the declaration | E5090 | |
 | `async walker W`, `with entry:setup` | a plain archetype; `with entry` or `with entry:__main__` | E5090 | |
-| `def answer(q: str) -> str by llm();` in an `obj` | a module-level function that takes the object, with its methods as tools: `def answer(a: Agent, q: str) -> str by llm(tools=[a.search]);` | E5090 | Only a function may be `by` |
+| `by llm(tools=[...], parallelize=True)` and `mark_serialize(f)` | `@reads` (from `jaclang.comptime`) on each tool that only reads; the others run alone, in the order the model called them | E1052 | A round runs its `@reads` calls at once: the declaration is the function's, and the compiler holds it to it (E1643) |
 | A decorator that wraps at run time (`@lru_cache`) | a call: `glob f = lru_cache(maxsize=None)(f_impl);` | E1490 | A decorator is a compile-time call |
 | `type`, `list` and other keywords as names | another name | E0013 | Keywords and type words are reserved |
 | `jid(x)` of an `obj` | `jid` of a node or an edge | E1053 | Only nodes and edges have ids |
