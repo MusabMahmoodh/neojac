@@ -198,13 +198,20 @@ with entry {
 ```
 
 The compiler holds the declaration to what it can see. A `@reads` function
-is E1643 when, in the program's own code, it or what it calls
+is E1643, reported at the statement, when in the program's own code it or
+what it calls
 
-- assigns a name outside itself: a module's global, a captured name;
-- changes an object it did not make: an argument, a global's value, its own
-  object (`self.n += 1`);
+- assigns a name outside the call: a module's global, a captured name;
+- changes an object the call did not make: an argument, a global's value,
+  its own object (`self.n += 1`), a cache it fills;
 - changes or walks a graph: `++>`, `del`, `spawn`, `visit`;
 - reads stdin, or prints to a file it is given.
+
+An object is the call's own when every value bound to its local is made
+there: a display (`[]`, `{}`), a comprehension, a constructor call,
+`list()`, `set()`, `sorted()`, or a list joined, repeated or sliced. What a
+function returned and an item read back out of a container are not, even a
+container the call made.
 
 What it reaches in the runtime's modules and in C (a file read, a
 subprocess, a request) the compiler does not follow: that it changes
