@@ -711,11 +711,11 @@ See [Tests](tests.md).
 ## Access tags
 
 ```ebnf
-access_tag ::= (":" ("protect" | "pub" | "priv"))?
+access_tag ::= (":" ("prot" | "pub" | "priv"))?
 ```
 
-A declaration's keyword may carry a tag: `def:pub run`, `glob:priv cache`, `obj:protect Account`.
-A tag says who may call the declaration from another space of an app (`:pub` anyone, `:protect` a
+A declaration's keyword may carry a tag: `def:pub run`, `glob:priv cache`, `obj:prot Account`.
+A tag says who may call the declaration from another space of an app (`:pub` anyone, `:prot` a
 signed-in caller); see `neojac docs space`. It does not hide a name from other modules: within one
 program, every top-level name of a module can be imported, whatever its tag.
 

@@ -26,7 +26,7 @@ may then pick among the plugins the program was built with.
 | Abstraction | What source says | Its interface | One for each | Picked | Standard plugin |
 |---|---|---|---|---|---|
 | `store` | `root`, `root.shared`, `++>` | `store.contract.Store` | Space | As the program starts | `sqlite` |
-| `auth` | `:protect`, the caller's `root`, a page's `sign_in()` | `auth.contract.Auth` | Project | As the program starts | `accounts` |
+| `auth` | `:prot`, the caller's `root`, a page's `sign_in()` | `auth.contract.Auth` | Project | As the program starts | `accounts` |
 | `transport` | A call from outside, and a call to another app | `transport.contract.Transport` | Project | As the program starts | `http` |
 | `llm` | `by llm()` | `llm.contract.Model` | Project | As the program starts | `anthropic` |
 | `jobs` | `@job`, `flow f(x)`, `wait j` | `jobs.contract.Jobs` | Project | As the program starts | `process_jobs` |
@@ -303,7 +303,7 @@ Giving one a value in `jac.toml` is E1053.
 | `sqlite` | `store`: a space's graph, as rows in a SQLite file, which the programs of one machine may keep together | `path`, the file: `graph.db` in the app's data directory |
 | `accounts` | `auth`: accounts of a username and a password, and their sessions, in a SQLite file; signing in through GitHub and through Google, where the program runs with an OAuth client's ID and secret; and addresses checked and passwords set again by mailed links, where the app sends mail | `path` and `rounds`, beside `auth`'s own ([Serving a space](server.md#the-accounts-plugin)) |
 | `http` | `transport`: requests over HTTP, a call's reply as JSON and a stream's events as they are made, and the server that answers them | `client_header`, the header a gateway in front of it writes each request's client address into ([Serving a space](server.md#the-address-a-caller-calls-from)) |
-| `anthropic` | `llm`: a model behind Anthropic's Messages API | `model`, `address`, `timeout`, `retries`, and the secret `key` ([By and sem](../language/by-and-sem.md#the-anthropic-plugin)) |
+| `anthropic` | `llm`: a model behind Anthropic's Messages API | `model`, `address`, `timeout`, `retries`, `rates`, and the secret `key` ([By and sem](../language/by-and-sem.md#the-anthropic-plugin)) |
 | `process_jobs` | `jobs`: each job in a copy of the program | `dir`, where a job's input and what it says are kept while it runs: `jobs` in the app's data directory |
 | `loop_schedule` | `schedule`: each scheduled function run by the thread that listens, when it is due | `tick`, how often its clock looks for one that is due, in seconds: `0.25` |
 | `memory_limits` | `limits`: uses counted in the program's memory | `sweep_at`, how many actors' uses are kept before those whose window has passed are let go: `1024` |

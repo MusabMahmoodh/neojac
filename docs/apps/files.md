@@ -17,7 +17,7 @@ node Photo {
 }
 
 @accepts(most=5000000, kinds=["image/png", "image/jpeg"])
-def:protect add_photo(image: File, caption: str) -> Photo {
+def:prot add_photo(image: File, caption: str) -> Photo {
     made = Photo(image=image, caption=caption);
     root ++> made;
     return made;
@@ -115,7 +115,7 @@ def Picture(photo: Photo | None) -> JsxElement {
   4 MiB for the standard one), and then calls with the `File` that names them. A `File` sent once
   is sent no more.
 - **What the endpoint would refuse is refused before a byte is sent**: a caller it does not admit
-  (`:protect`, with no one signed in), a size or a type it does not accept. The call raises
+  (`:prot`, with no one signed in), a size or a type it does not accept. The call raises
   `RemoteRejected`, as a rejected call does.
 - **A phone app's page is the same** (a `hermes` space), with a `Blob` for its source.
 
@@ -127,7 +127,7 @@ names any, the types it may be:
 <!-- example: not checked: a served app's module -->
 ```jac
 @accepts(most=393216, kinds=["image/jpeg", "image/png", "image/webp"])
-def:protect set_avatar(image: File | None) -> Profile {
+def:prot set_avatar(image: File | None) -> Profile {
     mine = [root --> [?:Profile]][0];
     mine.avatar = image;
     return mine;

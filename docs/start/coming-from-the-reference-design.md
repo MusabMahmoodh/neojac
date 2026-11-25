@@ -18,7 +18,7 @@ neojac refuses what the reference design only warned about. `neojac docs <code>`
 Most of a reference-design program reads the same here:
 
 - the archetypes `obj`, `node`, `edge` and `walker`, with `has` fields, `def` methods, `init` and
-  `postinit`, `static def`, `override`, `abst`, access tags (`:pub`, `:priv`, `:protect`);
+  `postinit`, `static def`, `override`, `abst`, the access tags `:pub` and `:priv`;
 - abilities, `can name with T entry|exit { ... }`, and `here`, `self`, `visitor` and `root`;
 - `spawn` in either operand order, `visit`, `visit ... else` and `visit ... by`, `disengage`,
   `report`;
@@ -117,6 +117,7 @@ with entry {
 | `lambda x: int : x * 2` | `lambda (x: int) -> int { return x * 2; }` | E0022 | A lambda's body is a block |
 | `for i = 0 to i < 10 by i += 1` | `for i = 0 while i < 10 with i += 1` | E0001 | |
 | `has y: int by postinit;` | `has y: int postinit;` | E0002 | |
+| `def:protect`, `walker:protect`, `has:protect` | `def:prot`, `walker:prot`, `has:prot` | E0182 | The three access tags are clipped alike: `pub`, `prot`, `priv` |
 | `test my_test { ... }` | `test "my test" { ... }` | E0001 | A test's name is a string |
 | `global x;`, `nonlocal x;` | assign `x` | E0002 | Assigning a global's or an enclosing function's name rebinds it |
 | `[node a -->]` | `[a -->]` | E5090 | One spelling |
@@ -126,7 +127,7 @@ with entry {
 | An enum member equal to another's value; `A = 1 + 1` | distinct int or str literals | E5090 | A member is one value, written as a literal |
 | `impl Color { RED = 1, }`, `obj A;` | the body in the declaration | E5090 | |
 | `async walker W`, `with entry:setup` | a plain archetype; `with entry` or `with entry:__main__` | E5090 | |
-| `def answer(q: str) -> str by llm();` in an `obj` | a module-level function that takes the object, with its methods as tools: `def answer(a: Agent, q: str) -> str by llm(tools=[a.search]);` | E5090 | Only a function may be `by` |
+| `by llm(tools=[...], parallelize=True)` and `mark_serialize(f)` | `@reads` (from `jaclang.comptime`) on each tool that only reads; the others run alone, in the order the model called them | E1052 | A round runs its `@reads` calls at once: the declaration is the function's, and the compiler holds it to it (E1643) |
 | A decorator that wraps at run time (`@lru_cache`) | a call: `glob f = lru_cache(maxsize=None)(f_impl);` | E1490 | A decorator is a compile-time call |
 | `type`, `list` and other keywords as names | another name | E0013 | Keywords and type words are reserved |
 | `jid(x)` of an `obj` | `jid` of a node or an edge | E1053 | Only nodes and edges have ids |

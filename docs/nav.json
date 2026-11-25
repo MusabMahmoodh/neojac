@@ -884,7 +884,7 @@
               "page": "reference/diagnostics/e01-1.md"
             },
             {
-              "title": "E0120 to E0181: parameters, assignments, patterns, spellings, layers, connects, defaults, defer and bit-fields",
+              "title": "E0120 to E0182: parameters, assignments, patterns, spellings, layers, connects, defaults, defer, bit-fields and access tags",
               "page": "reference/diagnostics/e01-2.md"
             },
             {
@@ -956,7 +956,7 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
-              "title": "E1615 to E1642: type parameter packs, wide text, C++ and Rust templates, C++ comparisons, C++ constructors, C++ function pointers, objects lent to C, sizeof, managed places, objects found by a field, statics written through a subclass, C++ templates deduced from a function, and several C++ functions written as one name",
+              "title": "E1615 to E1643: type parameter packs, wide text, C++ and Rust templates, C++ comparisons, C++ constructors, C++ function pointers, objects lent to C, sizeof, managed places, objects found by a field, statics written through a subclass, C++ templates deduced from a function, and several C++ functions written as one name, and @reads functions that change something",
               "page": "reference/diagnostics/e16.md"
             },
             {

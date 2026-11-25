@@ -1,6 +1,6 @@
 ---
-description: Functions a language model (an LLM) or another value answers (def f(...) -> T by llm();), the tools that make one an agent, a by function that streams its answer, the By, ByStreams and ByChooser interfaces such a value conforms to, llm() and the plugin that speaks to a model, its conversations and usage, and sem strings that describe declarations to them.
-keywords: by, sem, semantic string, llm, language model, LLM, AI, agent, tool use, By, ByCall, ByTool, ByError, ByStreams, ByEvent, ByEventKind, ByUsage, ByChooser, ByChoice, on_usage, IterationContext, ANTHROPIC_API_KEY, JAC_LLM_ADDRESS, Effort, Model, ModelRequest, ModelReply, anthropic, JAC_LLM_MODEL
+description: Functions and methods a language model (an LLM) or another value answers (def f(...) -> T by llm();), the tools that make one an agent (ByTool values, and @reads for the ones a round runs at once), a by function that streams its answer, the By, ByStreams and ByChooser interfaces such a value conforms to, llm() and the plugin that speaks to a model, its conversations and usage, and sem strings that describe declarations to them.
+keywords: by, sem, semantic string, llm, language model, LLM, AI, agent, tool use, tools, By, ByCall, ByTool, ByError, ByStreams, ByEvent, ByEventKind, ByEnd, ByUsage, cost, rates, ByChooser, ByChoice, on_usage, latest_turns, IterationContext, ANTHROPIC_API_KEY, JAC_LLM_ADDRESS, Effort, Model, ModelRequest, ModelReply, anthropic, JAC_LLM_MODEL
 grammar: sem_def, by_expr
 ---
 # By and sem
@@ -27,7 +27,8 @@ by_expr ::= pipe ("by" by_expr)?
 ```
 
 A `by` function is the `ability` production with `"by" expression` in place
-of a block (see [Methods](methods.md)): `def name(params) -> T by e;`.
+of a block (see [Methods](methods.md)): `def name(params) -> T by e;`. A
+method of an archetype may be one ([below](#a-method-answered-by)).
 
 The `by` operator of an expression (`by_expr`) has its meaning in one
 statement: `visit <nodes> by <chooser>;` ([visit](visit.md#visit--by)). In
@@ -62,24 +63,167 @@ and gives it a string; several adjacent strings are joined (`sem f = "One "
    is not among them ([below](#a-parameter-the-answerer-takes-whole));
 3. calls that value's `invoke` with a `ByCall` holding the call's name, the
    function's `sem`, the arguments, the parameters' `sem`s, the JSON schema
-   of `R` with each field's `sem` as its description, a decoder for `R`, and
-   the tools;
+   of `R` with each field's `sem` as its description, and a decoder for `R`;
 4. returns what `invoke` returns, as an `R`.
 
-The tools are what `e`'s `tools=` argument lists (`llm(tools=[lookup])`):
-each arrives as a `ByTool` with its name, its `sem`, the JSON schema of its
-parameters, and a function that calls it with arguments given as JSON and
-gives its result as JSON. A tool is one of:
+### A method answered `by`
+
+A method declared with `by` is answered the same way. Its object is among
+the arguments, as `self`, encoded as any object is, and `e` is evaluated
+inside the method, so it may name `self`: an object's own methods are its
+tools.
+
+```jac
+obj Reviewer {
+    has repo: str;
+
+    def read_file(path: str) -> str {
+        return f"{self.repo}/{path}";
+    }
+
+    def review(path: str) -> str by llm(tools=[self.read_file]);
+}
+
+sem Reviewer.review = "Review one file of the repository.";
+```
+
+An ability (`can ... with entry`) is not answered `by` (E5090).
+
+## Tools
+
+A tool is a `ByTool`: something an answerer may call while it answers, with
+a name, a description, the JSON schema of its arguments, and a function
+that calls it with arguments given as JSON and gives its result as JSON.
+An answerer keeps the tools it is given (`llm(tools=[lookup])`).
+
+**A function, or a method of an object, given where a `ByTool` is taken is
+its tool.** The compiler makes the `ByTool` there: its `name` is the
+function's, its `doc` the function's `sem`, and its schema the parameters'
+types, each described by its `sem`.
 
 | Tool | Written | Called as |
 |---|---|---|
-| A function | `tools=[lookup]` | `lookup(...)` |
-| A method of one of the `by` function's parameters | `tools=[r.read_file]`, `r` a parameter | `r.read_file(...)`, on the argument the call was given |
+| A function | `lookup` | `lookup(...)` |
+| A method of an object | `r.read_file`, `self.read_file` | `r.read_file(...)`, on the object it was taken from |
 
 A method tool is described by the method's `sem` and its parameters'
 (`sem Reviewer.read_file`, `sem Reviewer.read_file.path`), and is named for
-the method (`read_file`). The parameter's type is one class (`r: Reviewer`):
-with another type (`r: Reviewer | None`) the tool is E5090.
+the method (`read_file`). Its object is one that is there: a method of an
+object that may be `None` (`r: Reviewer | None`, not narrowed) is E5090.
+
+A `ByTool` is a value like any other. A module keeps a list of them, a
+function takes one, and lists of them are joined:
+
+```jac
+import from stdjac { ByTool }
+
+def lookup(word: str) -> str {
+    return word.upper();
+}
+
+sem lookup = "Look a word up.";
+
+obj Shelf {
+    has books: list[str] = [];
+
+    def find(title: str) -> bool {
+        return title in self.books;
+    }
+}
+
+sem Shelf.find = "Whether the shelf holds a book.";
+
+glob READING: list[ByTool] = [lookup];
+
+def describe(tools: list[ByTool]) -> list[str] {
+    return [f"{t.name}: {t.doc}" for t in tools];
+}
+
+with entry {
+    shelf = Shelf(books=["Dune"]);
+    tools = READING + [shelf.find];
+    print(describe(tools));
+    print(tools[0].call({"word": "day"}), tools[1].call({"title": "Dune"}));
+    print(tools[1].schema);
+}
+```
+
+```output
+['lookup: Look a word up.', 'find: Whether the shelf holds a book.']
+DAY True
+{'type': 'object', 'properties': {'title': {'type': 'string'}}, 'required': ['title']}
+```
+
+What is a tool is a function with a body or a method called on its object,
+whose parameters and result have a JSON schema. A generic function, an
+`async` one, a generator, a static method or a C function is not (E1229,
+where it is given).
+
+### Tools that only read: `@reads`
+
+A model may ask for several tool calls in one reply, a **round**. An
+answerer runs a round's calls one at a time, in the order the model asked,
+unless it is told that running them at the same time changes nothing:
+`@reads` (from `jaclang.comptime`, a [decorator](decorators.md#the-facts))
+declares that of a function, and its `ByTool` says so (`alone` is `False`).
+`llm` runs consecutive `@reads` calls of a round at once
+([below](#rounds-of-tool-calls)).
+
+```jac
+import subprocess;
+import from jaclang.comptime { reads }
+import from stdjac { ByTool }
+
+glob posted: list[str] = [];
+
+@reads
+def read_file(path: str) -> str {
+    shown = subprocess.run(["git", "show", "HEAD:" + path], capture_output=True, text=True);
+    return shown.stdout;
+}
+
+def post_comment(body: str) -> str {
+    posted.append(body);
+    return "posted";
+}
+
+with entry {
+    tools: list[ByTool] = [read_file, post_comment];
+    print([(t.name, t.alone) for t in tools]);
+}
+```
+
+```output
+[('read_file', False), ('post_comment', True)]
+```
+
+The compiler holds the declaration to what it can see. A `@reads` function
+is E1643, reported at the statement, when in the program's own code it or
+what it calls
+
+- assigns a name outside the call: a module's global, a captured name;
+- changes an object the call did not make: an argument, a global's value,
+  its own object (`self.n += 1`), a cache it fills;
+- changes or walks a graph: `++>`, `del`, `spawn`, `visit`;
+- reads stdin, or prints to a file it is given.
+
+An object is the call's own when every value bound to its local is made
+there: a display (`[]`, `{}`), a comprehension, a constructor call,
+`list()`, `set()`, `sorted()`, or a list joined, repeated or sliced. What a
+function returned and an item read back out of a container are not, even a
+container the call made.
+
+A destructor (`__del__`) is the call's where the call makes an object of
+its class: that object ends with the call, so what its `__del__` changes,
+the call changes. The destructor of an object the call is given is not the
+call's.
+
+What it reaches in the runtime's modules and in C (a file read, a
+subprocess, a request) the compiler does not follow: that it changes
+nothing is the declaration's word. So is what a value whose class the
+compiler does not know (an `any`, what the runtime returned) does when it
+is called, compared, printed or iterated. A function that is not declared
+is never run alongside another, so leaving `@reads` off is always safe.
 
 ### A parameter the answerer takes whole
 
@@ -94,18 +238,18 @@ Here `r` is an argument and the owner of a tool, and `notes` is the
 answerer's, which adds to the caller's list:
 
 ```jac
-import from stdjac { By, ByCall }
+import from stdjac { By, ByCall, ByTool }
 
 """An answerer without a model: it calls its tool, and notes what
 the tool gave."""
 obj Canned(By) {
-    has tools: list[any] = [],
+    has tools: list[ByTool] = [],
         notes: list[str] = [];
 
     def invoke(call: ByCall) -> any {
         print("args:", call.args);
         print("arg docs:", call.arg_docs);
-        tool = call.tools[0];
+        tool = self.tools[0];
         print("tool:", tool.name, "|", tool.doc);
         print("schema:", tool.schema);
         self.notes.append(tool.call({"path": "a.py"}));
@@ -167,7 +311,7 @@ as a stream.
 goes. `e` gives a value of a class conforming to `ByStreams` (below), whose
 `stream` is called with the `ByCall` and gives the events. The call has no
 result type: its answer is text, and the `ByCall` carries no `result_schema`
-and no `decode`. The arguments, the `sem`s and the tools are as for any `by`
+and no `decode`. The arguments and the `sem`s are as for any `by`
 function.
 
 The function returns the iterator at once, and the answerer works as the
@@ -224,7 +368,16 @@ fields it carries:
 | `TOOL_CALL` | The answerer calls a tool | `tool` (its name), `args` (its arguments, by name), `call_id` (a name for this call) |
 | `TOOL_RESULT` | What that call gave | `tool`, `call_id`, `result` (a `str`) |
 | `USAGE` | What one request took | `usage` (a `ByUsage`) |
-| `DONE` | The call is answered | `text` (the whole answer) |
+| `DONE` | The call is answered | `text` (the whole answer), `ended` (a `ByEnd`: why it ended) |
+
+`ByEnd` says why a call ended:
+
+| `ByEnd` | The call ended because |
+|---|---|
+| `ANSWERED` | The answerer had its answer |
+| `STOPPED` | The program told it to answer now (`llm`'s `on_iteration`) |
+| `ROUNDS` | It had used the rounds of tool calls it may make (`llm`'s `max_react_iterations`) |
+| `CUT` | The answer ran past the most tokens a reply may have: it is what was written of it |
 
 A `ByEvent` holds `any`s (a tool's arguments), so it is not sendable and
 does not cross between spaces. A server's endpoint that passes an answer on
@@ -251,17 +404,17 @@ def:pub ask(question: str) -> Iterator[str] {
 
 An answerer is a class that conforms to `By`, an
 [interface](interfaces.md) with one method. A program imports the interfaces,
-`ByCall`, `ByChoice`, `ByEvent`, `ByEventKind`, `ByUsage` and `ByError` from
-`stdjac` (`import from stdjac { By, ByCall }`):
+`ByCall`, `ByTool`, `ByChoice`, `ByEvent`, `ByEventKind`, `ByEnd`, `ByUsage`
+and `ByError` from `stdjac` (`import from stdjac { By, ByCall }`):
 
 | Name | What it is |
 |---|---|
 | `By` | The interface of an answerer that gives a result: `def invoke(call: ByCall) -> any abst;` |
 | `ByStreams` | The interface of one that answers as it goes: `def stream(call: ByCall) -> Iterator[ByEvent] abst;` |
 | `ByChooser` | The interface of one that chooses a walker's way: `def choose(choice: ByChoice) -> list[int] abst;` ([visit](visit.md#visit--by)) |
-| `ByCall` | One call: `name: str`, `doc: str`, `args: dict[str, any]`, `arg_docs: dict[str, str]`, `result_schema: dict[str, any]`, `decode: Callable[[any], any] \| None`, `tools: list[ByTool]` |
-| `ByTool` | A tool: `name: str`, `doc: str`, `schema: dict[str, any]`, `call: Callable[[dict[str, any]], any]` |
-| `ByEvent`, `ByEventKind` | One event of a streamed call, and what it says ([above](#a-by-function-that-streams)) |
+| `ByCall` | One call: `name: str`, `doc: str`, `args: dict[str, any]`, `arg_docs: dict[str, str]`, `result_schema: dict[str, any]`, `decode: Callable[[any], any] \| None` |
+| `ByTool` | A tool ([above](#tools)): `name: str`, `doc: str`, `schema: dict[str, any]`, `call: Callable[[dict[str, any]], any]`, `alone: bool` (`False` for a `@reads` function's) |
+| `ByEvent`, `ByEventKind`, `ByEnd` | One event of a streamed call, what it says, and why the call ended ([above](#a-by-function-that-streams)) |
 | `ByUsage` | What an answerer used to answer (below) |
 | `ByChoice` | The choice a chooser is asked to make: `name: str`, `asker: dict[str, any]`, `at: dict[str, any]`, `options: list[dict[str, any]]` ([visit](visit.md#visit--by)) |
 | `ByError` | The exception an answerer raises when it cannot produce the result |
@@ -269,8 +422,10 @@ An answerer is a class that conforms to `By`, an
 
 `invoke` returns the result through `call.decode`, which decodes a JSON value
 as the declared type and raises `CodecError` (from `stdjac`) when it
-does not fit. An answerer that takes `tools` declares a `tools` field for them.
-One class may conform to several of the interfaces, as `llm`'s does.
+does not fit. An answerer that takes tools declares a field for them
+(`has tools: list[ByTool] = [];`), and what `by Canned(tools=[lookup])` gives
+it are `ByTool`s. One class may conform to several of the interfaces, as
+`llm`'s does.
 
 `ByUsage` counts what an answerer used, a model's requests for one:
 
@@ -281,14 +436,17 @@ One class may conform to several of the interfaces, as `llm`'s does.
 | `cache_read_tokens: int`, `cache_write_tokens: int` | The input tokens read from the model's cache, and written to it |
 | `seconds: float` | The time the requests took |
 | `model: str` | The model that answered |
+| `cost: float \| None` | What the requests cost, in dollars, where the plugin was told what its model charges ([below](#the-anthropic-plugin)); `None` where it was not |
 
-Every field starts at 0 (`model` at `""`). `total.add(more)` adds `more`'s
-counts to `total`'s, and takes its `model` when it names one.
+Every count starts at 0 (`model` at `""`, `cost` at `None`). `total.add(more)`
+adds `more`'s counts to `total`'s, and takes its `model` when it names one.
+The `cost` of the two is their sum, and `None` when either has requests that
+were not priced.
 
 This answerer has no model, and prints what the call carries:
 
 ```jac
-import from stdjac { By, ByCall }
+import from stdjac { By, ByCall, ByTool }
 
 enum Mood {
     HAPPY,
@@ -305,7 +463,7 @@ sem Verdict.score = "0 to 10: how strongly.";
 
 """An answerer without a model, printing what a call carries."""
 obj Canned(By) {
-    has tools: list[any] = [];
+    has tools: list[ByTool] = [];
 
     def invoke(call: ByCall) -> any {
         print("name:", call.name);
@@ -313,7 +471,7 @@ obj Canned(By) {
         print("args:", call.args);
         print("arg docs:", call.arg_docs);
         print("schema:", call.result_schema);
-        tool = call.tools[0];
+        tool = self.tools[0];
         print("tool:", tool.name, "|", tool.doc, "|", tool.call({"word": "day"}));
         return call.decode({"mood": "HAPPY", "score": 7});
     }
@@ -386,7 +544,8 @@ it their results, and decodes the final reply as the result type. It conforms
 to `By`, to `ByStreams` and to `ByChooser`, so it gives a typed result,
 streams an answer, and chooses a walker's way. What a program names beside
 it is imported from `stdjac`: `Effort`, `Message`, `IterationAction`,
-`IterationContext`, `on_usage`, and `LLM`, the class of what `llm(...)` gives.
+`IterationContext`, `on_usage`, `latest_turns`, and `LLM`, the class of what
+`llm(...)` gives.
 
 Which model answers is not said in source. `llm` is an abstraction, and what
 speaks to a model is the project's `llm` [plugin](../apps/plugins.md), named
@@ -424,13 +583,12 @@ with entry {
 |---|---|---|
 | `max_tokens` | 4000 | The most tokens one reply may have |
 | `effort` | `Effort.DEFAULT` | How hard the model works at it, where its provider has such a setting: `Effort.LOW`, `Effort.MEDIUM`, `Effort.HIGH`, or the provider's own choice |
-| `tools` | `[]` | Functions the model may call, each described by its `sem` and its parameters' |
+| `tools` | `[]` | A `list[ByTool]`: what the model may call ([Tools](#tools)), each described by its `sem` and its parameters' |
 | `max_react_iterations` | 8 | Rounds of tool calls before the model must answer |
 | `on_iteration` | `None` | A `Callable[[IterationContext], IterationAction]` called after each round of tool calls; returning `IterationAction.ABORT_WITH_SUMMARY` makes the model answer now |
 | `max_output_retries` | 1 | How many times a reply that does not fit the result type is sent back to be corrected |
 | `system_prompt` | `""` | Instructions said to the model before the function's `sem` |
 | `conversation` | `None` | A `list[Message]`: the turns before this call ([below](#conversations)) |
-| `parallelize` | `False` | `True` runs the tool calls of one round at once, each on a thread of its own, with the context variables of the thread that made the call |
 | `select` | 1 | For `visit ... by`: how many of the nodes to choose, a number or a `(least, most)` pair |
 | `intent` | `""` | For `visit ... by`: what the choice is for, said to the model |
 
@@ -438,6 +596,23 @@ A call raises `ByError` when the model's provider cannot be reached or
 answers with an error, when every model declines the request, and when the
 reply still does not fit the result type after the retries. A streamed call
 raises it where its events are read.
+
+### Rounds of tool calls
+
+A reply that calls tools is a round. `llm` runs the round's calls, sends the
+model all of their results together, in the order it asked, and asks again:
+no tool is still running when the model is next asked.
+
+- **A tool runs alone,** after the calls before it and before the calls
+  after it, unless its function is declared [`@reads`](#tools-that-only-read-reads).
+- **Consecutive `@reads` calls of a round run at once,** each as a task
+  with the context variables of the thread that made the call. A round of
+  two reads, a write and two more reads is the first two at once, then the
+  write, then the last two at once.
+- **A tool that raises** gives the model its failure as that call's result.
+  The round's other calls are not stopped.
+- **`on_iteration` is called after each round,** and `max_react_iterations`
+  counts them.
 
 ### The anthropic plugin
 
@@ -450,13 +625,24 @@ Messages API over HTTP. Its settings, in `[llm.anthropic]`:
 | `address` | `str` | `https://api.anthropic.com` | Where the API is, or a gateway to it: requests go to `<address>/v1/messages`. `JAC_LLM_ADDRESS` |
 | `timeout` | `int` | 60 | Seconds one request may take |
 | `retries` | `int` | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
+| `rates` | `dict[str, list[float]]` | `{}` | What each model charges, by its name: four numbers, the dollars for a million tokens of input, of output, read from the cache and written to it |
 | `key` | `Secret` | `ANTHROPIC_API_KEY` | The API key, read from that variable of the environment where the program runs, and never written in `jac.toml`. Without it a call raises `ByError` |
 
 ```toml
 [llm.anthropic]
 model = "claude-sonnet-5-5"
 timeout = 30
+rates = { claude-sonnet-5-5 = [2.0, 10.0, 0.1, 2.5] }
 ```
+
+`rates` is what gives a `ByUsage` its `cost`: a request's tokens at the rate
+of the model that answered it. The plugin holds no prices of its own, since
+what a model charges is the project's to know: it differs by provider, by
+platform and by date. A request whose model `rates` does not name has no
+cost (`None`), and a rate that is not four numbers ends the first call with
+`ByError`. A rate is flat: where a provider charges by a prompt's size or by
+how long the cache keeps what is written, give the rate the program's
+requests are charged.
 
 The instructions (the `system_prompt`, the `sem`s) are sent marked for the
 API's prompt cache, so the requests of one call, and calls with the same
@@ -491,7 +677,8 @@ as it is written. The events of one call, in order:
   writes it, then a `USAGE`; when the model called tools, a `TOOL_CALL` for
   each, the tools run, and a `TOOL_RESULT` for each, and the next request
   follows;
-- then one `DONE`, whose `text` is everything the model said in the call.
+- then one `DONE`, whose `text` is everything the model said in the call
+  and whose `ended` says why it ended.
 
 ### Conversations
 
@@ -509,6 +696,13 @@ caller that keeps the list keeps the conversation.
 
 A `Message` is an `obj` of sendable fields: a program may keep a
 conversation in a node's field, and send it across a crossing.
+
+A conversation grows with every call. `latest_turns(history, most)` (from
+`stdjac`) gives the most recent of its turns that fit in `most` characters
+of text and tool input: whole turns only, each from what the caller said to
+the model's last word on it, so no tool call is parted from its result, and
+never fewer than the latest turn. A program that keeps a long conversation
+gives a call `latest_turns` of it, and keeps what the call adds.
 
 <!-- example: not checked: it asks a model, which needs a key and the network -->
 ```jac
@@ -564,12 +758,14 @@ argument the model is sent as JSON
 
 - **`on_usage(f)`** registers `f`, a `Callable[[ByUsage], None]`, for the
   whole program. It is called after each request any `llm()` makes, with
-  what that request used, on the thread that made it. What a call costs is
-  the program's to work out from the counts.
+  what that request used, on the thread that made it. Its `cost` is what
+  the request cost, where the plugin was told its model's rates
+  ([above](#the-anthropic-plugin)).
 - **A streamed call** gives the same `ByUsage` in its `USAGE` events.
 - **`on_iteration`** is given an `IterationContext`: `iteration`, the rounds
   of tool calls the call has made, and `usage`, what its requests have used
-  so far.
+  so far, their `cost` among it: a program stops a call that has spent
+  enough by answering `IterationAction.ABORT_WITH_SUMMARY`.
 
 ## What `sem` strings are read by
 
@@ -602,7 +798,10 @@ for its reader, and a `sem` describes the declaration to an answerer.
 |---|---|
 | E0033 | A `by` function with no return type |
 | E1229, E0109 | A `by` function whose result type has no JSON schema |
-| E5090 | `by` on a method, an `impl` with a `by` body, the `by` operator in an expression (`a by b`) anywhere but a `visit` statement, a tool that is a method of a parameter whose type is not one class |
+| E5090 | `by` on an ability, an `impl` with a `by` body, the `by` operator in an expression (`a by b`) anywhere but a `visit` statement, a tool that is a method of an object that may be `None` |
+| E1229 | A function given as a tool that is not one: a generic function, an `async` one, a generator, a static method |
+| E1001 | Something given as a tool that is no function or method: `tools=["lookup"]` |
+| E1643 | A `@reads` function that changes what it did not make ([above](#tools-that-only-read-reads)) |
 | E1053 | An answerer that does not conform to the interface its use asks for: `By` for a result, `ByStreams` for `Iterator[ByEvent]`, `ByChooser` for `visit ... by` |
 | W2001 | A `by` expression that names what the module does not import |
 | E0156 | `sem x is "..."` |
@@ -617,8 +816,8 @@ def summarize(text: str) by llm();
 
 ```jac
 # expect: E5090 x2
-obj Agent {
-    def answer(q: str) -> str by llm();
+walker Tour {
+    can go with Root entry by llm();
 }
 
 def plain(q: str) -> str;
@@ -647,7 +846,7 @@ sem getcwd = "Declared in another module.";
 ```
 
 ```jac
-# expect: E2018 x2, E5090
+# expect: E2018 x2
 enum Mood {
     HAPPY,
     SAD,
@@ -661,8 +860,42 @@ obj Desk {
 
 sem Mood.CALM = "Mood has no member of this name.";
 sem Desk.look.page = "look has no parameter of this name.";
+```
+
+```jac
+# expect: E5090, E1001
+obj Desk {
+    def look(word: str) -> str {
+        return word;
+    }
+}
 
 def ask(d: Desk | None, word: str) -> str by llm(tools=[d.look]);
+
+def name(word: str) -> str by llm(tools=["look"]);
+```
+
+```jac
+# expect: E1643 x2
+import from jaclang.comptime { reads }
+
+glob asked: int = 0;
+
+obj Shelf {
+    has taken: list[str] = [];
+
+    @reads
+    def take(title: str) -> bool {
+        self.taken.append(title);
+        return True;
+    }
+}
+
+@reads
+def count(word: str) -> int {
+    asked += 1;
+    return asked;
+}
 ```
 
 ```jac
@@ -704,9 +937,14 @@ with entry {
 - **Here `llm` is built in**, and any class conforming to
   `By` may answer a `by` function. Which model `llm()` asks is the project's
   `llm` plugin, in `jac.toml`, where the reference design's byllm names a model in source.
-- **In the reference design a method may be declared `by llm()`; here only a function may**
-  (E5090). A method is a tool of a `by` function through the parameter it is
-  called on (`tools=[r.read_file]`).
+- **In the reference design a tool is a function named in `tools=[...]`, and
+  byllm's `mark_serialize` and `parallelize` say how a round's calls run;
+  here a tool is a `ByTool` value** made of a function or a method wherever
+  one is given, and a function declared `@reads`, which the compiler holds
+  to it, is what a round runs at once.
+- **In the reference design byllm reports what a call cost, and compacts a long
+  conversation; here a plugin prices a request by the rates `jac.toml`
+  gives it,** and `latest_turns` cuts a conversation at its turns.
 - **In the reference design `visit [-->] by llm();` takes whatever byllm returns; here the
   chooser conforms to `ByChooser`**, the nodes are a list of one node type,
   and the walker visits those chosen, in the order chosen.

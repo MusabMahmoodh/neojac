@@ -8,7 +8,7 @@ description: Use when creating or changing a neojac app made of spaces - an arch
 
 Use it when a project should become a server, or a program that calls one: anything that touches
 `graph spaces` in `archwire.jac`, `neojac run <app>`, endpoints, access tags (`:pub`,
-`:protect`), `.jac/data`, or `dist/`.
+`:prot`), `.jac/data`, or `dist/`.
 
 Load `writing-jac` first. Pages on top of the server: then `pages-and-components`. A language
 model, an agent or a chat that streams: `language-models-and-agents`. A plain program with no
@@ -66,8 +66,8 @@ graph spaces {
 
 Do not name an app, space or function after a keyword (`report`, `by`, `visit`...): E0013.
 
-2. **Write the space's module** (`notes.jac`). Every `:pub` or `:protect` function or walker
-   at its top level is an endpoint. `:pub` is anyone, `:protect` a signed-in caller, no tag only
+2. **Write the space's module** (`notes.jac`). Every `:pub` or `:prot` function or walker
+   at its top level is an endpoint. `:pub` is anyone, `:prot` a signed-in caller, no tag only
    the project's own programs.
 
 ```jac
@@ -88,7 +88,7 @@ walker:pub AddNote {
     }
 }
 
-walker:protect MyNotes {
+walker:prot MyNotes {
     can show with Root entry {
         report [n.text for n in [here --> [?:Note]]];
     }
@@ -248,10 +248,10 @@ kill $API_PID
 | E2213 | `archwire.jac` has no `graph layers` block | Add one; `layer all { *; }` holds every module |
 | E2201 | A module is in no layer | Name it in the layer it belongs to |
 | E2099 | A wire between two layers that no rule admits | Add `edge Name: source_layer --> target_layer;` |
-| E1211 | `:pub` or `:protect` in a module no space holds | Move it into a space's module, or drop the tag |
-| E1210 | A browser, hermes or node space calls an untagged endpoint | Tag it `:pub` or `:protect` |
+| E1211 | `:pub` or `:prot` in a module no space holds | Move it into a space's module, or drop the tag |
+| E1210 | A browser, hermes or node space calls an untagged endpoint | Tag it `:pub` or `:prot` |
 | E0013 | An app, space or function named after a keyword | Rename it |
-| 500, server prints `` `root` is no one's here `` | A `:pub` endpoint reads `root` for an anonymous caller | Use `root.shared`, or tag it `:protect` |
+| 500, server prints `` `root` is no one's here `` | A `:pub` endpoint reads `root` for an anonymous caller | Use `root.shared`, or tag it `:prot` |
 | `<app> can't start with the data it kept` | A node type changed under kept data | Default the new field, or `--fresh` |
 | `<app> can't listen on <address>: Address already in use` | Port taken | Set `JAC_<APP>_LISTEN` |
 

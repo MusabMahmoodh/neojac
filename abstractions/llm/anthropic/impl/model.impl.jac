@@ -110,12 +110,37 @@ impl usage_of(reply: dict[str, any], model: str) -> ByUsage {
     );
 }
 
+impl cost_of(used: ByUsage, rates: dict[str, list[float]]) -> float | None {
+    if used.model not in rates {
+        return None;
+    }
+    rate = rates[used.model];
+    return (
+        used.input_tokens * rate[0]
+        + used.output_tokens * rate[1]
+        + used.cache_read_tokens * rate[2]
+        + used.cache_write_tokens * rate[3]
+    )
+        / 1000000.0;
+}
+
 impl Anthropic.postinit {
     self.given_key = "";
 }
 
 impl Anthropic.open(host: dyn Host) {
     self.given_key = host.secret(self.key);
+    for (model, rate) in self.rates.items() {
+        if len(rate) != 4 {
+            raise ByError(
+                "[llm.anthropic] rates: '"
+                    + model
+                    + "' is given "
+                    + str(len(rate))
+                    + " numbers, and a rate is four: dollars per million tokens of input, of output, read from the cache and written to it",
+            );
+        }
+    }
 }
 
 impl Anthropic.post(body: dict[str, any]) -> any {
@@ -299,8 +324,7 @@ impl Anthropic.ask(request: ModelRequest) -> Iterator[ByEvent] {
     } elif reason == "tool_use" {
         stop = Stop.TOOLS;
     }
-    yield ByEvent(
-        kind=ByEventKind.DONE,
-        value=ModelReply(message=said, stop=stop, usage=usage_of(reply, self.model)),
-    );
+    used = usage_of(reply, self.model);
+    used.cost = cost_of(used, self.rates);
+    yield ByEvent(kind=ByEventKind.DONE, value=ModelReply(message=said, stop=stop, usage=used));
 }

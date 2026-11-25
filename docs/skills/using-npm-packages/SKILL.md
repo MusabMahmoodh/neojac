@@ -195,6 +195,6 @@ Only imported names are checked, and only against `.d.ts` files: the package's o
 ## Where to look things up
 
 - `neojac docs npm`: resolution, declarations, values both ways, Node's event loop, `neojac node`.
-- `neojac docs host`: node spaces (what they refuse: `:protect`, walker endpoints, JSX).
+- `neojac docs host`: node spaces (what they refuse: `:prot`, walker endpoints, JSX).
 - `neojac docs apps/pages`: npm packages and style sheets in a browser space.
 - `neojac help npm`: the `neojac npm` command (`neojac help node` for `neojac node`).

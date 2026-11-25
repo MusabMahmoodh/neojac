@@ -86,7 +86,7 @@ KEYWORD ::=
     | "return" | "yield" | "break" | "continue" | "raise" | "del" | "assert" | "skip"
     | "report" | "visit" | "spawn" | "entry" | "exit" | "disengage" | "here" | "visitor"
     | "root" | "async" | "await" | "flow" | "wait" | "and" | "or" | "not" | "in" | "is"
-    | "lambda" | "own" | "lin" | "mut" | "imm" | "pub" | "priv" | "protect" | "self"
+    | "lambda" | "own" | "lin" | "mut" | "imm" | "pub" | "priv" | "prot" | "self"
     | "init" | "super" | "postinit" | "True" | "False" | "None"
 ```
 
@@ -110,8 +110,8 @@ Five points a reader coming from Python or from the reference design will not ex
       | "ship"
   ```
 - **Another language's reserved words are names here** when Jac does not reserve them: `pass`,
-  `global`, `nonlocal`, `catch`, `function`, `undefined` and the reference design's `props` name variables like any
-  other word.
+  `global`, `nonlocal`, `catch`, `function`, `undefined` and the reference design's `props` and
+  `protect` name variables like any other word.
 
 ```jac
 # expect: E0013 x4

@@ -5,7 +5,7 @@ keywords: stdjac, stdjac.remote, stdjac.graph, stdjac.codec, stdjac.plan, stdjac
 # stdjac
 
 stdjac is the library of the language's abstractions, written in Jac and shipped in neojac's
-`rt/stdjac/`. It holds what source says of each (`root`, a call to another space, `:protect`,
+`rt/stdjac/`. It holds what source says of each (`root`, a call to another space, `:prot`,
 `by llm()`, `@job`), and what is the same whatever the plugin: it starts an app, hands each
 request to what answers it, knows the graph's nodes and what changed, and runs a model's tools.
 It holds no mechanism: where a graph is kept, who a caller is, what carries a request and which
@@ -56,8 +56,8 @@ Every other name a program uses of stdjac is imported from `stdjac` itself:
 | Crossings | The exceptions a failed crossing raises (`RemoteError`, `RemoteUnavailable`, `RemoteTimeout`, `RemoteRejected`, `RemoteDecodeError`, `RemoteFailed`), and the `Request` a program that answers one itself is given | [Below](#crossings), and [Crossings](crossings.md) |
 | The codec | `encode`, `decode`, `CodecError`: values to JSON's values and back, by their types, as a crossing sends them | [Below](#the-codec) |
 | The plan and the deployment values | `plan`, `keep_arrangement`, `remote_url`, `env_name`, `data_dir` | [Below](#the-plan) |
-| `by` | What `by` calls: the interfaces of what gives a result (`By`), of what answers as it goes (`ByStreams`) and of what chooses a walker's way (`ByChooser`), with `ByCall`, `ByChoice`, `ByError`, `ByEvent`, `ByEventKind`, `ByUsage` | [By and sem](../language/by-and-sem.md) |
-| The language model | What `llm` is made of and given: `LLM`, `Effort`, `Message`, `IterationAction`, `IterationContext`, `on_usage` | [By and sem](../language/by-and-sem.md) |
+| `by` | What `by` calls: the interfaces of what gives a result (`By`), of what answers as it goes (`ByStreams`) and of what chooses a walker's way (`ByChooser`), with `ByCall`, `ByTool`, `ByChoice`, `ByError`, `ByEvent`, `ByEventKind`, `ByEnd`, `ByUsage` | [By and sem](../language/by-and-sem.md) |
+| The language model | What `llm` is made of and given: `LLM`, `Effort`, `Message`, `IterationAction`, `IterationContext`, `on_usage`, `latest_turns` | [By and sem](../language/by-and-sem.md) |
 
 A built-in word that is imported, or one of these names imported from a module of stdjac, is
 E2234.
@@ -69,7 +69,7 @@ The contracts, which a plugin imports and a program does not:
 | `store.contract` | `Store` | `Row`, `Changed`, `Writing`, `StoreConflict` | [Plugins](plugins.md#what-a-store-is-asked) |
 | `auth.contract` | `Auth` | `SignIn`, `SignInField`, `SignInAction`, `Session`, `DeviceSignIn`, `Rejected`, `AuthHost`, `bearer_token` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `transport.contract` | `Transport` | `Request`, `Response`, `Tick`, `Claim`, `CannotListen`, `json_fail` | [Below](#transport) |
-| `llm.contract` | `Model` | `ModelRequest`, `ModelReply`, `ModelTool`, `Message`, `Part`, `PartKind`, `Stop`, `Effort`, and `ByEvent`, `ByEventKind`, `ByUsage`, `ByError` | [By and sem](../language/by-and-sem.md) |
+| `llm.contract` | `Model` | `ModelRequest`, `ModelReply`, `ModelTool`, `Message`, `Part`, `PartKind`, `Stop`, `Effort`, and `ByEvent`, `ByEventKind`, `ByEnd`, `ByUsage`, `ByError` | [By and sem](../language/by-and-sem.md) |
 | `jobs.contract` | `Jobs` | `JobState`, `JobsHost` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `schedule.contract` | `Scheduler` | `Scheduled` | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |
 | `limits.contract` | `Limits` | | [The server's words](stdjac-server.md#what-a-plugin-conforms-to) |

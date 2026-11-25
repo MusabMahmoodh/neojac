@@ -81,7 +81,7 @@ nothing else about it changes: the page imports `create_tweet` from
 `core.social_graph` the way it imports anything else.
 
 Only functions and walkers cross, and their types live in modules no space holds. An
-access tag says who may call one: none means this program, `:protect` a signed-in
+access tag says who may call one: none means this program, `:prot` a signed-in
 caller, `:pub` anyone. A browser or hermes space calling something untagged is a
 compile error (E1210), and so is a tag in a module no space holds (E1211).
 
@@ -101,7 +101,7 @@ anonymous caller starts at `root.shared`. `root spawn W()` starts at the root of
 `W`'s space. The graph commits after every call, to SQLite by default
 (the `store` abstraction's standard plugin).
 
-The modules name abstractions and no mechanism: `root` for what is kept, `:protect` and
+The modules name abstractions and no mechanism: `root` for what is kept, `:prot` and
 `sign_in()` for who is calling, `by llm()` for the model, `@job` for work too long for the
 server's event loop, `File` for a profile's picture. What carries each out is a plugin `jac.toml`
 binds (`neojac docs plugins`): here the standard ones, `sqlite`, `accounts`, `anthropic`,

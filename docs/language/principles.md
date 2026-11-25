@@ -16,7 +16,7 @@ A module names an abstraction and leaves its mechanism unsaid:
 |---|---|---|
 | `root ++> Note(text="hi");` | This caller's graph holds a note, kept between runs of a served app | Which database keeps it ([root](root.md)) |
 | `greet("jac")`, `greet` a function of another space | A call | Whether it leaves the process, or what carries it ([Crossings](../apps/crossings.md)) |
-| `def:protect` | Only a signed-in caller may call this | How a caller is known ([Access tags](access.md)) |
+| `def:prot` | Only a signed-in caller may call this | How a caller is known ([Access tags](access.md)) |
 | `def triage(m: str) -> Ticket by llm();` | A model gives a `Ticket` | Which model ([By and sem](by-and-sem.md)) |
 | `has image: File;` in a node | The node holds a file, kept as long as the node is | Where its bytes are kept, or under what name ([Files](../apps/files.md)) |
 | `has count: int = 0;` in a component | State the page shows | Which UI library holds it ([Components and JSX](../apps/components.md)) |
@@ -80,7 +80,7 @@ A project chooses, in `jac.toml`, what carries each of these out ([Plugins](../a
 | Abstraction | What source says | The plugins neojac ships |
 |---|---|---|
 | `store` | `root`, `++>` | `sqlite` |
-| `auth` | `:protect`, a page's `sign_in()` | `accounts` |
+| `auth` | `:prot`, a page's `sign_in()` | `accounts` |
 | `transport` | A call to another space | `http` |
 | `llm` | `by llm()` | `anthropic` |
 | `jobs`, `schedule`, `limits` | `@job`, `@schedule`, `@limit` | `process_jobs`, `loop_schedule`, `memory_limits` |
