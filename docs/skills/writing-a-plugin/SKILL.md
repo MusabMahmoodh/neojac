@@ -182,6 +182,12 @@ longest_wait = 30
    Here the standard plugin is still the one named, and `window_limits` is built in beside it.
    `[limits]` `plugin = "window_limits"` makes it the one a program starts with.
 
+   Or let a place provide it, and leave the project as it is: a directory whose `jac.toml` says
+   `kind = "place"`, declares the plugin in `[packages]` and names it in `[provides]`
+   (`limits = "window_limits"`), with its settings in `[limits.window_limits]`. `neojac build
+   --place <that directory>` builds the program with it in place of the standard one, for what
+   the project leaves open ([Plugins](../../apps/plugins.md#the-place-a-program-is-built-for)).
+
 4. **Run one built program under each plugin.** The abstraction's own programs are the test: what
    a program prints under the standard plugin, it prints under yours, wherever the abstraction
    says the two agree.
@@ -254,14 +260,15 @@ minify = true
   abstraction's programs print under the standard one.
 - `JAC_<ABSTRACTION>` naming a plugin `jac.toml` does not list ends the program with status 1 and
   the names it does list:
-  ``JAC_LIMITS=nope: this program was not built with a plugin 'nope' for `limits`. jac.toml lists: memory_limits, window_limits``.
+  ``JAC_LIMITS=nope: this program was not built with a plugin 'nope' for `limits`, only with: memory_limits, window_limits``.
 - No module of the project imports the plugin, and none changed when it was listed.
 
 ## Mistakes to expect
 
 | Symptom | Means | Fix |
 |---|---|---|
-| E2214 `no plugin 'x'` | `jac.toml` names a plugin `[packages]` does not declare | Declare it: `x = { path = "..." }` |
+| E2214 `no plugin 'x'` | `jac.toml`, the project's or a place's, names a plugin its `[packages]` does not declare | Declare it: `x = { path = "..." }` |
+| E2242 `the place '...' provides no plugin for ...` | The program is built for a place whose `[provides]` leaves out an abstraction the project leaves open | Name a plugin for it in the place's `[provides]`, or in the project |
 | E2230 `the plugin 'x' was written for version 1 of ...` | The abstraction's interface has another version in this neojac | Write the plugin for this neojac's interface, and say its version in `interface_ver` |
 | E2227 `the plugin 'x' is declared and never used` | `[packages]` declares it and nothing binds or lists it | List it, `[<abstraction>.x]`, or take the line out |
 | E2215 `plugin 'x' fills ...` | It is listed under another abstraction than its `fills` | List it under the one it fills |

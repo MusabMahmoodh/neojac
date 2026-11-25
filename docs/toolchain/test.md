@@ -62,6 +62,7 @@ neojac test <file.jac> -o <runner> [<option>...]
 | `-o <runner>` | Build the one module's test runner, and do not run it |
 | `--target <platform>` | Build the runners for another platform ([build](build.md#--target-building-for-another-platform)) |
 | `--rt <dir>` | The runtime to build against (default: the `rt/` beside neojac) |
+| `--place <directory>` | The place the runners are built for, which provides a plugin for each abstraction the project leaves open ([Plugins](../apps/plugins.md#the-place-a-program-is-built-for)) |
 | `--diagnostics <form>` | How diagnostics and test results are written on stderr: `human` (the default), or `json`, one record a line ([check](check.md#diagnostics-as-json)) |
 
 ## Which modules are tested

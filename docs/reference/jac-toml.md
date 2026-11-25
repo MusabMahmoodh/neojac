@@ -1,6 +1,6 @@
 ---
 description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, lock.pypi, lock.npm, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
-keywords: jac.toml, project.name, project.kind, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
+keywords: jac.toml, project.name, project.kind, provides.<abstraction>, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
 
@@ -42,7 +42,7 @@ A package's identity, and what of its tree is its source.
 |---|---|---|---|
 | `project.name` | string | none | The package's name: the name another project declares it by ([Packages](../toolchain/packages.md#jac-packages)) |
 | `project.version` | string | none | The package's version, `MAJOR.MINOR.PATCH` as Semantic Versioning has it: E2228 for one that is not |
-| `project.kind` | string | none | `"library"` or `"plugin"`, for a package other projects declare, or `"fixtures"`, for programs written to exercise a compiler (its test corpus, programs that must fail), which no rule judges but those its `[check.lint] select` names and which needs no `archwire.jac` ([Lint rules](../toolchain/lint.md#a-project-of-fixtures)). No project declares a project of fixtures as a package. A project that is none of these has no `kind` |
+| `project.kind` | string | none | `"library"` or `"plugin"`, for a package other projects declare, `"place"`, for the place a program is built for, which `--place` names ([below](#provides-a-places-own)), or `"fixtures"`, for programs written to exercise a compiler (its test corpus, programs that must fail), which no rule judges but those its `[check.lint] select` names and which needs no `archwire.jac` ([Lint rules](../toolchain/lint.md#a-project-of-fixtures)). No project declares a project of fixtures as a package. A project that is none of these has no `kind` |
 | `project.neojac` | string | none | The oldest neojac the package builds with, `neojac = "0.4"`: a neojac older than that refuses it (E2229), the project's own included |
 | `project.human_mode` | boolean | `false` | `true` says the project is written by hand, and permits it to choose among the lint rules: `[check.lint] ignore` and `exclude` are legal only with it (E3059). By itself it changes nothing. Only the person who writes the project by hand writes it, never an AI agent ([Lint rules](../toolchain/lint.md#human_mode)) |
 | `project.exclude` | list of strings | `[]` | fnmatch patterns of paths, relative to the root with `/` between parts, that are not the project's source: no layer need name a file that matches, no space holds it and nothing checks it, and a directory that matches is not entered. Its entries are yours to write (a directory of example snippets a site shows as text) beside those `neojac absorb` writes (a directory whose manifest no workspace names, what git ignores) ([Projects](../toolchain/projects.md#what-is-not-the-projects-source)) |
@@ -348,7 +348,7 @@ The Jac packages a package uses, libraries and plugins alike, each by its versio
 | `packages.<name>` | string or table | A string is the package's version requirement, `"1.2"`: the least version asked for, satisfied below the next change of its left-most number that is not zero. The package is the one installed in the project's `eco/jac/<name>`. A table is where the package is: `{ path = "<directory>" }`, from the directory of this `jac.toml`, or `{ git = "<repository>", rev = "<revision>" }`, which `neojac install` fetches into `eco/jac/<name>` and `jac.lock` pins. Its own `jac.toml` says `kind = "library"`, or `kind = "plugin"` and which abstraction it fills |
 
 - A project, a library and a plugin each declare the libraries their modules import.
-- Only a project declares a plugin, and a plugin it declares is one it binds or lists ([\<abstraction\>](#abstraction)). A plugin neojac ships (`sqlite`) needs no entry.
+- Only a project and a place declare a plugin, and a plugin either declares is one it binds, lists or provides ([\<abstraction\>](#abstraction), [provides](#provides-a-places-own)). A plugin neojac ships (`sqlite`) needs no entry.
 - A program holds one copy of a package: the one the project declares, or else the one the first package to declare it does.
 
 | Code | Cause |
@@ -360,7 +360,7 @@ The Jac packages a package uses, libraries and plugins alike, each by its versio
 | E2221 | A library or a plugin declares a plugin, or a library's `jac.toml` binds one |
 | E2222 | The project's tree has a directory or a module of a library's name |
 | E2226 | A `[libraries]` or a `[plugins]` table: what they held is in `[packages]` |
-| E2227 | A plugin the project declares that no binding names and no abstraction lists |
+| E2227 | A plugin the project declares that no binding names and no abstraction lists, or a place one that its `[provides]` does not name |
 | E2228 | A requirement that is not one (`"^1.2"`, `"1.x"`), or a package's `version` that is not a version |
 | E5158 | An entry that is neither a string nor a table with a `path`, or with a `git` and a `rev` |
 | E5161 | A package is not installed as the entry asks: nothing is in `eco/jac/<name>`, or one from a repository is not fetched (`neojac install`) |
@@ -400,13 +400,45 @@ picked = "start"
 standard = "sqlite"
 ```
 
+## [provides], a place's own
+
+A place's: which plugin provides each abstraction there. It is a table of the `jac.toml` of a directory whose `[project]` says `kind = "place"`, which `--place <directory>` names to `neojac build`, `run`, `dev`, `check` and `test`; the project a program is built from writes none. A place's `[packages]` declares the plugins it provides, as a project's does. See [Plugins](../apps/plugins.md#the-place-a-program-is-built-for).
+
+| Key | Type | Meaning |
+|---|---|---|
+| `provides.<abstraction>` | string | The plugin that provides the abstraction there, for a project that leaves it open: one the place declares, or one neojac ships. An abstraction picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files` or `mail` |
+| `<abstraction>.<plugin>` | table | The settings of the plugin the place provides for the abstraction, each key a field of its class |
+
+```toml
+[project]
+name = "cloud"
+kind = "place"
+
+[packages]
+cloud_store = { path = "../plugins/cloud_store" }
+
+[provides]
+store = "cloud_store"
+auth = "accounts"
+
+[store.cloud_store]
+schema = "apps"
+```
+
+| Code | Cause |
+|---|---|
+| E2239 | `--place` names a directory with no `jac.toml`, one whose `[project]` does not say `kind = "place"`, or one with no `[provides]` |
+| E2242 | A program uses an abstraction that its project leaves open and `[provides]` does not name |
+| E2214, E2215 | `[provides]` names a plugin there is none of, or one that fills another abstraction |
+| E5158 | A key of `[provides]` that is no abstraction picked as a program starts, or a value that is no plugin's name; a table of an abstraction other than that of the plugin the place provides for it, or a setting of the abstraction in it |
+
 ## [\<abstraction\>]
 
 The plugin that carries out one of the language's abstractions, and the plugins a program is built with for it. There are eleven abstractions. Nine are picked as a program starts: `store`, `auth`, `transport`, `llm`, `jobs`, `schedule`, `limits`, `files` and `mail`. Two are picked as a JavaScript space is built: `ui` and `bundler`. See [Plugins](../apps/plugins.md#binding-a-plugin).
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `<abstraction>.plugin` | string | the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`, `smtp` for `mail`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
+| `<abstraction>.plugin` | string | the plugin the place the program is built for provides ([provides](#provides-a-places-own)); on this machine, with no `--place`, the abstraction's standard plugin (`sqlite` for `store`, `accounts` for `auth`, `http` for `transport`, `anthropic` for `llm`, `process_jobs`, `loop_schedule`, `memory_limits`, `local_files`, `smtp` for `mail`; for `ui` the one of the space's host, and for `bundler` the one its `ui` plugin names) | The plugin a program uses, wherever it is built, unless `JAC_<ABSTRACTION>` names another where it runs. For `ui` and `bundler`, the plugin a space is built with, which nothing where it runs changes |
 | `<abstraction>.<plugin>` | table | | Lists the plugin `<plugin>`, which is then compiled into the program, and holds its settings: each key a field of the plugin's class. For `ui` and `bundler`, only the table of the plugin the space is built with, holding the settings that plugin's own `jac.toml` lists |
 | `<abstraction>.<setting>` | a setting's type | the setting's default | A setting of the abstraction itself, which whichever plugin the program runs with is given: a field of the class its `settings` names (`[auth] registration = false`). Only `auth` has settings of its own ([Plugins](../apps/plugins.md#an-abstractions-settings)) |
 | `spaces.<space>.<abstraction>` | table | the project's | The same table for one space, for an abstraction a space has one of: `store`, `ui` and `bundler` |

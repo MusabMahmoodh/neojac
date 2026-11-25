@@ -259,8 +259,9 @@ kill $API_PID
 
 - `neojac docs apps/server`: endpoints, replies, streams, calls at once, signing in, `@restspec`,
   `@limit`, `@schedule`, `@job`.
-- `neojac docs plugins`: what carries the graph, the callers, the requests and the model, and
-  binding another in `jac.toml`.
+- `neojac docs plugins`: what carries the graph, the callers, the requests and the model, the
+  place an app is built for and the plugins it provides (`--place`), and binding one in
+  `jac.toml` where the app must have it.
 - `neojac docs apps/data`: whose `root`, `root.shared`, `allroots()`, `jobj`, `commit()`, `--fresh`.
 - `neojac docs apps/building`: commands, artifacts, several arrangements of an app in one
   artifact, deployment values, `jac.toml` for apps.
