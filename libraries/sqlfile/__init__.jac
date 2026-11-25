@@ -17,17 +17,16 @@ obj Upgrade {
 }
 
 """The layout `db` says it is of (its `user_version`), and how many tables
-and indexes it holds."""
+and indexes it holds: the two read in one statement, so of the file at one
+moment. A program that looks as another makes the file sees it unmade or
+made, never with its tables and not yet its layout."""
 def laid_out(db: any) -> tuple[int, int] {
-    version = 0;
-    for r in db.execute("pragma user_version") {
-        version = int(r[0]);
+    for r in db.execute(
+        "select user_version, (select count(*) from sqlite_master) from pragma_user_version"
+    ) {
+        return (int(r[0]), int(r[1]));
     }
-    made = 0;
-    for r in db.execute("select count(*) from sqlite_master") {
-        made = int(r[0]);
-    }
-    return (version, made);
+    return (0, 0);
 }
 
 """Open the SQLite file at `path`, made with `tables` if it is new: one of
