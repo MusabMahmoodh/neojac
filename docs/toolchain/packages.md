@@ -99,8 +99,10 @@ numpy = ">=2"
 - **A program holds one copy of a package.** Where the project declares `units`, the copy is the
   one the project names, and otherwise the one the first package to declare it names. Every other
   declaration of `units` has to hold of that copy, or the build is refused (E2220): a version
-  requirement of its version, and a place by being the same place. A class belongs to its module,
-  so two copies would be two types.
+  requirement of its version, and a place by being the same directory, however it is written. A
+  path relative to the package that declares it, an absolute one and one through a link that name
+  one directory are one place, and the copy is read where it was first reached. A class belongs to
+  its module, so two copies would be two types.
 - **A library depends on no plugin.** Its `[packages]` declares none and its `jac.toml` binds no
   abstraction (E2221), and none of its modules imports one (E2218). It uses the language's
   abstractions (`root`, `by llm()`), and the project that uses it says what carries them out.
