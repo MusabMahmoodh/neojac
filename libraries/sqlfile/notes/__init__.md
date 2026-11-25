@@ -14,7 +14,9 @@ before it, so that no one's data stops at a release.
 ## laid_out
 
 The layout `db` says it is of (its `user_version`), and how many tables
-and indexes it holds.
+and indexes it holds: the two read in one statement, so of the file at one
+moment. A program that looks as another makes the file sees it unmade or
+made, never with its tables and not yet its layout.
 
 ## open_db
 

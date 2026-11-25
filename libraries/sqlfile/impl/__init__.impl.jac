@@ -1,13 +1,10 @@
 impl laid_out(db: any) -> tuple[int, int] {
-    version = 0;
-    for r in db.execute("pragma user_version") {
-        version = int(r[0]);
+    for r in db.execute(
+        "select user_version, (select count(*) from sqlite_master) from pragma_user_version"
+    ) {
+        return (int(r[0]), int(r[1]));
     }
-    made = 0;
-    for r in db.execute("select count(*) from sqlite_master") {
-        made = int(r[0]);
-    }
-    return (version, made);
+    return (0, 0);
 }
 
 impl open_db(
