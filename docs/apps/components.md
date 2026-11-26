@@ -451,7 +451,7 @@ with entry {
 | `name` alone, `name={True}` | The bare attribute, `name` |
 | `name={False}`, `name={None}` | No attribute |
 | `name={n}`, a number | `name="n"` |
-| `{...d}`, a `dict[str, ...]` | Each entry as an attribute, by these rules |
+| `{...d}`, a `dict[str, ...]` | Each entry as an attribute, by these rules. Each name is checked as it is written: an empty one, or one holding whitespace, a control character, `"`, `'`, `<`, `>`, `/` or `=`, raises `ValueError` |
 | `<Card title="x">...</Card>` | The call `Card(title="x", children=...)`, its children one `Markup`; with none, no `children` argument |
 | `<br />`, `<img ...>`: HTML's void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track`, `wbr`) | No end tag |
 | Any other element | An end tag, written `<path />` or not: a standalone SVG is well-formed XML |
