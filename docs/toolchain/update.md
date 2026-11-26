@@ -45,7 +45,9 @@ run or `neojac dev` never finds itself a different neojac half way through.
   given.
 
 A command counts as running from its start to its end. A program that `neojac run` started is not
-neojac, and does not count.
+neojac, and does not count. A command that stays up does: `neojac dev`, a viewer that is serving,
+and the language server an editor keeps running (`neojac lsp`). While one of them runs, a release
+that is ready waits; it takes over at the first command started after they have ended.
 
 ## Following the releases
 
