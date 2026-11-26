@@ -650,6 +650,47 @@ instructions, read them from it: `ByUsage` counts those tokens apart. A
 request the model's safety classifiers decline re-runs on the API's default
 fallback model.
 
+### The openai plugin
+
+`openai` asks a model through an OpenAI-compatible Chat Completions API over
+HTTP: OpenAI's own, and the many providers and local servers that speak the
+same API (Gemini, Groq, Together, OpenRouter, Ollama, vLLM). A project picks
+it, and points it at its provider:
+
+```toml
+[llm]
+plugin = "openai"
+
+[llm.openai]
+model = "gpt-5-mini"
+```
+
+Its settings, in `[llm.openai]`:
+
+| Setting | Type | Default | Meaning |
+|---|---|---|---|
+| `model` | `str` | `gpt-5-mini` | The model that answers, as the provider names it. `JAC_LLM_MODEL` where the program runs |
+| `address` | `str` | `https://api.openai.com/v1` | Where the API is: requests go to `<address>/chat/completions`. `JAC_LLM_ADDRESS` |
+| `timeout` | `int` | 60 | Seconds one request may take |
+| `retries` | `int` | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
+| `rates` | `dict[str, list[float]]` | `{}` | What each model charges, as for [the anthropic plugin](#the-anthropic-plugin). The cached tokens a provider reports are counted as read from the cache |
+| `key` | `Secret` | `OPENAI_API_KEY` | The API key, read from that variable of the environment where the program runs, and never written in `jac.toml`. A request is sent with no key where it is not set, as a local server takes it |
+
+Another provider is its address and its model, with its key in
+`OPENAI_API_KEY`, or in `JAC_LLM_KEY` where the program runs:
+
+```toml
+[llm.openai]
+address = "https://api.groq.com/openai/v1"
+model = "openai/gpt-oss-120b"
+```
+
+A reply asked to fit a schema is asked for in the API's strict JSON schema
+mode, where every field of an object is required: the model gives a field that
+has a default too. A result type the strict mode cannot say, a `dict` among
+it, is asked for by the instructions instead. `effort` is sent as
+`reasoning_effort`, which only a reasoning model takes.
+
 ### Writing a model plugin
 
 A plugin for another provider conforms to `llm.contract`'s `Model`
