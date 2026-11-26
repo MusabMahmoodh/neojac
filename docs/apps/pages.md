@@ -1,6 +1,6 @@
 ---
 description: A browser space's pages - routes from the files under pages/, a page's parameters, the layout and the entry's app, the HTML shell, @jac/runtime, calling the server and reading its streams, signing in, a desktop app's arrangement and local users, npm packages and style sheets.
-keywords: page, pages, route, routes, layout, JsxPage, JsxLayout, @jac/runtime, Link, Outlet, navigate, sign_in, sign_out, signed_in, signed_in_as, signed_in_name, jacArrangement, jacUseArrangement, unsafe_html, browser space
+keywords: page, pages, route, routes, layout, JsxPage, JsxLayout, @jac/runtime, Link, Outlet, navigate, sign_in, sign_out, signed_in, signed_in_as, signed_in_name, signed_in_account, sign_in_asks, sign_in_with, finish_sign_in, forgot_password, mail_check, check_address, reset_password, device_sign_in, jacArrangement, jacUseArrangement, unsafe_html, browser space
 ---
 # Pages
 
@@ -224,7 +224,8 @@ names from it as from any npm package: `import from "@jac/runtime" { Link, navig
 | `useLocation`, `useNavigate`, `useParams`, `useSearchParams` | React Router's hooks |
 | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback`, `useContext`, `createContext` | React's, for code that calls the library directly ([Components](components.md) says when) |
 | `unsafe_html(html)` | An element showing `html` as HTML, unescaped. Use only on HTML the project controls. In a native space the same word, known without an import, is a [`Markup`](components.md#jsx-in-a-native-space-markup) |
-| `sign_in`, `sign_out`, `signed_in`, `signed_in_as`, `signed_in_name` | Signing in, below |
+| `sign_in`, `sign_out`, `signed_in`, `signed_in_as`, `signed_in_name`, `signed_in_account` | Signing in, below |
+| `sign_in_asks`, `sign_in_with`, `finish_sign_in`, `forgot_password`, `mail_check`, `check_address`, `reset_password`, `device_sign_in` | A page that draws its own sign-in form or answers a mailed link, [below](#a-pages-own-sign-in) |
 | `jacArrangement`, `jacUseArrangement` | Which arrangement of its app the page is in, and choosing another, [below](#the-apps-arrangement) |
 | `RemoteError` and its subclasses | What a failed crossing raises ([Crossings](crossings.md)) |
 | `__getLocalStorage`, `__setLocalStorage`, `__removeLocalStorage` | `localStorage`, or an in-memory store where there is none |
@@ -266,6 +267,10 @@ and the functions of `@jac/runtime` carry it out. Each is awaited:
 | `await signed_in()` | Whether the caller is signed in |
 | `await signed_in_as()` | Who the caller is signed in as, or `""` |
 | `await signed_in_name()` | What the caller is called: the name the plugin gave as they signed in, where it has one (their login at the service they signed in through), else who they are; `""` for no one |
+| `await signed_in_account()` | `{user, name, checked, mails}` for the signed-in caller, `None` for no one: who they are, what they are called (as `signed_in_name()`), whether the app mails a link that checks an account's address (`mails`) and whether theirs is checked (`checked`) |
+
+A token the plugin no longer takes (the session ended or ran out) is forgotten as any of these
+asks who the caller is, so the page is signed in to no one.
 
 <!-- example: not checked: a page is a module of a browser space, with JSX and crossings -->
 ```jac
@@ -325,7 +330,8 @@ page works under every auth plugin. Its parts carry classes a project's style sh
 `jac-sign-in-input`, `jac-sign-in-error`, `jac-sign-in-told` (what it says in that place when
 nothing was refused), `jac-sign-in-actions`, `jac-sign-in-action`, `jac-sign-in-cancel` and
 `jac-sign-in-forgot`. Its own rules are written with `:where()`, so any rule of the project's
-wins over them.
+wins over them, and are a style sheet the document adopts, so the form is styled under a
+Content-Security-Policy of `style-src 'self'` too ([jac.toml](../reference/jac-toml.md#a-spaces-headers)).
 
 The session's token is kept in the browser's `localStorage` (under `jac_token`) and sent with
 every crossing; the name the plugin gave with it is kept beside it (under `jac_name`).
@@ -336,6 +342,71 @@ for each way of signing in that answers in place, `Forgot your password?` where 
 such links (the link is opened in a browser), and Cancel. A way of signing in that leaves for
 a page (GitHub, Google) is not offered there: a page has no way back into the app. Where the plugin offers
 only such ways, `sign_in()` raises `RemoteRejected`.
+
+### A page's own sign-in
+
+A page that draws a sign-in form of its own (one that makes accounts first, say), or that a link
+the app mailed opens, does it with these functions of `@jac/runtime`. None hands the page a token:
+the session each makes is kept where `sign_in()` keeps it, and each refusal raises `RemoteRejected`
+with the plugin's reason (`RemoteUnavailable` where the app cannot be reached).
+
+| Function | Does |
+|---|---|
+| `await sign_in_asks()` | What signing in asks for: `{fields, actions, redirect, forgot}`. Each field has `name`, `label`, `secret` and `choices`; each action (a way of signing in) `name`, `label`, the fields it `needs`, and, for a way done at another service, its `redirect`; `redirect` is where to sign in for a plugin that asks nothing here; `forgot` names the field that names an account for `forgot_password`, `""` where the plugin mails no links. `None` when the plugin signs the caller in at once, without asking (a desktop app's own window), the session kept |
+| `await sign_in_with(action, given)` | Signs the caller in by `action`, one of `sign_in_asks()`'s, with `given`, a dict of each field it needs to what the caller wrote. An action done at another service leaves for it, and nothing after the call runs: the caller comes back signed in, to the page they left |
+| `await finish_sign_in()` | On the page another service sends the caller back to (the app's `/__jac/auth/<way>`): signs them in by what the service sent, in the address's query, with what the way kept as they left, and goes back to the page they left, a path of the page's own origin and no other. Nothing after it runs once it succeeds |
+| `await forgot_password(name)` | Asks for a link that sets a new password, mailed to the account `name` (a username or an address) names. Whether there is one is not said |
+| `await mail_check(address)` | Mails the signed-in caller a link that checks their account's address: to the one it has, or to `address` for an account with none (`""` otherwise) |
+| `await check_address(token)` | Checks an address by the token of the link mailed to it |
+| `await reset_password(token, password)` | Sets the password by the token of the mailed link: the account's other sessions end, and the caller is signed in to it |
+| `await device_sign_in(code, allow)` | Signs in the program showing `code` (`neojac launch login`) as the signed-in caller where `allow` is `True`, else turns it away |
+
+A mailed link carries its token in its fragment, `/__jac/auth/check#<token>`, which a browser sends
+to no server, so no log holds it; the page reads it from `location.hash` and passes it on.
+
+<!-- example: not checked: a page is a module of a browser space, with JSX -->
+```jac
+import from "@jac/runtime" { RemoteError, sign_in_asks, sign_in_with, signed_in_account }
+
+def:pub page -> JsxPage {
+    has who: str = "";
+    has said: str = "";
+    has asks: any = None;
+    has given: dict[str, str] = {};
+
+    async def load {
+        me = await signed_in_account();
+        if me is not None {
+            who = me.name;
+        } else {
+            asks = await sign_in_asks();
+        }
+    }
+
+    async def make_account {
+        try {
+            await sign_in_with([a for a in asks.actions if a.name == "register"][0], given);
+            await load();
+        } except RemoteError as e {
+            said = e.detail;
+        }
+    }
+
+    async can with entry {
+        await load();
+    }
+
+    if who != "" {
+        return <p>Signed in as {who}.</p>;
+    }
+    return <section>
+        <input onChange={lambda (e: any) { given["username"] = e.target.value; }} />
+        <input type="password" onChange={lambda (e: any) { given["password"] = e.target.value; }} />
+        <button onClick={make_account}>Make an account</button>
+        <p>{said}</p>
+    </section>;
+}
+```
 
 ## The app's arrangement
 
