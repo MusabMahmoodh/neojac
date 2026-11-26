@@ -863,6 +863,29 @@ neojac version
 
 Prints the release's version, the platform it runs on and the commit it was built from; `neojac --version` and `neojac -V` do the same. A neojac built from source says so.
 
+### `neojac update`
+
+Replace neojac with a newer release of itself.
+
+```sh
+neojac update
+neojac update <version>
+neojac update on
+neojac update off
+```
+
+Alone, fetches the newest release where it is newer than this neojac; with a version, that release, older or newer, which neojac then stays at. The release is checked against its digest, then builds and runs a program before it is kept. It takes this neojac's place whole, by one rename, when no other command of this neojac is running: at once, or else when the next command starts with none running, which says so and runs as the new release. A release that fails any of that changes nothing.
+
+A neojac that follows the releases does this by itself: a build, a test run, an install or `neojac dev` asks for the newest release at most once a day, and fetches a newer one alongside its work, waiting for nothing. The installer's neojac follows them unless it was installed with --version. `on` makes this neojac the one that follows, and `off` leaves it as it is until `neojac update` is run. NEOJAC_UPDATE=off keeps a run from asking and from being replaced, and so does CI. A neojac built from source has no release, and none of this.
+
+| Example | What it does |
+|---|---|
+| `neojac update` | Take the newest release |
+| `neojac update 0.5.3` | Take that release, and stay at it |
+| `neojac update off` | Stay at this release until asked |
+
+Its guide: [toolchain/update](../toolchain/update.md) (`neojac docs toolchain/update`).
+
 ### `neojac telemetry`
 
 Show what neojac records of its use, or turn it off.

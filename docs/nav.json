@@ -844,6 +844,10 @@
           "page": "toolchain/telemetry.md"
         },
         {
+          "title": "update",
+          "page": "toolchain/update.md"
+        },
+        {
           "title": "docs and skills",
           "page": "toolchain/docs.md"
         }
