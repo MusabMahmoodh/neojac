@@ -209,6 +209,18 @@ Content-Security-Policy, frame denial and referrer policy
 ([jac.toml](../reference/jac-toml.md#a-spaces-headers)). `static_file`, from `stdjac`, is this, for
 a program that serves files itself ([The server's words](stdjac-server.md#static_file)).
 
+### A space with no bundler
+
+A browser space whose `ui` plugin names no bundler (`none`), and whose `jac.toml` names none, is
+served as the compiler writes it. Its modules are ES modules whose specifiers are relative
+(`./@jac/core.js`, `./pages/index.mjs`), so a browser loads them as they are, and the app writes
+its document itself: `index.html`, with `#root`, a `<link rel="stylesheet">` for each style sheet
+a module imports (`import "./site.css";`, copied beside the modules at its place in the project)
+and one `<script type="module">` for the space's entry. Its URLs are absolute from the space's
+`base`, since the one document answers every route. The document holds no inline script or style,
+so the space's headers may say `script-src 'self'; style-src 'self'`. Such a space imports no npm
+package (E5272), and `@jac/bundle.json`, which the build reads, is not served.
+
 ## @jac/runtime
 
 `"@jac/runtime"` is the module a browser space imports what neojac's runtime gives it from. Import
@@ -470,7 +482,9 @@ A browser space imports from npm with a string module name and names in braces:
 
 - `import from "solid-js/web" { render }` binds a package's exports.
 - `import "./styles/site.css";` imports a file for its effect, as the bundler takes it: a style
-  sheet goes into the bundle's CSS. A cpython space cannot import a file by path (E5090).
+  sheet goes into the bundle's CSS. In a space with no bundler a style sheet is a `<link>` of the
+  document ([above](#a-space-with-no-bundler)). A cpython space cannot import a file by path
+  (E5090).
 
 The packages are those of the space's npm tree, `[npm."<directory>"]` in `jac.toml`, installed with
 `neojac install` (by the npm of neojac's own Node) into the tree's directory
