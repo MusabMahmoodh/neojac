@@ -618,9 +618,9 @@ no tool is still running when the model is next asked.
 
 neojac ships two `llm` plugins. `anthropic`, the standard one, speaks
 Anthropic's Messages API. `openai` speaks the OpenAI-compatible Chat
-Completions API, which OpenAI serves and so do most other providers and the
-servers that run a model on your own machine. A project that names no plugin
-has `anthropic`; one that names `openai` points it at a provider:
+Completions API, which most other providers serve too. A project names
+`openai` and points it at its provider, with the provider's key in
+`OPENAI_API_KEY` or `JAC_LLM_KEY` where the program runs:
 
 ```toml
 [llm]
@@ -631,15 +631,15 @@ address = "https://generativelanguage.googleapis.com/v1beta/openai"
 model = "gemini-3-flash-preview"
 ```
 
-| Provider | Plugin | `address` | `model`, for one | The key, where the program runs |
-|---|---|---|---|---|
-| Anthropic | `anthropic` | Its default | `claude-sonnet-5-5` | `ANTHROPIC_API_KEY` |
-| OpenAI | `openai` | Its default | `gpt-5-mini` | `OPENAI_API_KEY` |
-| Google Gemini | `openai` | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3-flash-preview` | `JAC_LLM_KEY` |
-| Together | `openai` | `https://api.together.xyz/v1` | `zai-org/GLM-5.3-Flash` | `JAC_LLM_KEY` |
-| Groq | `openai` | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | `JAC_LLM_KEY` |
-| OpenRouter | `openai` | `https://openrouter.ai/api/v1` | `openai/gpt-5-mini` | `JAC_LLM_KEY` |
-| Ollama, on this machine | `openai` | `http://localhost:11434/v1` | `llama3.2` | None |
+| Provider | `address` | `model`, for one |
+|---|---|---|
+| OpenAI | Its default | `gpt-5-mini` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3-flash-preview` |
+| Together | `https://api.together.xyz/v1` | `zai-org/GLM-5.3-Flash` |
+
+Another provider or local server with an OpenAI-compatible API (Groq,
+OpenRouter, Ollama, vLLM) is set up the same way: its address and a model it
+serves.
 
 Both take the same settings, in `[llm.anthropic]` or `[llm.openai]`:
 
@@ -681,8 +681,7 @@ What each does of its own:
   schema mode, where every field of an object is required: the model gives a
   field that has a default too. A result type the strict mode cannot say, a
   `dict` among it, is asked for by the instructions instead. `effort` is sent
-  as `reasoning_effort`, which only a reasoning model takes. What a provider
-  adds to a tool call (Gemini's thought signatures) is sent back with it.
+  as `reasoning_effort`, which only a reasoning model takes.
   Gemini 2.5 refuses tools and a schema in one request; Gemini 3 takes them.
 
 ### Writing a model plugin
