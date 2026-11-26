@@ -750,6 +750,7 @@ Draw a project's architecture from its archwire.jac.
 neojac arch [<layer> | <module>] [--mermaid | --json | --text]
 neojac arch [<layer> | <module>] --svg <file> | --png <file>
 neojac arch --view spaces [--profile <profile>] [<output>]
+neojac arch [<layer> | <module>] --diff [--base <revision>] [<output>]
 ```
 
 | Option | What it does |
@@ -761,12 +762,14 @@ neojac arch --view spaces [--profile <profile>] [<output>]
 | `--text` | Print the picture on the terminal |
 | `--svg <file>` | Write the picture as an SVG |
 | `--png <file>` | Write the picture as a PNG, drawn by the browser `neojac browse` drives |
+| `--diff` | Mark what has changed since the branch this one follows: the modules whose files changed, the arrows that are new, gone or carry other names, and what takes from what changed |
+| `--base <revision>` | --diff against this git revision, in place of where the branch left its upstream (or origin's main branch) |
 | `--listen <address>` | Where the viewer is served (default: 127.0.0.1:8090) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from inside a project. The picture is drawn from archwire.jac and from nothing else: its layers are the boxes, its wires the arrows, each labelled with the edge rule that admits it.
 
-With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer, a module or an arrow opens it, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
+With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer or a module opens it, a click on an arrow lists the names it carries, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
 
 Every module archwire.jac names is read, whether or not a program loads it, and every target's wires are checked, so what is drawn holds for the whole project.
 
@@ -777,6 +780,7 @@ Every module archwire.jac names is read, whether or not a program loads it, and 
 | `neojac arch backends --text` | One layer, opened |
 | `neojac arch compiler.gen --json` | One module: what it takes and gives |
 | `neojac arch --mermaid` | A flowchart for a README or a pull request |
+| `neojac arch --diff --mermaid` | What a branch changes, for its pull request |
 | `neojac arch --view spaces --svg spaces.svg` | The spaces, as a file |
 
 Its guide: [toolchain/arch](../toolchain/arch.md) (`neojac docs toolchain/arch`).
