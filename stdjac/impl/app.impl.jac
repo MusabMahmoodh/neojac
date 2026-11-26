@@ -320,7 +320,7 @@ impl refuse_untimed(work: list[Scheduled]) {
             continue;
         }
         try {
-            cron_fields(s.at);
+            next_at(s.at, time.time());
         } except ValueError as e {
             raise CannotStart(
                 why=f"{plan().app} can't start: {s.name} is scheduled at '{s.at}', which is no time to run at: {e}.",

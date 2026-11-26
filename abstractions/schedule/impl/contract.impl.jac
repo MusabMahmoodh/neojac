@@ -21,7 +21,7 @@ impl cron_field(text: str, low: int, high: int, what: str) -> list[int] {
         (span, _, stride) = item.partition("/");
         step = 1;
         if stride != "" {
-            if not stride.isdigit() or int(stride) == 0 {
+            if not stride.isdecimal() or int(stride) == 0 {
                 raise ValueError(f"the {what}'s step '{stride}' is not a number more than 0");
             }
             step = int(stride);
@@ -30,7 +30,7 @@ impl cron_field(text: str, low: int, high: int, what: str) -> list[int] {
         last = high;
         if span != "*" {
             (a, dash, b) = span.partition("-");
-            if not a.isdigit() or (dash != "" and not b.isdigit()) {
+            if not a.isdecimal() or (dash != "" and not b.isdecimal()) {
                 raise ValueError(f"the {what} '{item}' is not *, a number, or a range of two");
             }
             first = int(a);
