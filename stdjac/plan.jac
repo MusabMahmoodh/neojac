@@ -12,7 +12,8 @@ obj Page {
     has space: str,
         base: str = "/",
         headers: dict[str, str] = {},
-        routes: list[str] = [];
+        routes: list[str] = [],
+        held: bool = False;
 }
 
 obj Hosted {

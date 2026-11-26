@@ -491,6 +491,35 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | E1288 | The space imports from npm, `jac.toml` declares several trees, the space holds none of them, and `npm` names none |
 | E5158 | `document` is not a table, names a key other than `title`, `lang` and `noscript`, or gives one a value that is not a string, or a `lang` that is no language's tag (`en`, `pt-BR`) |
 | E5158 | `headers` is not a table; one of its names is no header's name, names a header in other letters again, or is one the server sends itself (`Connection`, `Content-Length`, `Content-Type`, `Transfer-Encoding`, `X-Content-Type-Options`); or a value is not a string of printable ASCII characters. Reported when an app that serves the space is built |
+| E2221 | A library's space names a `bundler`, any other binding, or a `ui` plugin neojac does not ship |
+| E2341 | A library's browser space has no `base` |
+
+### A library's spaces
+
+A library (`kind = "library"`) whose `archwire.jac` declares browser spaces gives each its
+settings in its own `jac.toml`, under the same keys, and every app whose program loads the
+library serves them ([A package's browser spaces](../apps/archwire.md#a-packages-browser-spaces)):
+
+- **`base` is required**, a path that begins with `/` (E2341): a library's space is served beside
+  the spaces of every project that uses it.
+- **`ui` names a plugin neojac ships**, as `plugin = "<name>"` and nothing else. Any other binding,
+  a `bundler` among them, is a project's to make, and is E2221.
+- **`headers` and `document`** are as above.
+
+```toml
+[project]
+name = "pagelib"
+kind = "library"
+
+[spaces.look]
+base = "/lib/"
+
+[spaces.look.ui]
+plugin = "dom"
+
+[spaces.look.document]
+title = "A page of a package"
+```
 
 ### A space's headers
 

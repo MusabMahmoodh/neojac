@@ -142,6 +142,6 @@ graph import {
     reply ++> app | auth | files { json_ok }
     routes ++> app { route_answer, route_of, routes }
     schedule ++> app { scheduled, start_schedule }
-    static_files ++> app { static_file }
+    static_files ++> app { held_file, static_file }
     window ++> desktop { run_window }
 }

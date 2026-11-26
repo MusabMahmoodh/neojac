@@ -2,6 +2,10 @@ import os;
 import urllib.parse;
 import from transport.contract { Response }
 
+import from neojac {
+    def __app_pages -> dict[str, str];
+}
+
 glob CONTENT_TYPES: dict[str, str] = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -23,7 +27,23 @@ glob CONTENT_TYPES: dict[str, str] = {
     ".map": "application/json",
     ".md": "text/markdown; charset=utf-8",
 };
+glob HELD_PAGES: dict[str, bytes] = {
+    place: text.encode("utf-8")
+    for (place, text) in __app_pages().items()
+};
+
 def:pub static_file(
     top: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []
+) -> Response;
+def held_file(
+    space: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []
+) -> Response;
+def page_answer(
+    rel: str,
+    found: bytes | None,
+    document: bytes | None,
+    path: str,
+    headers: dict[str, str],
+    routes: list[str],
 ) -> Response;
 def routed(path: str, routes: list[str]) -> bool;

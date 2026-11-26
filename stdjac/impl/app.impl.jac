@@ -283,21 +283,23 @@ impl dispatch(r: Request, caller: str, trusted: bool) -> Response {
     pages = sorted(p.pages, key=lambda (g: Page) -> int { return -len(g.base); });
     served = os.environ.get(DEV_SERVED, "");
     for g in pages {
-        if g.space == served {
+        if g.space == served
+            or not (g.base == "/" or r.path.startswith(g.base) or r.path == g.base.rstrip("/"))
+        {
             continue;
         }
-        files = os.path.join(os.path.dirname(sys.executable), "pages", g.space);
-        if g.base == "/" {
-            return static_file(files, r.path, g.headers, g.routes);
+        rest = r.path
+            if g.base == "/"
+            else r.path[len(g.base):] if len(r.path) > len(g.base) else "/";
+        if g.held {
+            return held_file(g.space, rest, g.headers, g.routes);
         }
-        if r.path.startswith(g.base) or r.path == g.base.rstrip("/") {
-            return static_file(
-                files,
-                r.path[len(g.base):] if len(r.path) > len(g.base) else "/",
-                g.headers,
-                g.routes,
-            );
-        }
+        return static_file(
+            os.path.join(os.path.dirname(sys.executable), "pages", g.space),
+            rest,
+            g.headers,
+            g.routes,
+        );
     }
     return Response(status=404, ctype="text/plain", body=b"not found");
 }
