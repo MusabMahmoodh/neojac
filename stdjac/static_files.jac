@@ -1,4 +1,5 @@
 import os;
+import urllib.parse;
 import from transport.contract { Response }
 
 glob CONTENT_TYPES: dict[str, str] = {
@@ -22,4 +23,7 @@ glob CONTENT_TYPES: dict[str, str] = {
     ".map": "application/json",
     ".md": "text/markdown; charset=utf-8",
 };
-def:pub static_file(top: str, path: str, headers: dict[str, str] = {}) -> Response;
+def:pub static_file(
+    top: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []
+) -> Response;
+def routed(path: str, routes: list[str]) -> bool;

@@ -11,7 +11,8 @@ import from common.contract { Host, Secret }
 obj Page {
     has space: str,
         base: str = "/",
-        headers: dict[str, str] = {};
+        headers: dict[str, str] = {},
+        routes: list[str] = [];
 }
 
 obj Hosted {

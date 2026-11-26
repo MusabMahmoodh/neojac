@@ -288,11 +288,14 @@ impl dispatch(r: Request, caller: str, trusted: bool) -> Response {
         }
         files = os.path.join(os.path.dirname(sys.executable), "pages", g.space);
         if g.base == "/" {
-            return static_file(files, r.path, g.headers);
+            return static_file(files, r.path, g.headers, g.routes);
         }
         if r.path.startswith(g.base) or r.path == g.base.rstrip("/") {
             return static_file(
-                files, r.path[len(g.base):] if len(r.path) > len(g.base) else "/", g.headers
+                files,
+                r.path[len(g.base):] if len(r.path) > len(g.base) else "/",
+                g.headers,
+                g.routes,
             );
         }
     }

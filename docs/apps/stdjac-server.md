@@ -118,9 +118,11 @@ token, or `""`.
 
 ## static_file
 
-`static_file(top: str, path: str, headers: dict[str, str] = {}) -> Response` answers a request for
-`path` from the directory `top`, as an app serves a bundle ([Pages](pages.md)), sent with
-`headers` (an app passes its space's, [`[spaces.<space>.headers]`](../reference/jac-toml.md#a-spaces-headers)).
+`static_file(top: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []) -> Response`
+answers a request for `path` from the directory `top`, as an app serves a bundle
+([Pages](pages.md)), sent with `headers` (an app passes its space's,
+[`[spaces.<space>.headers]`](../reference/jac-toml.md#a-spaces-headers)) and, when the space's
+pages are files under `pages/`, their `routes` (`"/user/:id"`, `"/docs/*"`).
 The `Response` has `status`, `ctype`, `body` (bytes) and `headers`:
 
 ```jac
@@ -161,6 +163,10 @@ with entry {
 
 - A path that is no file under `top` is a page's route and gets `index.html`, a dot in it or not
   (`/docs/v0.39`). A missing file of a kind the server serves (`.js`, `.css`, `.png`, ...) is 404.
+- Given `routes`, a path that is no file gets `index.html` with 200 only when it matches one of
+  them, as the page's router matches it: a fixed segment in any case, `:name` one segment, `*` the
+  rest. Any other path is 404, with `index.html` as its body, so the page can draw its own
+  not-found. With no `routes`, every such path is a route.
 - A path that leads out of `top`, by `..` or by a symbolic link, is 403 `forbidden`.
 - Every answer is sent with `headers` and `X-Content-Type-Options: nosniff`.
 - A file under `top`'s own `assets/` is marked to be cached for a year
