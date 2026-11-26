@@ -203,14 +203,15 @@ A prompt:
 | | |
 |---|---|
 | [`abstractions/`](abstractions/) | The language's abstractions, a directory each: its manifest, the contract a plugin of it implements, and its standard plugins |
+| [`stdjac/`](stdjac/) | What a program says of the abstractions, and what connects it to their plugins: stdjac, which a release ships as the runtime's `rt/stdjac/` |
 | [`libraries/`](libraries/) | Libraries the standard plugins use |
 | [`docs/`](docs/) | The documentation `neojac docs` prints, and the skills `neojac skills` installs |
 | [`examples/`](examples/) | Programs written in Jac |
 | [Releases](https://github.com/jaseci-labs/neojac/releases) | Every release of neojac. Each is tagged on the commit of this repository it ships |
 
 - **The compiler's own source is not in this repository.** What a program meets of neojac is:
-  the contracts, the plugins and the libraries here are compiled into the programs it builds,
-  and a release ships them, and `docs/`, as they are here.
+  stdjac, the contracts, the plugins and the libraries here are compiled into the programs it
+  builds, and a release ships them, and `docs/`, as they are here.
 - **Everything here is under the [MIT license](LICENSE),** and so are the released binaries.
 - **neojac is not the open-source `jac`** of [jaseci-labs/jac](https://github.com/jaseci-labs/jac),
   the language's reference design. They are separate compilers with separate releases, both can
