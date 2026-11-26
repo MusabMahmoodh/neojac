@@ -23,15 +23,22 @@ graph layers {
     layer schedule { schedule; }
     layer static_files { static_files; }
     layer window { window; }
+    layer signing { signing | signing_parts; }
+    layer signing_pages { pages.*; }
     """What no wire joins to the rest."""
     layer apart { jsx; }
+}
+
+graph spaces {
+    """The pages a person signs in at: a program's sign-in, a mailed link, and the return from another service."""
+    space signing: browser { entry signing; signing_parts | pages.*; }
 }
 
 graph import {
     edge Auth: auth --> apps;
     edge Bound: bound --> apps | auth | files | jobs | limits | llm | mail | remote | schedule;
     edge By: byllm --> llm;
-    edge Codec: codec --> bound | byllm | crossing | files | graphs | jobs | plan | remote;
+    edge Codec: codec --> bound | byllm | crossing | files | graphs | jobs | plan | remote | routes;
     edge Files: files --> apps | graphs | remote;
     edge Graph: graphs --> apps | auth | remote | routes | schedule;
     edge Hosts: hosts --> apps | cpython_space | desktop | jobs | node_space;
@@ -46,6 +53,7 @@ graph import {
     edge Schedule: schedule --> apps;
     edge StaticFiles: static_files --> apps;
     edge Window: window --> desktop;
+    edge Signing: signing --> signing_pages;
 
     bound ++> app | auth | files | jobs | limits | llm | mail | remote | schedule { bound }
     by ++> llm { By, ByCall, ByChoice, ByChooser, ByStreams, ByTool }
@@ -58,6 +66,7 @@ graph import {
         jobs { decode, encode },
         plan { decode },
         remote { CodecError, declares_reports, decode, encode },
+        routes { decode, encode },
     ]
     plan ++> [
         app {
@@ -141,6 +150,12 @@ graph import {
     reply ++> app | auth | files { json_ok }
     routes ++> app { route_answer, route_of, routes }
     schedule ++> app { scheduled, start_schedule }
-    static_files ++> app { static_file }
+    static_files ++> app { held_file, static_file }
     window ++> desktop { run_window }
+    signing_parts ++> [
+        pages.check { Said, again_on_new_link, mailed_token, reason },
+        pages.device { Said, reason },
+        pages.index { reason },
+        pages.reset { Said, again_on_new_link, mailed_token, reason },
+    ]
 }

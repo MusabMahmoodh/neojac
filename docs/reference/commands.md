@@ -829,6 +829,7 @@ neojac emit-py <space> -o <dir> [--app <app> [<option>...]]
 | `--profile <profile>` | The app under that profile |
 | `--place <directory>` | The app for the place in that directory |
 | `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
+| `--package <directory>` | emit-js: a browser space of the package in that directory, by its own archwire and jac.toml, as an app of this project that loads the package builds it |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from a project's root: the modules of one space of its archwire, checked and written as an app's build would write them. emit-js is for a space on a JavaScript host (browser, node, hermes), emit-py for one on cpython.
