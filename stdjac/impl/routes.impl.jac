@@ -10,17 +10,20 @@ impl restspec(
         == 0, "a function served at a path of its own takes no parameters";
     comptime assert len(path) > 0 and path[0] == "/", "@restspec's path starts with '/'";
     markup = returns(f) == Markup;
-    kind = "text/plain";
-    if produces is not None {
-        kind = produces;
-    } elif markup {
-        kind = "text/html; charset=utf-8";
-    }
-    wrapped = not markup;
-    if envelope is not None {
-        wrapped = envelope;
-    }
-    note(f, "restspec", (method, path, kind, wrapped, headers, markup));
+    note(
+        f,
+        "restspec",
+        (
+            method,
+            path,
+            produces
+                if produces is not None
+                else ("text/html; charset=utf-8" if markup else "text/plain"),
+            envelope if envelope is not None else not markup,
+            headers,
+            markup,
+        ),
+    );
 }
 
 impl routes -> list[RestRoute] {
