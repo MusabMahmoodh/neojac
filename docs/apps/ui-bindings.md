@@ -116,8 +116,10 @@ def Counter(step: int = 1) -> JsxElement {
   `<circle>`). A child, an attribute, a spread or a component's prop is kept current only when its
   own code reads state, a derived value, a hook's result or a prop: `{count}` and `class={...}`
   above, not the button's `onClick`, whose value is a function.
-- **Attribute names are HTML's**: `class`, `for`, `aria-label`, `data-id`, `spellcheck`. A name
-  React spells otherwise (`className`, `htmlFor`) is written to the element as it is spelled.
+- **Attribute names are HTML's**: `class`, `for`, `aria-label`, `data-id`, `spellcheck`. React's
+  `className` and `htmlFor` on an element, and its `onDoubleClick`, are refused (E5273): the first
+  two would set attributes no browser reads, and the third would listen for an event no browser
+  sends. HTML's are `class`, `for` and `onDblClick`.
 - **`True` writes the attribute bare, and `False` and `None` remove it.** An enumerated attribute
   whose value is the word `false` is written as a string: `spellcheck="false"`,
   `contenteditable="false"`, not `spellcheck={False}`, which removes it.
@@ -494,3 +496,4 @@ bundler with no `serve` bundles under `neojac dev` as it does in a build.
 | E1220, E1221 | Text or a lowercase tag that React Native does not show |
 | E1222, E1223, E1224 | Code whose meaning would depend on the model, under a fine-grained `ui` plugin |
 | E1279 | A page in a space whose `ui` plugin has no file routes |
+| E5273 | React's `className`, `htmlFor` or `onDoubleClick` on an element under `dom` |

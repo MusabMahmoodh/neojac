@@ -31,9 +31,10 @@ File routes need the `react` plugin, the standard `ui` plugin of a browser space
 `dom` needs no npm package and no bundler: skip step 2 below, and the build writes the page's
 document itself, with what `[spaces.<space>.document]` says (`title`, `lang`, `noscript`). Its
 pages run under `[spaces.<space>.headers]` `Content-Security-Policy` of `script-src 'self';
-style-src 'self'`. Write attributes by HTML's names (`class`, `for`); `False` removes an
-attribute, so an enumerated one is a string (`spellcheck="false"`). Import style sheets from the
-entry (`import "./site.css";`). `neojac docs apps/ui-bindings` (section "dom") has the rest.
+style-src 'self'`. Write attributes by HTML's names (`class`, `for`, `onDblClick`): React's
+`className`, `htmlFor` and `onDoubleClick` are refused (E5273). `False` removes an attribute, so
+an enumerated one is a string (`spellcheck="false"`). Import style sheets from the entry
+(`import "./site.css";`). `neojac docs apps/ui-bindings` (section "dom") has the rest.
 
 Pages a library ships with it (a sign-in or settings page every app that uses the library gets)
 are a browser space of the library's own `archwire.jac`, served at the `base` its `jac.toml`

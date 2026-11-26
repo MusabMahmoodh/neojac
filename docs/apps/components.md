@@ -110,7 +110,7 @@ compiler writes JSX for Solid's own compiler, each text as a string. Under `dom`
 makes each element with the DOM's own calls, and keeps current only the parts whose code reads
 state ([UI plugins and bundlers](ui-bindings.md#dom)). Attribute names are passed to the library
 as written: under React, `className`, `onClick`, `readOnly`; under `dom`, HTML's, `class`,
-`onClick`, `readonly`.
+`onClick`, `readonly`, and React's `className`, `htmlFor` and `onDoubleClick` are refused (E5273).
 
 <!-- example: not checked: a component is a module of a browser space, with JSX -->
 ```jac
