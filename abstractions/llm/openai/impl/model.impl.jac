@@ -2,6 +2,7 @@ impl api_messages(m: Message) -> list[dict[str, any]] {
     out: list[dict[str, any]] = [];
     text = "";
     calls: list[any] = [];
+    kept: dict[str, any] = {};
     for p in m.parts {
         if p.kind == PartKind.TEXT {
             text += p.text;
@@ -13,6 +14,13 @@ impl api_messages(m: Message) -> list[dict[str, any]] {
             });
         } elif p.kind == PartKind.TOOL_RESULT {
             out.append({"role": "tool", "tool_call_id": p.id, "content": p.text});
+        } elif p.kind == PartKind.KEPT {
+            kept[p.id] = json.loads(p.text);
+        }
+    }
+    for c in calls {
+        if c["id"] in kept {
+            c["extra_content"] = kept[c["id"]];
         }
     }
     if m.role == "assistant" {
@@ -36,15 +44,21 @@ impl reply_message(m: dict[str, any]) -> Message {
     calls: any = m.get("tool_calls", None) or [];
     for c in calls {
         made: dict[str, any] = c.get("function", {}) or {};
-        given: any = made.get("arguments", "");
         out.parts.append(
             Part(
                 kind=PartKind.TOOL_CALL,
                 id=str(c.get("id", "")),
                 name=str(made.get("name", "")),
-                input=given if isinstance(given, str) else json.dumps(given),
+                input=str(made.get("arguments", "") or ""),
             ),
         );
+        if c.get("extra_content", None) {
+            out.parts.append(
+                Part(
+                    kind=PartKind.KEPT, id=str(c.get("id", "")), text=json.dumps(c["extra_content"])
+                ),
+            );
+        }
     }
     return out;
 }
@@ -54,21 +68,6 @@ impl strict_schema(schema: dict[str, any]) -> dict[str, any] | None {
         return None;
     }
     out: dict[str, any] = dict(schema);
-    if "anyOf" in schema {
-        options: list[any] = [];
-        for o in schema["anyOf"] {
-            s = strict_schema(o);
-            if s is None {
-                return None;
-            }
-            options.append(s);
-        }
-        out["anyOf"] = options;
-        return out;
-    }
-    if "enum" in schema and "type" not in schema {
-        out["type"] = "string";
-    }
     if schema.get("type", "") == "object" {
         if "properties" not in schema {
             return None;
@@ -259,16 +258,15 @@ impl OpenAI.read_events(r: any) -> Iterator[ByEvent] {
                 if c.get("id", "") {
                     held["id"] = str(c["id"]);
                 }
+                if c.get("extra_content", None) {
+                    held["extra_content"] = c["extra_content"];
+                }
                 made: dict[str, any] = c.get("function", {}) or {};
                 if made.get("name", "") {
                     held["function"]["name"] = str(made["name"]);
                 }
-                more: any = made.get("arguments", None);
-                if isinstance(more, str) {
-                    held["function"]["arguments"] = held["function"]["arguments"] + more;
-                } elif more is not None {
-                    held["function"]["arguments"] = json.dumps(more);
-                }
+                held["function"]["arguments"] = held["function"]["arguments"]
+                    + str(made.get("arguments", "") or "");
             }
             if choice.get("finish_reason", None) {
                 reason = str(choice["finish_reason"]);
