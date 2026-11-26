@@ -260,7 +260,7 @@ neojac test <file.jac> -o <runner> [<option>...]
 | Option | What it does |
 |---|---|
 | `-k <text>` | Run only the tests whose names contain <text>; a module with none isn't built |
-| `-j <jobs>` | Build runners and run tests, this many at once, each told it has this many processors (default: one for each core) |
+| `-j <jobs>` | Run on this many processors, which the runners' builds, the tests and the builds a test starts share (default: one for each core) |
 | `-o <runner>` | Build the one module's test runner, and don't run it |
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |

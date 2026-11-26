@@ -58,7 +58,7 @@ neojac test <file.jac> -o <runner> [<option>...]
 | Option | What it does |
 |---|---|
 | `-k <text>` | Run only the tests whose names contain `<text>`; a module with none is not built |
-| `-j <jobs>` | Build runners and run tests, this many at once, each told it has this many processors (default: one for each core). A build or a test sizes what it runs at once by its processors, so a test that runs commands of its own runs no more than `<jobs>` of them at once ([`PYTHON_CPU_COUNT`](../reference/environment.md#set-by-neojac-for-what-it-runs)) |
+| `-j <jobs>` | Run on this many processors, which the runners' builds, the tests and the builds a test starts share (default: one for each core). No more than `<jobs>` builds and tests run at once, and a build a test starts compiles on the processors nothing else is using ([the processors a run shares](#the-processors-a-run-shares)). A test is also told it has `<jobs>` processors ([`PYTHON_CPU_COUNT`](../reference/environment.md#set-by-neojac-for-what-it-runs)) |
 | `-o <runner>` | Build the one module's test runner, and do not run it |
 | `--target <platform>` | Build the runners for another platform ([build](build.md#--target-building-for-another-platform)) |
 | `--place <directory>` | The place the runners are built for, which provides a plugin for each abstraction the project leaves open ([Plugins](../apps/plugins.md#the-place-a-program-is-built-for)) |
@@ -154,6 +154,36 @@ test "a report is written" {
 ```
 
 A runner run by hand has no such directory unless it is given one: `NEOJAC_TEST_DIR=<directory> ./prices-tests`.
+
+What tests share outside their directories they take turns on. A file of the project that only one program may change at a time, a port, a device: each test that uses it holds a lock while it does, and the others wait.
+
+```jac
+import fcntl;
+import subprocess;
+
+def migrated(args: list[str]) -> int {
+    with open("schema.lock", "a") as turn {
+        fcntl.flock(turn.fileno(), fcntl.LOCK_EX);
+        return subprocess.run(["./migrate"] + args).returncode;
+    }
+}
+```
+
+## The processors a run shares
+
+`neojac test` runs on a fixed number of processors: one for each core, or the number `-j` gives. The tests are not the only things running. A test builds programs, and a build compiles C files, Rust crates and its own code on several threads. If every test's builds each took every core, a run of many tests would ask the machine for many times what it has.
+
+So the run keeps its processors as slots, and everything in it draws on the same ones:
+
+- Each build of a runner and each test that is running holds one slot.
+- A neojac that a test starts (a build, a check, another `neojac test`) runs on its test's slot. For each further thing it runs at once (a C file or a crate compiling, a thread of code generation, a test of its own) it takes a free slot, and gives it back when that ends.
+- When no slot is free it goes on with the one it has. Nothing waits for a slot it cannot do without.
+
+Early in a run, when the tests outnumber the processors, each test's builds compile one thing at a time. As the tests end, the builds still running take the slots they leave.
+
+The slots are bytes in a named pipe, one for each processor not in use, and `NEOJAC_SLOTS` names the pipe to everything the run starts. It is the pipe GNU make's jobserver keeps, so rustc and a crate's build script, which are handed it as `CARGO_MAKEFLAGS=--jobserver-auth=fifo:<pipe>`, share the same slots. A test that runs programs of its own at once can too: read a byte from the pipe, without blocking, before starting each one after the first, and write it back when that one ends.
+
+A `neojac test` started where `NEOJAC_SLOTS` is set draws on that pipe and makes none of its own, so a test that runs `neojac test` adds no processors to the run. On Windows there is no such pipe, and each build sizes itself by the machine.
 
 ## Reading the output
 
