@@ -260,13 +260,13 @@ neojac test <file.jac> -o <runner> [<option>...]
 | Option | What it does |
 |---|---|
 | `-k <text>` | Run only the tests whose names contain <text>; a module with none isn't built |
-| `-j <jobs>` | Build and run this many modules at once, each told it has this many processors (default: one for each core) |
+| `-j <jobs>` | Run on this many processors, which the runners' builds, the tests and the builds a test starts share (default: one for each core) |
 | `-o <runner>` | Build the one module's test runner, and don't run it |
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
-Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
+Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and each test is a run of that runner by itself, in a directory of its own that NEOJAC_TEST_DIR names: the runners are built and the tests run in parallel.
 
 The suites of the project's own trees that jac.toml names are run after them, each in its tree's directory: a Python project's by the command [test.pypi."<directory>"] gives, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path; an npm tree's by the script [test.npm."<directory>"] names; a crate's by `neojac cargo test`, with the arguments of [test.cargo."<directory>"]. A path that is a tree's manifest runs that suite alone, and -k runs none.
 
@@ -829,6 +829,7 @@ neojac emit-py <space> -o <dir> [--app <app> [<option>...]]
 | `--profile <profile>` | The app under that profile |
 | `--place <directory>` | The app for the place in that directory |
 | `--laid` | emit-js: each source map names its Jac source at the source's project path under <dir>, where a laid npm tree links it, not in the project itself |
+| `--package <directory>` | emit-js: a browser space of the package in that directory, by its own archwire and jac.toml, as an app of this project that loads the package builds it |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from a project's root: the modules of one space of its archwire, checked and written as an app's build would write them. emit-js is for a space on a JavaScript host (browser, node, hermes), emit-py for one on cpython.

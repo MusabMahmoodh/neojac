@@ -253,8 +253,9 @@ impl dispatch(r: Request, caller: str, trusted: bool) -> Response {
             ),
         );
     }
-    if r.path.startswith("/__jac/auth") {
-        return auth_route(r);
+    answered = auth_route(r) if r.path.startswith("/__jac/auth") else None;
+    if answered is not None {
+        return answered;
     }
     if r.method == "POST" and call and space not in p.spaces {
         return json_fail(404, "failed", "no such endpoint");
@@ -283,16 +284,23 @@ impl dispatch(r: Request, caller: str, trusted: bool) -> Response {
     pages = sorted(p.pages, key=lambda (g: Page) -> int { return -len(g.base); });
     served = os.environ.get(DEV_SERVED, "");
     for g in pages {
-        if g.space == served {
+        if g.space == served
+            or not (g.base == "/" or r.path.startswith(g.base) or r.path == g.base.rstrip("/"))
+        {
             continue;
         }
-        files = os.path.join(os.path.dirname(sys.executable), "pages", g.space);
-        if g.base == "/" {
-            return static_file(files, r.path);
+        rest = r.path
+            if g.base == "/"
+            else r.path[len(g.base):] if len(r.path) > len(g.base) else "/";
+        if g.held {
+            return held_file(g.space, rest, g.headers, g.routes);
         }
-        if r.path.startswith(g.base) or r.path == g.base.rstrip("/") {
-            return static_file(files, r.path[len(g.base):] if len(r.path) > len(g.base) else "/");
-        }
+        return static_file(
+            os.path.join(os.path.dirname(sys.executable), "pages", g.space),
+            rest,
+            g.headers,
+            g.routes,
+        );
     }
     return Response(status=404, ctype="text/plain", body=b"not found");
 }
@@ -305,6 +313,7 @@ impl refuse_unserved {
     wants = [f"`{r.module}.{r.name}` at {r.path}" for r in routes()] + [
         f"the page space `{g.space}` at {g.base}"
         for g in p.pages
+        if not g.held
     ];
     if len(wants) == 0 {
         return;

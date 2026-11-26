@@ -1,5 +1,6 @@
 import json;
-import from jaclang.comptime { apply, args_type, note, noted, params, restore }
+import from jaclang.comptime { apply, args_type, note, noted, params, restore, returns }
+import from markup { Markup }
 
 enum HTTPMethod {
     GET = "GET",
@@ -10,8 +11,8 @@ comptime def restspec(
     f: Callable,
     method: HTTPMethod,
     path: str,
-    produces: str = "text/plain",
-    envelope: bool = True,
+    produces: str | None = None,
+    envelope: bool | None = None,
     headers: dict[str, str] | None = None,
 );
 
@@ -21,6 +22,7 @@ obj:pub RestRoute {
         produces: str,
         envelope: bool,
         headers: dict[str, str] | None,
+        markup: bool,
         module: str,
         name: str,
         run: Callable[[], any];
