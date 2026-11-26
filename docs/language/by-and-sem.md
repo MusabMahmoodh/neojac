@@ -619,8 +619,7 @@ no tool is still running when the model is next asked.
 neojac ships two `llm` plugins. `anthropic`, the standard one, speaks
 Anthropic's Messages API. `openai` speaks the OpenAI-compatible Chat
 Completions API, which most other providers serve too. A project names
-`openai` and points it at its provider, with the provider's key in
-`OPENAI_API_KEY` or `JAC_LLM_KEY` where the program runs:
+`openai` and points it at its provider:
 
 ```toml
 [llm]
@@ -631,15 +630,9 @@ address = "https://generativelanguage.googleapis.com/v1beta/openai"
 model = "gemini-3-flash-preview"
 ```
 
-| Provider | `address` | `model`, for one |
-|---|---|---|
-| OpenAI | Its default | `gpt-5-mini` |
-| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3-flash-preview` |
-| Together | `https://api.together.xyz/v1` | `zai-org/GLM-5.3-Flash` |
-
-Another provider or local server with an OpenAI-compatible API (Groq,
-OpenRouter, Ollama, vLLM) is set up the same way: its address and a model it
-serves.
+OpenAI's own API needs only a `model`. Another provider or local server with
+an OpenAI-compatible API (Together, Groq, OpenRouter, Ollama, vLLM) is set up
+as Gemini is here: its address and a model it serves.
 
 Both take the same settings, in `[llm.anthropic]` or `[llm.openai]`:
 
@@ -650,7 +643,7 @@ Both take the same settings, in `[llm.anthropic]` or `[llm.openai]`:
 | `timeout` | `int` | 60 | 60 | Seconds one request may take |
 | `retries` | `int` | 0 | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
 | `rates` | `dict[str, list[float]]` | `{}` | `{}` | What each model charges, by its name: four numbers, the dollars for a million tokens of input, of output, read from the cache and written to it |
-| `key` | `Secret` | `ANTHROPIC_API_KEY` | `OPENAI_API_KEY` | The API key, read from that variable of the environment where the program runs, or from `JAC_LLM_KEY`, and never written in `jac.toml`. Without one, `anthropic` raises `ByError`, and `openai` sends the request with no key, as a local server takes it |
+| `key` | `Secret` | `ANTHROPIC_API_KEY` | `OPENAI_API_KEY` | The API key, read from that variable of the environment where the program runs, or from `JAC_LLM_KEY`, and never written in `jac.toml`. Without one, `anthropic` raises `ByError`, and `openai` sends none, for a local server |
 
 ```toml
 [llm.anthropic]
@@ -666,9 +659,7 @@ platform and by date. A request whose model `rates` does not name has no
 cost (`None`), and a rate that is not four numbers ends the first call with
 `ByError`. A rate is flat: where a provider charges by a prompt's size or by
 how long the cache keeps what is written, give the rate the program's
-requests are charged. `openai` looks a rate up by the setting `model` too,
-since a provider may answer with a dated name (`gpt-5-mini-2025-08-07`), and
-counts the cached tokens a provider reports as read from the cache.
+requests are charged.
 
 What each does of its own:
 
@@ -677,12 +668,10 @@ What each does of its own:
   with the same instructions, read them from it: `ByUsage` counts those
   tokens apart. A request the model's safety classifiers decline re-runs on
   the API's default fallback model.
-- **`openai`** asks for a reply that fits a schema in the API's strict JSON
-  schema mode, where every field of an object is required: the model gives a
-  field that has a default too. A result type the strict mode cannot say, a
-  `dict` among it, is asked for by the instructions instead. `effort` is sent
-  as `reasoning_effort`, which only a reasoning model takes.
-  Gemini 2.5 refuses tools and a schema in one request; Gemini 3 takes them.
+- **`openai`** asks for a reply that fits a schema in the API's strict mode,
+  so the model fills in fields that have a default too. `effort` is sent as
+  `reasoning_effort`, which only a reasoning model takes. Gemini 2.5 refuses
+  tools and a schema in one request; Gemini 3 takes them.
 
 ### Writing a model plugin
 
