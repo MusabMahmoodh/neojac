@@ -1,6 +1,6 @@
 ---
 description: neojac test, how it finds test modules, the [test] table of jac.toml, -k, -j and -o, the runners it builds in .jac/test, each test as a run of its own with a directory of its own, its output, the slowest tests and exit statuses, and running tests as WebAssembly.
-keywords: test runner, runner, deselected, NEOJAC_TEST_DIR, slowest tests
+keywords: test runner, runner, deselected, slowest tests
 ---
 # test
 
