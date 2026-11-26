@@ -18,13 +18,13 @@ and nothing where the program runs chooses another.
 
 ## The `ui` plugins neojac ships
 
-| Plugin | Library | Model | Hosts | Packages it owns | Its bundler |
-|---|---|---|---|---|---|
-| `react` | React, React Router | rerender | browser, node | `react`, `react-dom`, `react-router-dom` | `vite` |
-| `preact` | Preact | rerender | browser | `preact` | `vite` |
-| `solid` | Solid | fine-grained | browser | `solid-js` | `vite` |
-| `react_native` | React Native | rerender | hermes | `react`, `react-native` | `expo` |
-| `none` | none | none | browser, hermes, node | | |
+| Plugin | Library | Model | JSX | Hosts | Packages it owns | Its bundler |
+|---|---|---|---|---|---|---|
+| `react` | React, React Router | rerender | calls of `react/jsx-runtime` | browser, node | `react`, `react-dom`, `react-router-dom` | `vite` |
+| `preact` | Preact | rerender | calls of `preact/jsx-runtime` | browser | `preact` | `vite` |
+| `solid` | Solid | fine-grained | JSX text, for Solid's compiler | browser | `solid-js` | `vite` |
+| `react_native` | React Native | rerender | calls of `react/jsx-runtime` | hermes | `react`, `react-native` | `expo` |
+| `none` | none | none | refused (E5178) | browser, hermes, node | | |
 
 The standard plugin, which a space has when `jac.toml` names none, is its host's:
 
@@ -83,9 +83,11 @@ Under Preact the last line is `render(<Counter step={2} />, document.getElementB
 
 ### none
 
-Under `none`, `has` and effects in a function are E1218, JSX is passed through to the bundler as
-it is written, and the library's functions are ordinary imports. Any JSX library that no shipped
-`ui` plugin owns can be used this way, with no change to the compiler.
+Under `none`, `has` and effects in a function are E1218, JSX is E5178, and a library's functions
+are ordinary imports. A JSX library that no shipped `ui` plugin owns is used through a plugin of
+the project's own ([below](#a-projects-own-ui-plugin)) whose `[ui.jsx]` says `form = "calls"` and
+the package whose `jsx-runtime` makes its elements, or `form = "text"` to leave the JSX to the
+library's own compiler, with no change to the compiler.
 
 ## Choosing a space's plugins
 
@@ -176,6 +178,7 @@ owns = ["solid-js"]            # packages only this plugin's spaces may import
 bundler = "vite"               # the bundler of a space that names none
 
 [ui.jsx]
+form = "text"                  # what the compiler makes of JSX: calls, dom or text
 lowercase_tags = true          # whether <div> exists (E1221 when not)
 no_text_in = []                # tags that show no bare text (E1220)
 keys = false                   # whether the library reads an element's `key`; default: true
@@ -207,11 +210,23 @@ tag = "For"
 prop = "each"
 ```
 
-A plugin whose `hosts` holds `node` names in `[ui.jsx]` the package whose `jsx-runtime` makes a
-node space's elements, `source = "react"`: a node space's JSX is a call of its `jsx`. A plugin
-that names none refuses JSX in a node space (E5178). `react` runs on a node space so: a node
-space whose `[spaces.<space>.ui] plugin` is `react` makes React's elements, which
-`react-dom/server` renders as React does, its components and hooks React's own.
+`[ui.jsx]` `form` says what the compiler makes of JSX. A plugin with no `[ui.jsx]` table refuses
+JSX on every host (E5178):
+
+| `form` | The compiler makes | Shipped plugins |
+|---|---|---|
+| `calls` | Calls of `jsx`, `jsxs` and `Fragment` of `<source>/jsx-runtime`, the automatic runtime React and Preact share; `source` names the package (`source = "react"`) | `react`, `preact`, `react_native` |
+| `dom` | The DOM's own calls, against the plugin's `runtime` | `dom` |
+| `text` | JSX, written to a `.jsx` file for the library's own JSX compiler, which the space's bundler runs | `solid` |
+
+A `form` other than these, `calls` with no `source`, and `dom` with no `[ui] runtime` are each
+E5158, at the plugin's `form`. `[ui.each]` names a component (`tag`, `prop`) under `form =
+"text"`, and a function (`name`) under `form = "dom"`.
+
+The compiler writes the calls itself, on every host, so a node space needs no bundler for its JSX.
+`react` runs on a node space so: a node space whose `[spaces.<space>.ui] plugin` is `react` makes
+React's elements, which `react-dom/server` renders as React does, its components and hooks React's
+own.
 
 A rerender plugin names `[ui.ref]` (`useRef`) where a fine-grained one names `[ui.computed]`,
 `[ui.cleanup]`, `[ui.untrack]` and `[ui.each]`. Two more keys of `[ui]` are for a plugin that
