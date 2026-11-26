@@ -42,6 +42,7 @@ def path_args(r: RestRoute, path: str) -> dict[str, str] | None;
 def given_value(r: RestRoute, name: str, text: str) -> any;
 comptime def path_holes(path: str) -> list[str];
 comptime def takes_param(f: Callable, name: str) -> bool;
+comptime def holes_distinct(holes: list[str]) -> bool;
 def route_run(
     r: RestRoute, e: Endpoint | None, given: dict[str, any], caller: str, trusted: bool
 ) -> tuple[int, bytes];

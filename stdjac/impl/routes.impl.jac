@@ -8,10 +8,15 @@ impl restspec(
 ) {
     comptime assert len(path) > 0 and path[0] == "/", "@restspec's path starts with '/'";
     comptime for hole in path_holes(path) {
+        comptime assert hole
+            != "", "a { or } in @restspec's path is a whole segment {name}: /orders/{id}";
         comptime assert takes_param(
             f, hole
         ), "each {name} in @restspec's path is a parameter of the function";
     }
+    comptime assert holes_distinct(
+        path_holes(path)
+    ), "each {name} in @restspec's path is named once";
     note(f, "restspec", (method, path, produces, envelope, headers));
 }
 
@@ -181,22 +186,48 @@ impl given_value(r: RestRoute, name: str, text: str) -> any {
 
 impl path_holes(path: str) -> list[str] {
     holes: list[str] = [];
-    word = "";
-    inside = False;
+    seg = "";
+    braces = 0;
     i = 0;
-    while i < len(path) {
-        if path[i] == "{" {
-            inside = True;
-            word = "";
-        } elif path[i] == "}" and inside {
-            holes = holes + [word];
-            inside = False;
-        } elif inside {
-            word = word + path[i];
+    while i <= len(path) {
+        if i == len(path) or path[i] == "/" {
+            if braces == 2 and len(seg) > 2 and seg[0] == "{" and seg[len(seg) - 1] == "}" {
+                name = "";
+                k = 1;
+                while k < len(seg) - 1 {
+                    name = name + seg[k];
+                    k += 1;
+                }
+                holes = holes + [name];
+            } elif braces > 0 {
+                holes = holes + [""];
+            }
+            seg = "";
+            braces = 0;
+        } else {
+            seg = seg + path[i];
+            if path[i] == "{" or path[i] == "}" {
+                braces += 1;
+            }
         }
         i += 1;
     }
     return holes;
+}
+
+impl holes_distinct(holes: list[str]) -> bool {
+    a = 0;
+    while a < len(holes) {
+        b = a + 1;
+        while b < len(holes) {
+            if holes[a] == holes[b] {
+                return False;
+            }
+            b += 1;
+        }
+        a += 1;
+    }
+    return True;
 }
 
 impl takes_param(f: Callable, name: str) -> bool {

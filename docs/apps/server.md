@@ -723,7 +723,13 @@ curl 'http://127.0.0.1:8000/add?b=3'                        # 400: add: missing 
   value whatever the query or the body says of the name. Each `{name}` is a parameter of the
   function, or the program does not compile (E0109). A segment matches one that is not empty, so
   `/orders/{id}` answers neither `/orders/` nor `/orders/4/2`, and a path written without one is
-  matched first: `/items/special` beside `/items/{n}` answers `/items/special` itself.
+  matched first: `/items/special` beside `/items/{n}` answers `/items/special` itself. Of two
+  paths with segments that both match, the one declared first answers. A `{` or `}` that is not a
+  whole segment `{name}`, or a name given twice, does not compile (E0109).
+- **What a segment gives is the caller's:** `%2F` decodes to a `/` inside the value and `..` is a
+  value like any, so a value used as a file's name is checked first. A parameter that is not a
+  `str`, `str | None` among them, is given the JSON the segment reads as (`null` is `None`). A
+  route's path is matched before a page's files, so `GET /{slug}` answers `/robots.txt` too.
 - **A body that is not a JSON object** is 400, `the request is not JSON` or `the request is not a
   JSON object`, after the access tag is checked.
 
