@@ -35,6 +35,7 @@ impl routes -> list[RestRoute] {
                     takes=takes,
                     texts=texts,
                     run=lambda (given: dict[str, any]) -> any {
+                        refuse_unknown[args_type(n.decl)](given);
                         a = decode[args_type(n.decl)](given);
                         return apply(n.decl, a);
                     },
@@ -58,28 +59,21 @@ impl route_answer(
     r: RestRoute, query: str, body: bytes, caller: str, trusted: bool
 ) -> tuple[int, str, bytes, dict[str, str]] {
     e = endpoint_named(r.module, r.name);
-    (given, problem) = route_args(r, query, body);
+    no = refused(r.module, r.name, caller, trusted) if e is not None else None;
     status = 200;
     reply = b"";
-    if e is not None {
-        sent = body if problem != "" else json.dumps({"args": given}).encode("utf-8");
-        (status, reply) = answer(e.path(), sent, caller, trusted);
-    } elif not trusted {
+    if no is not None {
+        (status, reply) = no;
+    } elif e is None and not trusted {
         (status, reply) = reply_fail(403, "rejected", "an internal endpoint");
-    } elif problem != "" {
-        (status, reply) = reply_fail(400, "rejected", problem);
-    } elif any(name not in r.takes for name in given) {
-        stray = [name for name in given if name not in r.takes][0];
-        (status, reply) = reply_fail(400, "rejected", f"{r.name}: no parameter '{stray}'");
+    } elif len(r.takes) == 0 {
+        (status, reply) = route_run(r, e, {}, caller, trusted);
     } else {
-        try {
-            out: any = kept_call(caller, lambda -> any { return json_values(r.run(given)); });
-            reply = json.dumps({"ok": True, "data": out}).encode("utf-8");
-        } except CodecError as c {
-            (status, reply) = reply_fail(400, "rejected", f"{r.name}: {c}");
-        } except Exception as x {
-            print(f"route {r.path} failed: {type(x).__name__}: {x}{raised_at(x)}");
-            (status, reply) = reply_fail(500, "failed", r.path + " failed");
+        (given, problem) = route_args(r, query, body);
+        if problem != "" {
+            (status, reply) = reply_fail(400, "rejected", problem);
+        } else {
+            (status, reply) = route_run(r, e, given, caller, trusted);
         }
     }
     if r.envelope or status != 200 {
@@ -108,7 +102,7 @@ impl route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], 
         } else {
             try {
                 given[name] = json.loads(text);
-            } except ValueError {
+            } except (ValueError, RecursionError) {
                 given[name] = text;
             }
         }
@@ -119,7 +113,7 @@ impl route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], 
     got: any = None;
     try {
         got = json.loads(body.decode("utf-8"));
-    } except ValueError {
+    } except (ValueError, RecursionError) {
         return (given, "the request is not JSON");
     }
     if not isinstance(got, dict) {
@@ -130,4 +124,21 @@ impl route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], 
         given[name] = value;
     }
     return (given, "");
+}
+
+impl route_run(
+    r: RestRoute, e: Endpoint | None, given: dict[str, any], caller: str, trusted: bool
+) -> tuple[int, bytes] {
+    if e is not None {
+        return answer(e.path(), json.dumps({"args": given}).encode("utf-8"), caller, trusted);
+    }
+    try {
+        out: any = kept_call(caller, lambda -> any { return json_values(r.run(given)); });
+        return (200, json.dumps({"ok": True, "data": out}).encode("utf-8"));
+    } except CodecError as c {
+        return reply_fail(400, "rejected", f"{r.name}: {c}");
+    } except Exception as x {
+        print(f"route {r.path} failed: {type(x).__name__}: {x}{raised_at(x)}");
+        return reply_fail(500, "failed", r.path + " failed");
+    }
 }

@@ -118,7 +118,16 @@ graph import {
         },
         cpython_space { carry_in_process },
         node_space { carry_in_process, loop_serving, on_loop },
-        routes { answer, endpoint_named, json_values, raised_at, reply_fail },
+        routes {
+            Endpoint,
+            answer,
+            endpoint_named,
+            json_values,
+            raised_at,
+            refuse_unknown,
+            refused,
+            reply_fail,
+        },
         schedule { settle },
     ]
     auth ++> app { auth_caller, auth_route, deployment_signed, open_auth }

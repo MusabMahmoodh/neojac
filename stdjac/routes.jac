@@ -37,3 +37,6 @@ def:pub route_answer(
     r: RestRoute, query: str, body: bytes, caller: str, trusted: bool
 ) -> tuple[int, str, bytes, dict[str, str]];
 def route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], str];
+def route_run(
+    r: RestRoute, e: Endpoint | None, given: dict[str, any], caller: str, trusted: bool
+) -> tuple[int, bytes];

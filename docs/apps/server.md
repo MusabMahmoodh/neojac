@@ -687,7 +687,9 @@ Its access tag guards the route as it guards its endpoint: `:pub` for anyone, `:
 signed-in caller (401 otherwise), untagged for requests with the deployment's key (403 otherwise).
 
 A function with parameters is given them by the request: by name, from the query string, then
-from the fields of a JSON object sent as the body, which give a name the query gives too.
+from the fields of a JSON object sent as the body, which give a name the query gives too. A name
+the query gives twice takes its last value. A function of no parameters reads neither: its query
+and its body are not looked at.
 
 ```jac
 @restspec(method=HTTPMethod.GET, path="/add")
