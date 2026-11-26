@@ -46,7 +46,7 @@ neojac run -- input.txt                   # the program in this directory, with 
 
 `neojac run` builds a program as `build` does, in its project's `.jac/build/` unless `-o` says where, then runs it with what follows `--` and exits with its status. It takes the options of a build for this machine that is then run: `-o`, `--release`, `--cpu`, `--gui`, `--monitor` and `--memory`. One it does not take is named with the command that does: ``it has no option '--lib' (`neojac build` and `neojac check` have it)``.
 
-What is no program is refused: a file of another extension (E5150), a directory with none of the manifests (E5151), a Jac project with no `main.jac` (E5152). A Python project (`pyproject.toml`), an npm package (`package.json`) and a JavaScript or TypeScript file are recognized and refused until their builds are made (E5090).
+What is no program is refused: a file of another extension (E5150), a directory with none of the manifests (E5151), a Jac project with no `main.jac` (E5152), and a plugin, a library, an abstraction or a contract, which the programs that use it build (E5184). A Python project (`pyproject.toml`), an npm package (`package.json`) and a JavaScript or TypeScript file are recognized and refused until their builds are made (E5090).
 
 ## What a build does
 
