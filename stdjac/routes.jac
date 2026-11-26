@@ -4,6 +4,9 @@ import from jaclang.comptime { apply, args_type, note, noted, params, restore }
 enum HTTPMethod {
     GET = "GET",
     POST = "POST",
+    PUT = "PUT",
+    PATCH = "PATCH",
+    DELETE = "DELETE",
 }
 
 comptime def restspec(

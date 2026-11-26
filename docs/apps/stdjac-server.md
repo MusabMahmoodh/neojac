@@ -40,8 +40,8 @@ one of the four imported from a module of stdjac, is E2234.
 
 | Name | Signature | Does |
 |---|---|---|
-| `restspec` | `@restspec(method: HTTPMethod, path: str, produces: str = "text/plain", envelope: bool = True)` | Serves the function, one of no parameters, at `path` |
-| `HTTPMethod` | `GET`, `POST` | A `@restspec` route's method |
+| `restspec` | `@restspec(method: HTTPMethod, path: str, produces: str = "text/plain", envelope: bool = True, headers: dict[str, str] \| None = None)` | Serves the function, one of no parameters, at `path`, for requests of `method` |
+| `HTTPMethod` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` | A `@restspec` route's method |
 | `schedule` | `@schedule(interval: float)` | A server runs the function, one of no parameters, every `interval` seconds, the first time as it starts |
 | `limit` | `@limit(uses: int, per: float)` | A caller may call the endpoint `uses` times in each `per` seconds |
 | `consume_limit` | `consume_limit(scope: str, actor: str, limit: int, seconds: int) -> int` | Counts a use of `scope` by `actor`: 0 while it is within `limit` uses in `seconds`, else the seconds to wait |
