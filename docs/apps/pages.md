@@ -219,7 +219,7 @@ names from it as from any npm package: `import from "@jac/runtime" { Link, navig
 | `Outlet` | Where a layout puts the page |
 | `useLocation`, `useNavigate`, `useParams`, `useSearchParams` | React Router's hooks |
 | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback`, `useContext`, `createContext` | React's, for code that calls the library directly ([Components](components.md) says when) |
-| `unsafe_html(html)` | An element showing `html` as HTML, unescaped. Use only on HTML the project controls. |
+| `unsafe_html(html)` | An element showing `html` as HTML, unescaped. Use only on HTML the project controls. In a native space the same word, known without an import, is a [`Markup`](components.md#jsx-in-a-native-space-markup) |
 | `sign_in`, `sign_out`, `signed_in`, `signed_in_as`, `signed_in_name` | Signing in, below |
 | `jacArrangement`, `jacUseArrangement` | Which arrangement of its app the page is in, and choosing another, [below](#the-apps-arrangement) |
 | `RemoteError` and its subclasses | What a failed crossing raises ([Crossings](crossings.md)) |

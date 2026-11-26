@@ -226,7 +226,7 @@ Close the browser session and stop the server before you finish.
 | E1219 | A package another `ui` plugin owns (`solid-js` under React) | Use the packages of the space's own `ui` plugin |
 | W1100 `cannot find module` | npm package not among the tree's | `neojac install --npm <pkg>` |
 | E5160 | The tree is not installed as `jac.toml` says | `neojac install` |
-| E2018 `unknown type 'JsxElement'` | JSX in a native module | Put components in the browser space's modules |
+| E2018 `unknown type 'JsxElement'` | A component in a native module, where JSX is `Markup`, HTML text | Put components in the browser space's modules |
 | E1050, E1052, E1053 on a tag | Props checked as keyword arguments | Match the component's parameters |
 
 ## Where to look things up
