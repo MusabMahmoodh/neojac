@@ -99,11 +99,15 @@ A JSX element is an expression of type `JsxElement`, written wherever an express
 | `{...props}` | Every entry of a dict as an attribute (`{**props}` is the same; `neojac fmt` writes `...`) |
 | `{expr}` as a child | The value: text, a number, an element, a list of elements, or `None` for nothing |
 | `{#* note *#}` as a child | A comment, which shows nothing |
-| Text as a child | JSX's text: a character reference is the character it names (`Tom &amp; Jerry` shows `Tom & Jerry`), and a `>` is text |
+| Text as a child | JSX's text: each line trimmed, the empty ones dropped and the rest joined by one space; a character reference is the character it names (`Tom &amp; Jerry` shows `Tom & Jerry`), and a `>` is text |
 | `{for ... { ... }}` as a child | A block of statements: each element written as a statement in it is a child, in order |
 
-Attribute names are passed to the library as written: under React, `className`, `onClick`,
-`readOnly`.
+The compiler lowers JSX itself, as the space's `ui` plugin says ([UI plugins and
+bundlers](ui-bindings.md#a-projects-own-ui-plugin)): under React and Preact an element is a call
+of the library's `jsx` (`<b key={k}>hi</b>` is `jsx("b", { children: "hi" }, k)`), its text a
+string as the rules above make it, and no bundler or TypeScript step reads JSX. Under Solid, the
+compiler writes JSX for Solid's own compiler, each text as a string. Attribute names are passed to
+the library as written: under React, `className`, `onClick`, `readOnly`.
 
 <!-- example: not checked: a component is a module of a browser space, with JSX -->
 ```jac
