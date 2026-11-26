@@ -678,7 +678,7 @@ compiles, and nothing is registered as the module starts.
 | Argument | Meaning |
 |---|---|
 | `method` | `HTTPMethod.GET` or `HTTPMethod.POST`. A request with another method is 404. |
-| `path` | Absolute: one that does not start with `/` does not compile |
+| `path` | Absolute: one that does not start with `/` does not compile. A segment written `{name}` takes that segment of a request's path, which is the parameter `name`'s value: `/orders/{id}` answers `/orders/42` |
 | `envelope` | `True`: the reply is the JSON envelope. `False`: the body is the function's result, which must be a `str`. |
 | `produces` | The `Content-Type` of an unenveloped body |
 | `headers` | Headers an unenveloped body is sent with, a dict written at the decorator: what a page says of where it may be shown and what it may load (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control`). A refusal and a failure are the JSON envelope, sent with none of them |
@@ -718,6 +718,12 @@ curl 'http://127.0.0.1:8000/add?b=3'                        # 400: add: missing 
   `?utm_source=`) reaches a route as it reaches a page. A body's field that is no parameter's, a
   parameter with no default that is given no value, and a value of the wrong type are each 400,
   with the JSON envelope, as an endpoint's are.
+- **A segment of the path written `{name}`** gives the parameter `name` that segment of the
+  request's path, decoded (`%20` is a space), by the rule a query's value is given by; it is the
+  value whatever the query or the body says of the name. Each `{name}` is a parameter of the
+  function, or the program does not compile (E0109). A segment matches one that is not empty, so
+  `/orders/{id}` answers neither `/orders/` nor `/orders/4/2`, and a path written without one is
+  matched first: `/items/special` beside `/items/{n}` answers `/items/special` itself.
 - **A body that is not a JSON object** is 400, `the request is not JSON` or `the request is not a
   JSON object`, after the access tag is checked.
 

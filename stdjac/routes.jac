@@ -24,6 +24,7 @@ obj:pub RestRoute {
         headers: dict[str, str] | None,
         module: str,
         name: str,
+        parts: list[str],
         takes: list[str],
         texts: list[str],
         run: Callable[[dict[str, any]], any];
@@ -34,9 +35,13 @@ glob _routes: list[RestRoute] = [],
 def:pub routes -> list[RestRoute];
 def:pub route_of(method: str, path: str) -> RestRoute | None;
 def:pub route_answer(
-    r: RestRoute, query: str, body: bytes, caller: str, trusted: bool
+    r: RestRoute, path: str, query: str, body: bytes, caller: str, trusted: bool
 ) -> tuple[int, str, bytes, dict[str, str]];
 def route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], str];
+def path_args(r: RestRoute, path: str) -> dict[str, str] | None;
+def given_value(r: RestRoute, name: str, text: str) -> any;
+comptime def path_holes(path: str) -> list[str];
+comptime def takes_param(f: Callable, name: str) -> bool;
 def route_run(
     r: RestRoute, e: Endpoint | None, given: dict[str, any], caller: str, trusted: bool
 ) -> tuple[int, bytes];

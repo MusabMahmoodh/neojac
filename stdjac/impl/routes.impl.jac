@@ -7,6 +7,11 @@ impl restspec(
     headers: dict[str, str] | None = None,
 ) {
     comptime assert len(path) > 0 and path[0] == "/", "@restspec's path starts with '/'";
+    comptime for hole in path_holes(path) {
+        comptime assert takes_param(
+            f, hole
+        ), "each {name} in @restspec's path is a parameter of the function";
+    }
     note(f, "restspec", (method, path, produces, envelope, headers));
 }
 
@@ -32,6 +37,7 @@ impl routes -> list[RestRoute] {
                     headers=sent_with,
                     module=n.module,
                     name=n.name,
+                    parts=n.value[1].split("/"),
                     takes=takes,
                     texts=texts,
                     run=lambda (given: dict[str, any]) -> any {
@@ -52,11 +58,16 @@ impl route_of(method: str, path: str) -> RestRoute | None {
             return r;
         }
     }
+    for r in routes() {
+        if r.method.value == method and "{" in r.path and path_args(r, path) is not None {
+            return r;
+        }
+    }
     return None;
 }
 
 impl route_answer(
-    r: RestRoute, query: str, body: bytes, caller: str, trusted: bool
+    r: RestRoute, path: str, query: str, body: bytes, caller: str, trusted: bool
 ) -> tuple[int, str, bytes, dict[str, str]] {
     e = endpoint_named(r.module, r.name);
     no = refused(r.module, r.name, caller, trusted) if e is not None else None;
@@ -70,6 +81,9 @@ impl route_answer(
         (status, reply) = route_run(r, e, {}, caller, trusted);
     } else {
         (given, problem) = route_args(r, query, body);
+        for (name, text) in (path_args(r, path) or {}).items() {
+            given[name] = given_value(r, name, text);
+        }
         if problem != "" {
             (status, reply) = reply_fail(400, "rejected", problem);
         } else {
@@ -97,15 +111,7 @@ impl route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], 
         if name not in r.takes {
             continue;
         }
-        if name in r.texts {
-            given[name] = text;
-        } else {
-            try {
-                given[name] = json.loads(text);
-            } except (ValueError, RecursionError) {
-                given[name] = text;
-            }
-        }
+        given[name] = given_value(r, name, text);
     }
     if len(body) == 0 {
         return (given, "");
@@ -141,4 +147,63 @@ impl route_run(
         print(f"route {r.path} failed: {type(x).__name__}: {x}{raised_at(x)}");
         return reply_fail(500, "failed", r.path + " failed");
     }
+}
+
+impl path_args(r: RestRoute, path: str) -> dict[str, str] | None {
+    asked = path.split("/");
+    if len(asked) != len(r.parts) {
+        return None;
+    }
+    out: dict[str, str] = {};
+    for (mine, theirs) in zip(r.parts, asked) {
+        if len(mine) > 2 and mine[0] == "{" and mine[len(mine) - 1] == "}" {
+            if theirs == "" {
+                return None;
+            }
+            out[mine[1:len(mine) - 1]] = urllib.parse.unquote(theirs);
+        } elif mine != theirs {
+            return None;
+        }
+    }
+    return out;
+}
+
+impl given_value(r: RestRoute, name: str, text: str) -> any {
+    if name in r.texts {
+        return text;
+    }
+    try {
+        return json.loads(text);
+    } except (ValueError, RecursionError) {
+        return text;
+    }
+}
+
+impl path_holes(path: str) -> list[str] {
+    holes: list[str] = [];
+    word = "";
+    inside = False;
+    i = 0;
+    while i < len(path) {
+        if path[i] == "{" {
+            inside = True;
+            word = "";
+        } elif path[i] == "}" and inside {
+            holes = holes + [word];
+            inside = False;
+        } elif inside {
+            word = word + path[i];
+        }
+        i += 1;
+    }
+    return holes;
+}
+
+impl takes_param(f: Callable, name: str) -> bool {
+    comptime for p in params(f) {
+        if p.name == name {
+            return True;
+        }
+    }
+    return False;
 }
