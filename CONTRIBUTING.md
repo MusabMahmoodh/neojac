@@ -38,16 +38,17 @@ neojac python -I scripts/check.py
 ```
 
 It runs `neojac docs --check` over `docs/`; `neojac fmt --fix --check` over `abstractions/`,
-`libraries/` and `examples/`; `neojac arch` and `neojac check` in each package of `abstractions/`
-and `libraries/`; `neojac check` of each example; and `neojac test` where a package or an example
-holds tests. It says what it leaves out, and why. A release carries its own runtime and contracts,
-and checks a plugin against those: a change to a contract, and whatever a pull request needs of the
-compiler, is checked by the compiler's own tests, which a maintainer runs against the pull request
-before it is merged. A pull request that needs a neojac not released yet, one paired with a change
-to the compiler, fails against the latest release, as it should; a maintainer marks it with the
-label `needs unreleased neojac`, and the check then reports its failure as that need, not as a
-broken pull request. The check runs all the same, and a pull request without the label is held to
-it.
+`stdjac/`, `libraries/` and `examples/`; `neojac arch` and `neojac check` in each package of
+`abstractions/`, `stdjac/` and `libraries/`; `neojac check` of each example; and `neojac test`
+where a package or an example holds tests. It says what it leaves out, and why. A release carries
+its own stdjac and contracts, and checks a package and an example against those: a change to a
+contract, and whatever a pull request needs of the compiler, is checked by the compiler's own
+tests, which a maintainer runs against the pull request before it is merged.
+
+A pull request that needs a neojac not released yet, one paired with a change to the compiler,
+fails against the latest release, as it should. A maintainer marks it with the label
+`needs unreleased neojac`: the check still runs, and then reports its failure as that need, not as
+a broken pull request. A pull request without the label is held to the check.
 
 Install neojac to try a change yourself. `neojac check` of a plugin's module, in the plugin's
 directory (`neojac check store.jac` in `abstractions/store/sqlite`), holds the plugin to what it
