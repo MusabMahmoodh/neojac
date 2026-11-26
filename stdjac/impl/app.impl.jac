@@ -313,6 +313,7 @@ impl refuse_unserved {
     wants = [f"`{r.module}.{r.name}` at {r.path}" for r in routes()] + [
         f"the page space `{g.space}` at {g.base}"
         for g in p.pages
+        if not g.held
     ];
     if len(wants) == 0 {
         return;

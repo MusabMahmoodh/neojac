@@ -720,11 +720,14 @@ path that does not start with `/` is E0109.
 
 A path is served by a transport that serves paths, as the standard one, `http`, does. Under one
 that carries calls between apps and nothing else, a program with a `@restspec` function (or a
-page) does not start:
+page of the project's) does not start:
 
 ```text
 api can't start with the transport it was given: it serves `svc.robots` at /robots.txt, and that transport carries calls and serves no paths. Bind one that serves them in jac.toml's [transport], or pick it where the program runs with JAC_TRANSPORT.
 ```
+
+The pages a library brings, stdjac's sign-in pages among them, are not the project's to ask for,
+and do not stop it: under such a transport they are not reached, as the auth's own routes are not.
 
 ## Scheduled functions: @schedule
 
