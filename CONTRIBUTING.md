@@ -1,8 +1,8 @@
 # Contributing
 
-`abstractions/`, `libraries/`, `docs/` and `examples/` are what neojac is released with. This
-repository holds the real copy of each: a change to one is a pull request here, and a release of
-neojac ships the commit of this repository it was built with.
+`abstractions/`, `stdjac/`, `libraries/`, `docs/` and `examples/` are what neojac is released
+with. This repository holds the real copy of each: a change to one is a pull request here, and a
+release of neojac ships the commit of this repository it was built with.
 
 - **`abstractions/`** holds the language's abstractions, a directory each. Its `jac.toml` declares
   the abstraction: the interface a plugin of it implements, the version of that interface
@@ -14,6 +14,15 @@ neojac ships the commit of this repository it was built with.
   abstraction's contract, `common.contract`, the libraries it declares and the standard library,
   and nothing else of neojac's. [Writing a plugin](docs/skills/writing-a-plugin/SKILL.md) says
   what one is made of.
+- **`stdjac/`** is stdjac: what a program's source says of the abstractions (`root`, `by llm()`,
+  `:prot`, `@job`) and what connects that to the plugin a project binds for each. A release ships
+  it as the runtime's `rt/stdjac/`. It imports the contracts and nothing of a plugin, and its
+  `surface.toml` lists the names a program says or imports of it, each with the module that
+  holds it. The compiler calls into some of its modules by name: `app`, `bound`, `by`, `codec`,
+  `crossing`, `desktop`, `graph`, `jsx`, `plan`, `remote`, the space hosts (`cpython_space`,
+  `node_space`) and `surface.toml`. A rename there, or a change to the signature of a function
+  the compiler calls, breaks the compiler, and is caught only when the compiler's tests are run
+  against the change.
 - **`libraries/`** holds the libraries those plugins declare, each a package of
   `kind = "library"`: `sqlfile` and `accountbook`.
 - **`docs/`** is what `neojac docs` prints. A page's `jac` examples are whole programs that neojac
