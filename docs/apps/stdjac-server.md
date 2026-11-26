@@ -182,3 +182,12 @@ own: `stdjac.auth`, `stdjac.jobs`, `stdjac.schedule`, `stdjac.limits` and `stdja
 none of them ([stdjac](stdjac.md#what-a-program-imports)). The rest of what they hold
 (`auth_route`, `route_of`, `scheduled`, and the functions an app's start calls) is what
 `stdjac.app` serves a program with. A program does not import it.
+
+stdjac also declares a browser space, `signing`: the sign-in pages at `/__jac/auth/` (a program's
+sign-in, a mailed link, the way back from another service), written in Jac on the `dom` `ui`
+plugin with its style in a `.css` file. stdjac's archwire and `jac.toml` declare it as any
+library declares a space of its own, and every app whose program serves carries it inside its
+program ([A package's browser spaces](archwire.md#a-packages-browser-spaces),
+[The sign-in pages](server.md#the-sign-in-pages)). `auth_route` answers the auth's own routes and
+leaves every other `GET` under `/__jac/auth/` to the app's page serving, which answers it from
+that space.

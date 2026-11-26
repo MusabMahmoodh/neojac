@@ -23,8 +23,15 @@ graph layers {
     layer schedule { schedule; }
     layer static_files { static_files; }
     layer window { window; }
+    layer signing { signing | signing_parts; }
+    layer signing_pages { pages.*; }
     """What no wire joins to the rest."""
     layer apart { jsx; }
+}
+
+graph spaces {
+    """The pages a person signs in at: a program's sign-in, a mailed link, and the return from another service."""
+    space signing: browser { entry signing; signing_parts | pages.*; }
 }
 
 graph import {
@@ -46,6 +53,7 @@ graph import {
     edge Schedule: schedule --> apps;
     edge StaticFiles: static_files --> apps;
     edge Window: window --> desktop;
+    edge Signing: signing --> signing_pages;
 
     bound ++> app | auth | files | jobs | limits | llm | mail | remote | schedule { bound }
     by ++> llm { By, ByCall, ByChoice, ByChooser, ByStreams, ByTool }
@@ -144,4 +152,10 @@ graph import {
     schedule ++> app { scheduled, start_schedule }
     static_files ++> app { held_file, static_file }
     window ++> desktop { run_window }
+    signing_parts ++> [
+        pages.check { Said, again_on_new_link, mailed_token, reason },
+        pages.device { Said, reason },
+        pages.index { reason },
+        pages.reset { Said, again_on_new_link, mailed_token, reason },
+    ]
 }

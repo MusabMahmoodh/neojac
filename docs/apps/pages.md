@@ -400,6 +400,8 @@ with the plugin's reason (`RemoteUnavailable` where the app cannot be reached).
 
 A mailed link carries its token in its fragment, `/__jac/auth/check#<token>`, which a browser sends
 to no server, so no log holds it; the page reads it from `location.hash` and passes it on.
+stdjac's own pages at `/__jac/auth/`, which every serving app carries, are written in Jac with
+these functions and nothing else ([The sign-in pages](server.md#the-sign-in-pages)).
 
 <!-- example: not checked: a page is a module of a browser space, with JSX -->
 ```jac

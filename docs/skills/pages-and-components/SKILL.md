@@ -35,6 +35,12 @@ style-src 'self'`. Write attributes by HTML's names (`class`, `for`); `False` re
 attribute, so an enumerated one is a string (`spellcheck="false"`). Import style sheets from the
 entry (`import "./site.css";`). `neojac docs apps/ui-bindings` (section "dom") has the rest.
 
+Pages a library ships with it (a sign-in or settings page every app that uses the library gets)
+are a browser space of the library's own `archwire.jac`, served at the `base` its `jac.toml`
+gives it, with a `ui` plugin neojac ships. An app that loads the library serves them without
+naming them, and its program carries them: `neojac docs apps/archwire` (section "A package's
+browser spaces").
+
 ## Steps
 
 1. **Add the browser space and serve it** in `archwire.jac`. Put its modules in layers, and wire

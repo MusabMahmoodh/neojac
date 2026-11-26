@@ -253,8 +253,9 @@ impl dispatch(r: Request, caller: str, trusted: bool) -> Response {
             ),
         );
     }
-    if r.path.startswith("/__jac/auth") {
-        return auth_route(r);
+    answered = auth_route(r) if r.path.startswith("/__jac/auth") else None;
+    if answered is not None {
+        return answered;
     }
     if r.method == "POST" and call and space not in p.spaces {
         return json_fail(404, "failed", "no such endpoint");
