@@ -1,5 +1,6 @@
 import json;
-import from jaclang.comptime { apply, args_type, note, noted, params, restore }
+import urllib.parse;
+import from jaclang.comptime { Kind, apply, args_type, kind, note, noted, params }
 
 enum HTTPMethod {
     GET = "GET",
@@ -23,7 +24,9 @@ obj:pub RestRoute {
         headers: dict[str, str] | None,
         module: str,
         name: str,
-        run: Callable[[], any];
+        takes: list[str],
+        texts: list[str],
+        run: Callable[[dict[str, any]], any];
 }
 
 glob _routes: list[RestRoute] = [],
@@ -31,5 +34,6 @@ glob _routes: list[RestRoute] = [],
 def:pub routes -> list[RestRoute];
 def:pub route_of(method: str, path: str) -> RestRoute | None;
 def:pub route_answer(
-    r: RestRoute, caller: str, trusted: bool
+    r: RestRoute, query: str, body: bytes, caller: str, trusted: bool
 ) -> tuple[int, str, bytes, dict[str, str]];
+def route_args(r: RestRoute, query: str, body: bytes) -> tuple[dict[str, any], str];

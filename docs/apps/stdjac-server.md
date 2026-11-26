@@ -40,7 +40,7 @@ one of the four imported from a module of stdjac, is E2234.
 
 | Name | Signature | Does |
 |---|---|---|
-| `restspec` | `@restspec(method: HTTPMethod, path: str, produces: str = "text/plain", envelope: bool = True)` | Serves the function, one of no parameters, at `path` |
+| `restspec` | `@restspec(method: HTTPMethod, path: str, produces: str = "text/plain", envelope: bool = True)` | Serves the function at `path`, its parameters given by the query and a JSON body |
 | `HTTPMethod` | `GET`, `POST` | A `@restspec` route's method |
 | `schedule` | `@schedule(interval: float)` | A server runs the function, one of no parameters, every `interval` seconds, the first time as it starts |
 | `limit` | `@limit(uses: int, per: float)` | A caller may call the endpoint `uses` times in each `per` seconds |
