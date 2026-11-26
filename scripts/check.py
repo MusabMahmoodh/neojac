@@ -10,13 +10,14 @@ installed. It runs, one after another, and reports each:
 1. The pages: `neojac docs --check`, with NEOJAC_STORE naming a directory that
    holds this checkout's docs/ and nothing else, so that neojac reads them in
    place of the pages it carries.
-2. The layout: `neojac fmt --fix --check` of abstractions/, libraries/ and
-   examples/, which lists each file the fixer would change: its layout, or a
-   rule its project keeps.
-3. Each package of abstractions/ and libraries/ (a directory holding a
-   jac.toml): `neojac arch`, which holds every module of it, Jac or
+2. The layout: `neojac fmt --fix --check` of abstractions/, stdjac/,
+   libraries/ and examples/, which lists each file the fixer would change: its
+   layout, or a rule its project keeps.
+3. Each package of abstractions/, stdjac/ and libraries/ (a directory holding
+   a jac.toml): `neojac arch`, which holds every module of it, Jac or
    JavaScript, to its archwire.jac, and `neojac check` of each of its Jac
-   modules, which holds a plugin to what it may import.
+   modules, but those its jac.toml's [check] exclude names: a plugin's check
+   holds it to what it may import.
 4. Each example: `neojac check` of each of its spaces, or of each of its
    modules where it declares none.
 5. The tests of each package and example that holds any: `neojac test`.
@@ -27,11 +28,12 @@ What it cannot reach: neojac reads `rt/`, `abstractions/` and `libraries/`
 from NEOJAC_STORE only all three together, and a release gives no way to have
 its own `rt/` beside this checkout's other two. So a package's modules are
 checked against the contracts the release carries, not this checkout's, and
-an example is checked with the release's abstractions, standard plugins and
-libraries. A package's own modules, and the libraries it declares by their
-place, are this checkout's.
+an example is checked with the release's stdjac, abstractions, standard
+plugins and libraries. A package's own modules, and the libraries it declares
+by their place, are this checkout's.
 """
 
+import fnmatch
 import json
 import os
 import shutil
@@ -42,12 +44,23 @@ import time
 import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PACKAGE_TREES = ["abstractions", "libraries"]
+PACKAGE_TREES = ["abstractions", "stdjac", "libraries"]
 EXAMPLES = "examples"
 LAID_OUT = PACKAGE_TREES + [EXAMPLES]
 
-# The tests this check does not run, each with the reason, by the directory
-# of this repository that holds them.
+# The modules this check does not check, by their path, and the tests it does
+# not run, by the directory that holds them, each with the reason.
+NODE_CRATES = (
+    "the latest release takes Node's crates, which it reaches, for modules of stdjac (E2231), "
+    "as it does checking the copy of stdjac it carries"
+)
+MODULES_LEFT_OUT = {
+    "stdjac/cpython_space.jac": "a CPython space's host, which the latest release checks in "
+    "place only as the copy of stdjac it carries, in its runtime: read from here it refuses it (E5090)",
+    "stdjac/crossing.jac": NODE_CRATES,
+    "stdjac/node_space.jac": NODE_CRATES,
+    "stdjac/page_files.jac": NODE_CRATES,
+}
 TESTS_LEFT_OUT = {
     "examples/jaclang_org": "they take about forty minutes of a processor's time, far more than "
     "this check's few minutes, and do not all build and pass against the latest release yet",
@@ -91,15 +104,20 @@ def projects(tree):
 
 
 def modules(d):
-    """The Jac modules at the top of directory `d`, from the root: each .jac
-    file but its archwire.jac and its annexes."""
+    """The Jac modules at the top of directory `d`, from the root, that its
+    jac.toml's [check] exclude does not name: each file `<name>.jac` but
+    archwire.jac. A file whose name has another dot is an annex of a module
+    (`store.impl.jac`, `store.test.jac`) or its file for one target
+    (`window.linux.jac`), which a check of the module reads."""
+    with open(os.path.join(ROOT, d, "jac.toml"), "rb") as f:
+        excluded = tomllib.load(f).get("check", {}).get("exclude", [])
     return sorted(
         name
         for name in os.listdir(os.path.join(ROOT, d))
         if name.endswith(".jac")
+        and "." not in name.removesuffix(".jac")
         and name != "archwire.jac"
-        and not name.endswith(".impl.jac")
-        and not name.endswith(".test.jac")
+        and not any(fnmatch.fnmatchcase(name, pattern) for pattern in excluded)
         and os.path.isfile(os.path.join(ROOT, d, name))
     )
 
@@ -156,7 +174,11 @@ def planned(n):
         if os.path.isfile(os.path.join(ROOT, d, "archwire.jac")):
             out.append(Job(f"{d}: neojac arch", d, ["arch", "--text"]))
         for m in modules(d):
-            out.append(Job(f"{d}: neojac check {m}", d, ["check", m]))
+            module = f"{d}/{m}"
+            if module in MODULES_LEFT_OUT:
+                left.append((module, MODULES_LEFT_OUT[module]))
+            else:
+                out.append(Job(f"{d}: neojac check {m}", d, ["check", m]))
     for d in examples:
         declared, said = spaces(n, d)
         if declared is None:
