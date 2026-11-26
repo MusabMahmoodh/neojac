@@ -1,6 +1,6 @@
 ---
 description: Functions and methods a language model (an LLM) or another value answers (def f(...) -> T by llm();), the tools that make one an agent (ByTool values, and @reads for the ones a round runs at once), a by function that streams its answer, the By, ByStreams and ByChooser interfaces such a value conforms to, llm() and the plugin that speaks to a model, its conversations and usage, and sem strings that describe declarations to them.
-keywords: by, sem, semantic string, llm, language model, LLM, AI, agent, tool use, tools, By, ByCall, ByTool, ByError, ByStreams, ByEvent, ByEventKind, ByEnd, ByUsage, cost, rates, ByChooser, ByChoice, on_usage, latest_turns, IterationContext, ANTHROPIC_API_KEY, JAC_LLM_ADDRESS, Effort, Model, ModelRequest, ModelReply, anthropic, JAC_LLM_MODEL
+keywords: by, sem, semantic string, llm, language model, LLM, AI, agent, tool use, tools, By, ByCall, ByTool, ByError, ByStreams, ByEvent, ByEventKind, ByEnd, ByUsage, cost, rates, ByChooser, ByChoice, on_usage, latest_turns, IterationContext, ANTHROPIC_API_KEY, OPENAI_API_KEY, JAC_LLM_KEY, JAC_LLM_ADDRESS, Effort, Model, ModelRequest, ModelReply, anthropic, openai, Gemini, JAC_LLM_MODEL
 grammar: sem_def, by_expr
 ---
 # By and sem
@@ -436,7 +436,7 @@ it are `ByTool`s. One class may conform to several of the interfaces, as
 | `cache_read_tokens: int`, `cache_write_tokens: int` | The input tokens read from the model's cache, and written to it |
 | `seconds: float` | The time the requests took |
 | `model: str` | The model that answered |
-| `cost: float \| None` | What the requests cost, in dollars, where the plugin was told what its model charges ([below](#the-anthropic-plugin)); `None` where it was not |
+| `cost: float \| None` | What the requests cost, in dollars, where the plugin was told what its model charges ([below](#the-model-plugins)); `None` where it was not |
 
 Every count starts at 0 (`model` at `""`, `cost` at `None`). `total.add(more)`
 adds `more`'s counts to `total`'s, and takes its `model` when it names one.
@@ -614,19 +614,43 @@ no tool is still running when the model is next asked.
 - **`on_iteration` is called after each round,** and `max_react_iterations`
   counts them.
 
-### The anthropic plugin
+### The model plugins
 
-`anthropic`, the standard `llm` plugin, asks a model through Anthropic's
-Messages API over HTTP. Its settings, in `[llm.anthropic]`:
+neojac ships two `llm` plugins. `anthropic`, the standard one, speaks
+Anthropic's Messages API. `openai` speaks the OpenAI-compatible Chat
+Completions API, which OpenAI serves and so do most other providers and the
+servers that run a model on your own machine. A project that names no plugin
+has `anthropic`; one that names `openai` points it at a provider:
 
-| Setting | Type | Default | Meaning |
-|---|---|---|---|
-| `model` | `str` | `claude-sonnet-5-5` | The model that answers. `JAC_LLM_MODEL` where the program runs |
-| `address` | `str` | `https://api.anthropic.com` | Where the API is, or a gateway to it: requests go to `<address>/v1/messages`. `JAC_LLM_ADDRESS` |
-| `timeout` | `int` | 60 | Seconds one request may take |
-| `retries` | `int` | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
-| `rates` | `dict[str, list[float]]` | `{}` | What each model charges, by its name: four numbers, the dollars for a million tokens of input, of output, read from the cache and written to it |
-| `key` | `Secret` | `ANTHROPIC_API_KEY` | The API key, read from that variable of the environment where the program runs, and never written in `jac.toml`. Without it a call raises `ByError` |
+```toml
+[llm]
+plugin = "openai"
+
+[llm.openai]
+address = "https://generativelanguage.googleapis.com/v1beta/openai"
+model = "gemini-3-flash-preview"
+```
+
+| Provider | Plugin | `address` | `model`, for one | The key, where the program runs |
+|---|---|---|---|---|
+| Anthropic | `anthropic` | Its default | `claude-sonnet-5-5` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | Its default | `gpt-5-mini` | `OPENAI_API_KEY` |
+| Google Gemini | `openai` | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3-flash-preview` | `JAC_LLM_KEY` |
+| Together | `openai` | `https://api.together.xyz/v1` | `zai-org/GLM-5.3-Flash` | `JAC_LLM_KEY` |
+| Groq | `openai` | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | `JAC_LLM_KEY` |
+| OpenRouter | `openai` | `https://openrouter.ai/api/v1` | `openai/gpt-5-mini` | `JAC_LLM_KEY` |
+| Ollama, on this machine | `openai` | `http://localhost:11434/v1` | `llama3.2` | None |
+
+Both take the same settings, in `[llm.anthropic]` or `[llm.openai]`:
+
+| Setting | Type | `anthropic`'s default | `openai`'s default | Meaning |
+|---|---|---|---|---|
+| `model` | `str` | `claude-sonnet-5-5` | `gpt-5-mini` | The model that answers, as its provider names it. `JAC_LLM_MODEL` where the program runs |
+| `address` | `str` | `https://api.anthropic.com` | `https://api.openai.com/v1` | Where the API is, or a gateway to it: requests go to `<address>/v1/messages` for `anthropic` and `<address>/chat/completions` for `openai`. `JAC_LLM_ADDRESS` |
+| `timeout` | `int` | 60 | 60 | Seconds one request may take |
+| `retries` | `int` | 0 | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
+| `rates` | `dict[str, list[float]]` | `{}` | `{}` | What each model charges, by its name: four numbers, the dollars for a million tokens of input, of output, read from the cache and written to it |
+| `key` | `Secret` | `ANTHROPIC_API_KEY` | `OPENAI_API_KEY` | The API key, read from that variable of the environment where the program runs, or from `JAC_LLM_KEY`, and never written in `jac.toml`. Without one, `anthropic` raises `ByError`, and `openai` sends the request with no key, as a local server takes it |
 
 ```toml
 [llm.anthropic]
@@ -642,54 +666,24 @@ platform and by date. A request whose model `rates` does not name has no
 cost (`None`), and a rate that is not four numbers ends the first call with
 `ByError`. A rate is flat: where a provider charges by a prompt's size or by
 how long the cache keeps what is written, give the rate the program's
-requests are charged.
+requests are charged. `openai` looks a rate up by the setting `model` too,
+since a provider may answer with a dated name (`gpt-5-mini-2025-08-07`), and
+counts the cached tokens a provider reports as read from the cache.
 
-The instructions (the `system_prompt`, the `sem`s) are sent marked for the
-API's prompt cache, so the requests of one call, and calls with the same
-instructions, read them from it: `ByUsage` counts those tokens apart. A
-request the model's safety classifiers decline re-runs on the API's default
-fallback model.
+What each does of its own:
 
-### The openai plugin
-
-`openai` asks a model through an OpenAI-compatible Chat Completions API over
-HTTP: OpenAI's own, and the many providers and local servers that speak the
-same API (Gemini, Groq, Together, OpenRouter, Ollama, vLLM). A project picks
-it, and points it at its provider:
-
-```toml
-[llm]
-plugin = "openai"
-
-[llm.openai]
-model = "gpt-5-mini"
-```
-
-Its settings, in `[llm.openai]`:
-
-| Setting | Type | Default | Meaning |
-|---|---|---|---|
-| `model` | `str` | `gpt-5-mini` | The model that answers, as the provider names it. `JAC_LLM_MODEL` where the program runs |
-| `address` | `str` | `https://api.openai.com/v1` | Where the API is: requests go to `<address>/chat/completions`. `JAC_LLM_ADDRESS` |
-| `timeout` | `int` | 60 | Seconds one request may take |
-| `retries` | `int` | 0 | How many times a request the API refuses for load (408, 409, 429, 5xx) or cannot be reached with is made again, after 2, 4, 8 ... seconds |
-| `rates` | `dict[str, list[float]]` | `{}` | What each model charges, as for [the anthropic plugin](#the-anthropic-plugin). The cached tokens a provider reports are counted as read from the cache |
-| `key` | `Secret` | `OPENAI_API_KEY` | The API key, read from that variable of the environment where the program runs, and never written in `jac.toml`. A request is sent with no key where it is not set, as a local server takes it |
-
-Another provider is its address and its model, with its key in
-`OPENAI_API_KEY`, or in `JAC_LLM_KEY` where the program runs:
-
-```toml
-[llm.openai]
-address = "https://api.groq.com/openai/v1"
-model = "openai/gpt-oss-120b"
-```
-
-A reply asked to fit a schema is asked for in the API's strict JSON schema
-mode, where every field of an object is required: the model gives a field that
-has a default too. A result type the strict mode cannot say, a `dict` among
-it, is asked for by the instructions instead. `effort` is sent as
-`reasoning_effort`, which only a reasoning model takes.
+- **`anthropic`** sends the instructions (the `system_prompt`, the `sem`s)
+  marked for the API's prompt cache, so the requests of one call, and calls
+  with the same instructions, read them from it: `ByUsage` counts those
+  tokens apart. A request the model's safety classifiers decline re-runs on
+  the API's default fallback model.
+- **`openai`** asks for a reply that fits a schema in the API's strict JSON
+  schema mode, where every field of an object is required: the model gives a
+  field that has a default too. A result type the strict mode cannot say, a
+  `dict` among it, is asked for by the instructions instead. `effort` is sent
+  as `reasoning_effort`, which only a reasoning model takes. What a provider
+  adds to a tool call (Gemini's thought signatures) is sent back with it.
+  Gemini 2.5 refuses tools and a schema in one request; Gemini 3 takes them.
 
 ### Writing a model plugin
 
@@ -801,7 +795,7 @@ argument the model is sent as JSON
   whole program. It is called after each request any `llm()` makes, with
   what that request used, on the thread that made it. Its `cost` is what
   the request cost, where the plugin was told its model's rates
-  ([above](#the-anthropic-plugin)).
+  ([above](#the-model-plugins)).
 - **A streamed call** gives the same `ByUsage` in its `USAGE` events.
 - **`on_iteration`** is given an `IterationContext`: `iteration`, the rounds
   of tool calls the call has made, and `usage`, what its requests have used
