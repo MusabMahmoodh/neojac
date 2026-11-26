@@ -31,7 +31,7 @@ graph import {
     edge Auth: auth --> apps;
     edge Bound: bound --> apps | auth | files | jobs | limits | llm | mail | remote | schedule;
     edge By: byllm --> llm;
-    edge Codec: codec --> bound | byllm | crossing | files | graphs | jobs | plan | remote;
+    edge Codec: codec --> bound | byllm | crossing | files | graphs | jobs | plan | remote | routes;
     edge Files: files --> apps | graphs | remote;
     edge Graph: graphs --> apps | auth | remote | routes | schedule;
     edge Hosts: hosts --> apps | cpython_space | desktop | jobs | node_space;
@@ -58,6 +58,7 @@ graph import {
         jobs { decode, encode },
         plan { decode },
         remote { CodecError, declares_reports, decode, encode },
+        routes { decode, encode },
     ]
     plan ++> [
         app {
