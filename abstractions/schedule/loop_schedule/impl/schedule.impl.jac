@@ -24,17 +24,22 @@ impl turn_of(s: Scheduled, waiting: list[bool], at: int) -> Callable[[], None] {
 }
 
 impl keep_time(work: list[Scheduled], on_loop: Callable[[Callable[[], None]], None], tick: float) {
-    due: list[float] = [time.time() for _ in work];
+    start = time.time();
+    due: list[float] = [next_at(s.at, start) if s.at != "" else start for s in work];
     waiting: list[bool] = [False for _ in work];
     forever {
         now = time.time();
         for k in range(len(work)) {
             if due[k] <= now and not waiting[k] {
-                due[k] = now + work[k].every;
+                due[k] = due_after(work[k], now);
                 waiting[k] = True;
                 on_loop(turn_of(work[k], waiting, k));
             }
         }
         time.sleep(tick);
     }
+}
+
+impl due_after(s: Scheduled, now: float) -> float {
+    return next_at(s.at, now) if s.at != "" else now + s.every;
 }

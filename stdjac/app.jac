@@ -6,7 +6,7 @@ import sys;
 import threading;
 import urllib.parse;
 import from common.contract { DataError }
-import from schedule.contract { Scheduled }
+import from schedule.contract { Scheduled, cron_fields }
 import from store.contract { Store }
 import from transport.contract { CannotListen, Claim, Request, Response, Tick, json_fail }
 
@@ -38,6 +38,7 @@ def too_often(seconds: int) -> Response | None;
 def files_request(r: Request, caller: str, trusted: bool) -> Response;
 def dispatch(r: Request, caller: str, trusted: bool) -> Response;
 def refuse_unserved;
+def refuse_untimed(work: list[Scheduled]);
 
 obj ThreadTurns(Turns) {
     has ready: any = threading.Condition(threading.RLock()),

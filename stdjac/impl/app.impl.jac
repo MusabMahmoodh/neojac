@@ -314,6 +314,21 @@ impl refuse_unserved {
     );
 }
 
+impl refuse_untimed(work: list[Scheduled]) {
+    for s in work {
+        if s.at == "" {
+            continue;
+        }
+        try {
+            cron_fields(s.at);
+        } except ValueError as e {
+            raise CannotStart(
+                why=f"{plan().app} can't start: {s.name} is scheduled at '{s.at}', which is no time to run at: {e}.",
+            );
+        }
+    }
+}
+
 impl ThreadTurns.take(work: Callable[[], None]) {
     with self.ready {
         work();
@@ -354,6 +369,7 @@ impl start {
     refuse_unserved();
     claim = claim_address(win is not None);
     work = ready();
+    refuse_untimed(work);
     ticks: list[Tick] = [];
     if win is not None {
         wh = window_host();
