@@ -1,6 +1,6 @@
 ---
 description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, lock.pypi, lock.npm, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
-keywords: jac.toml, project.name, project.kind, provides.<abstraction>, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
+keywords: jac.toml, project.name, project.kind, provides.<abstraction>, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.headers, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
 
@@ -477,6 +477,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | `spaces.<space>.bundler` | table | `plugin` is the one the space's `ui` plugin names | The `bundler` plugin that packs the space, as `plugin = "<name>"`: one neojac ships (`vite`, `expo`), or one `[plugins]` declares, whose script neojac runs on its Node |
 | `spaces.<space>.bundler.<plugin>` | table | | The settings of the space's bundler. `vite` has `config`: a configuration file, relative to the root (in the space's npm tree: `eco/web/vite.config.ts`) |
 | `spaces.<space>.base` | string | `"/"` | The URL path a browser space is served at |
+| `spaces.<space>.headers` | table | `{}` | The response headers a browser space is served with, by the app that serves it: each a header's name and its value as a string. Below |
 | `spaces.<space>.npm` | string | the project's only tree, else the one npm tree the space holds | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
 
 | Code | Cause |
@@ -487,6 +488,32 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | E5158 | `ui` or `bundler` is a string, or the space has a `bundler_config`: the forms these had before; or the space has the table of a plugin it is not built with, or a setting its bundler does not list |
 | E1287 | `npm` names a tree `jac.toml` does not declare |
 | E1288 | The space imports from npm, `jac.toml` declares several trees, the space holds none of them, and `npm` names none |
+| E5158 | `headers` is not a table; one of its names is no header's name, names a header in other letters again, or is one the server sends itself (`Connection`, `Content-Length`, `Content-Type`, `Transfer-Encoding`, `X-Content-Type-Options`); or a value is not a string of printable ASCII characters. Reported when an app that serves the space is built |
+
+### A space's headers
+
+An app that serves a browser space sends `[spaces.<space>.headers]` with every file of the space:
+its document (`index.html`, which also answers each route path), its scripts and style sheets, its
+other files, and the 404 and 403 it answers for a file it does not have or will not serve. A
+Content-Security-Policy and frame denial matter most on the document, but also guard any other
+file a browser shows as a page (an SVG, another HTML file), and a Referrer-Policy governs what a
+style sheet's own requests send, so one table is the space's policy for all of it:
+
+```toml
+[spaces.web.headers]
+Content-Security-Policy = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+X-Frame-Options = "DENY"
+Referrer-Policy = "no-referrer"
+```
+
+Beside them, every file is sent with `X-Content-Type-Options: nosniff`. A file under the space's
+`assets/`, which a bundler names by its content, is sent with `Cache-Control: public,
+max-age=31536000, immutable`, whatever the table says. Any other file is sent with the table's
+`Cache-Control`, and an HTML file the table gives none with `Cache-Control: no-cache`, so a browser
+asks again for the document of a new build.
+
+Under `neojac dev`, a space whose bundler serves it while it is edited (Vite) is served by that
+bundler, with its own headers, not these.
 
 ## [apps.\<app\>]
 

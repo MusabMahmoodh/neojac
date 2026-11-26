@@ -118,9 +118,10 @@ token, or `""`.
 
 ## static_file
 
-`static_file(top: str, path: str) -> Response` answers a request for `path` from the directory
-`top`, as an app serves a bundle ([Pages](pages.md)). The `Response` has `status`, `ctype`,
-`body` (bytes) and `headers`:
+`static_file(top: str, path: str, headers: dict[str, str] = {}) -> Response` answers a request for
+`path` from the directory `top`, as an app serves a bundle ([Pages](pages.md)), sent with
+`headers` (an app passes its space's, [`[spaces.<space>.headers]`](../reference/jac-toml.md#a-spaces-headers)).
+The `Response` has `status`, `ctype`, `body` (bytes) and `headers`:
 
 ```jac
 import os;
@@ -137,25 +138,34 @@ with entry {
         f.write("code");
     }
     for path in ["/", "/docs/v0.39", "/x.js", "/assets/app.js", "/../secret.txt"] {
-        r = static_file(site, path);
-        print(path, r.status, r.body.decode("utf-8"), r.headers.get("Cache-Control", "-"));
+        r = static_file(site, path, {"X-Frame-Options": "DENY"});
+        print(
+            path,
+            r.status,
+            r.body.decode("utf-8"),
+            r.headers.get("Cache-Control", "-"),
+            r.headers["X-Content-Type-Options"],
+            r.headers["X-Frame-Options"],
+        );
     }
 }
 ```
 
 ```output
-/ 200 the page -
-/docs/v0.39 200 the page -
-/x.js 404 not found -
-/assets/app.js 200 code public, max-age=31536000, immutable
-/../secret.txt 403 forbidden -
+/ 200 the page no-cache nosniff DENY
+/docs/v0.39 200 the page no-cache nosniff DENY
+/x.js 404 not found - nosniff DENY
+/assets/app.js 200 code public, max-age=31536000, immutable nosniff DENY
+/../secret.txt 403 forbidden - nosniff DENY
 ```
 
 - A path that is no file under `top` is a page's route and gets `index.html`, a dot in it or not
   (`/docs/v0.39`). A missing file of a kind the server serves (`.js`, `.css`, `.png`, ...) is 404.
 - A path that leads out of `top`, by `..` or by a symbolic link, is 403 `forbidden`.
+- Every answer is sent with `headers` and `X-Content-Type-Options: nosniff`.
 - A file under `top`'s own `assets/` is marked to be cached for a year
-  (`Cache-Control: public, max-age=31536000, immutable`); nothing else is.
+  (`Cache-Control: public, max-age=31536000, immutable`), whatever `headers` says. Any other file
+  is sent with `headers`' `Cache-Control`, and an HTML file it gives none with `no-cache`.
 - `static_file("", path)` raises `ValueError: static_file needs the directory it serves`.
 
 ## What else stdjac holds of them

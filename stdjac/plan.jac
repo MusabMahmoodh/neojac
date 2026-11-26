@@ -10,7 +10,8 @@ import from common.contract { Host, Secret }
 
 obj Page {
     has space: str,
-        base: str = "/";
+        base: str = "/",
+        headers: dict[str, str] = {};
 }
 
 obj Hosted {

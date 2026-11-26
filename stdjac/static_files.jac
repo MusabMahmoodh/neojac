@@ -21,4 +21,4 @@ glob CONTENT_TYPES: dict[str, str] = {
     ".map": "application/json",
     ".md": "text/markdown; charset=utf-8",
 };
-def:pub static_file(top: str, path: str) -> Response;
+def:pub static_file(top: str, path: str, headers: dict[str, str] = {}) -> Response;

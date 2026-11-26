@@ -202,8 +202,12 @@ gets `index.html`, even with a dot in it (`/user/a.b`, `/docs/v0.39`), and the r
 page in the browser. A path that names a missing file of a kind it serves (`/x.js`, `/logo.png`)
 is 404, and one that leads out of the bundle's directory, by `..` or a symbolic link, is 403. Only
 the files under the bundle's own `assets/` are served as cached for a year, since the bundler
-names them by their content. `static_file`, from `stdjac`, is this, for a program that serves
-files itself ([The server's words](stdjac-server.md#static_file)).
+names them by their content; `index.html` is sent with `Cache-Control: no-cache`, so a browser
+asks for the document of a new build. Every file is sent with `X-Content-Type-Options: nosniff`,
+and with the headers `jac.toml` gives the space, `[spaces.<space>.headers]`: its
+Content-Security-Policy, frame denial and referrer policy
+([jac.toml](../reference/jac-toml.md#a-spaces-headers)). `static_file`, from `stdjac`, is this, for
+a program that serves files itself ([The server's words](stdjac-server.md#static_file)).
 
 ## @jac/runtime
 
