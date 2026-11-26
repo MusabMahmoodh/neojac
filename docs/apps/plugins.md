@@ -41,7 +41,7 @@ The abstractions are the language's: a project chooses a plugin for one, and doe
 one (E2217).
 
 **Each abstraction declares itself,** in a directory of its own in neojac's `abstractions/`, which a
-release holds beside `rt/`:
+release carries with `rt/`:
 
 ```text
 abstractions/

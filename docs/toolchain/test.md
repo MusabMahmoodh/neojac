@@ -61,7 +61,6 @@ neojac test <file.jac> -o <runner> [<option>...]
 | `-j <jobs>` | Build and run this many modules at once, each told it has this many processors (default: one for each core). A build or a runner sizes what it runs at once by its processors, so a test that runs commands of its own runs no more than `<jobs>` of them at once ([`PYTHON_CPU_COUNT`](../reference/environment.md#set-by-neojac-for-what-it-runs)) |
 | `-o <runner>` | Build the one module's test runner, and do not run it |
 | `--target <platform>` | Build the runners for another platform ([build](build.md#--target-building-for-another-platform)) |
-| `--rt <dir>` | The runtime to build against (default: the `rt/` beside neojac) |
 | `--place <directory>` | The place the runners are built for, which provides a plugin for each abstraction the project leaves open ([Plugins](../apps/plugins.md#the-place-a-program-is-built-for)) |
 | `--diagnostics <form>` | How diagnostics and test results are written on stderr: `human` (the default), or `json`, one record a line ([check](check.md#diagnostics-as-json)) |
 

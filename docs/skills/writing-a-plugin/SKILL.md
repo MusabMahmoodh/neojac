@@ -45,7 +45,7 @@ contract the one module of neojac's the plugin imports it from.
 | `ui` | A `[ui]` table | As a space is built | `abstractions/ui/solid` |
 | `bundler` | A `[bundler]` table | As a space is built | `abstractions/bundler/vite` |
 
-Each abstraction is a directory of neojac's `abstractions/`, beside `rt/` in a release: its
+Each abstraction is a directory of neojac's `abstractions/`, which a release carries with `rt/`: its
 `jac.toml` declares it, its `contract.jac` is the contract, and the plugins neojac ships for it are
 the directories beside those, each a worked example.
 

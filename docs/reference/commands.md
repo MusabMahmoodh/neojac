@@ -114,7 +114,6 @@ neojac build <directory>/package.json
 | `--memory <profile>` | The memory profile: managed, rc or nogc (default: jac.toml's [memory] profile, else managed) |
 | `--emit-ir <file>` | Also write the program's LLVM IR |
 | `--verify-reuse` | Compile every module, and check each one an earlier build made against what its sources make now |
-| `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--profile <profile>` | Build the apps as the archwire's profile of that name arranges them |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
@@ -163,7 +162,6 @@ neojac run <app> [<option>...] [-- <argument>...]
 | `--gui` | Build a Windows program of the GUI subsystem, which starts without a console |
 | `--monitor` | Have a program using Python fire sys.monitoring's events, for profilers and coverage |
 | `--memory <profile>` | The memory profile: managed, rc or nogc (default: jac.toml's [memory] profile, else managed) |
-| `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--fresh` | Start the app with no data: what it kept in .jac/data/<app> is set aside, in a directory beside it named for the moment |
 | `--profile <profile>` | Build the app as the archwire's profile of that name arranges it |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
@@ -227,7 +225,6 @@ neojac check [<app>] --space <space> [<option>...]
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
 | `--memory <profile>` | The memory profile: managed, rc or nogc (default: jac.toml's [memory] profile, else managed) |
 | `--lib` | Check it as the shared library `build --lib` makes |
-| `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--space <space>` | Check one space's program on its host: an app's program of it where an app is named, else the space alone, as emit-js and emit-py load it |
 | `--profile <profile>` | Check the apps as the archwire's profile of that name arranges them |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
@@ -239,7 +236,7 @@ A project's modules are held to the rules every project keeps: no comment, no do
 
 It takes what `neojac build` takes. A program is a Jac program's main module, or a directory, known by the first of these manifests it holds: an archwire.jac that declares spaces (a project's apps), jac.toml (a Jac project, whose program is its main.jac). With none named, it is the directory you are in.
 
-In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's. The apps named, or every app and every space no app holds, are each checked as their build makes them: every program an app is, on its host, all at once. --space checks one of them. --target, --memory, --lib and --rt are options of one program's check: a main module's, or a space's.
+In a project whose archwire.jac declares spaces, a name with no extension or path in it is an app's. The apps named, or every app and every space no app holds, are each checked as their build makes them: every program an app is, on its host, all at once. --space checks one of them. --target, --memory and --lib are options of one program's check: a main module's, or a space's.
 
 | Example | What it does |
 |---|---|
@@ -266,7 +263,6 @@ neojac test <file.jac> -o <runner> [<option>...]
 | `-j <jobs>` | Build and run this many modules at once, each told it has this many processors (default: one for each core) |
 | `-o <runner>` | Build the one module's test runner, and don't run it |
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
-| `--rt <dir>` | The runtime to build against (default: the rt/ beside neojac) |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 

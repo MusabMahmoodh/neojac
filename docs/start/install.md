@@ -31,16 +31,16 @@ The documentation came with it. `neojac docs` prints the map of its pages, and `
 
 1. Works out the platform from `uname`: `linux-x86_64`, `linux-aarch64` or `macos-aarch64`.
 2. Asks GitHub for the latest release of `jaseci-labs/neojac`, unless `--version` names one.
-3. Downloads `neojac-<version>-<platform>.tar.gz` and its `.sha256`, and stops unless the archive matches the checksum. On a terminal it shows the download's progress.
-4. Unpacks the archive as `~/.neojac/<version>/`, replacing a copy of the same version.
-5. Points the link `~/.neojac/current` at that version, and the link `~/.local/bin/neojac` at `~/.neojac/current/bin/neojac`.
-6. Builds and runs a one-line program with the installed compiler, started by its name as you will start it, with `NEOJAC_TELEMETRY=off`: the installer's build records nothing of its use. If that fails, the installer says so and exits with status 1; the release stays unpacked.
+3. Downloads `neojac-<version>-<platform>.gz` and its `.sha256`, and stops unless the download matches the checksum. On a terminal it shows the download's progress.
+4. Unpacks it as `~/.local/bin/neojac`, in place of the neojac that was there: the file is written under another name beside it and renamed, so a neojac that is running is never a file half written.
+5. Removes what an older release's installer left in `~/.neojac`, when releases were unpacked archives: each version's directory and the link `current`. What is recorded of neojac's use stays.
+6. Builds and runs a one-line program with the installed compiler, started by its name as you will start it, with `NEOJAC_TELEMETRY=off`: the installer's build records nothing of its use. If that fails, the installer says so and exits with status 1; the file stays where it was put.
 7. Says that neojac collects anonymous usage statistics, and how to turn that off.
 8. If `~/.local/bin` is not on `PATH`, prints the line to add to your shell's profile.
 
-It needs `curl`, `tar`, and `sha256sum` or `shasum`. Nothing else is installed and nothing outside those two directories is written.
+It needs `curl`, `gzip`, and `sha256sum` or `shasum`. Nothing else is installed: a release is that one file.
 
-neojac finds its runtime (`rt/`), its documentation (`docs/`) and its toolchain (`lib/`) from where its own executable is, through the links. It needs no configuration file and no environment variable.
+neojac carries its runtime, its documentation and its toolchain inside itself ([What one download contains](index.md#what-one-download-contains)). It needs no configuration file and no environment variable, and it runs from wherever the file is put.
 
 ## Usage statistics
 
@@ -63,43 +63,35 @@ curl -fsSL https://github.com/jaseci-labs/neojac/releases/latest/download/instal
 
 | Environment variable | What it changes | Default |
 |---|---|---|
-| `NEOJAC_HOME` | Where releases are unpacked | `~/.neojac` |
-| `NEOJAC_BIN_DIR` | Where the `neojac` link goes | `~/.local/bin` |
+| `NEOJAC_BIN_DIR` | Where `neojac` goes | `~/.local/bin` |
+| `NEOJAC_CACHE_DIR`, `XDG_CACHE_HOME` | Read by `--uninstall` alone, as neojac reads them: where the cache it removes is | the per-user cache directory |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Sent with the request for the latest release, so the request is not held to GitHub's unauthenticated rate limit | none |
 
-These are read by the installer only. neojac itself reads none of them.
+neojac itself reads the two that say where its cache is, and none of the others.
 
 ## Where things are
 
 ```text
-~/.local/bin/neojac -> ~/.neojac/current/bin/neojac
-~/.neojac/current   -> ~/.neojac/<version>
-~/.neojac/<version>/
-    bin/neojac
-    rt/
-    docs/
-    lib/
-    README.md
-    VERSION
+~/.local/bin/neojac
 ```
 
-Installing another version adds a directory beside the first and moves the two links; the older version stays until you delete its directory or uninstall.
+That file is the install. Installing another version replaces it, so one version is installed at a time; `--version` puts a named release in its place.
 
 Three more places are written when neojac runs, not when it is installed:
 
-- The build cache, in your per-user cache directory (`~/Library/Caches/neojac` on macOS, `$XDG_CACHE_HOME/neojac` or `~/.cache/neojac` on Linux). See [The build cache](../toolchain/cache.md).
+- Its cache, in your per-user cache directory (`~/Library/Caches/neojac` on macOS, `$XDG_CACHE_HOME/neojac` or `~/.cache/neojac` on Linux): what builds keep, and what neojac writes out of itself the first time a tool has to read it as a file. All of it is made again when it is missing. See [The build cache](../toolchain/cache.md).
 - A `.jac/` directory in each project you build or test. See [Projects](../toolchain/projects.md).
 - `~/.neojac/telemetry/`, what is recorded of neojac's use and whether recording is on. See [telemetry](../toolchain/telemetry.md#where-it-is-kept).
 
 ## Uninstalling
 
-`--uninstall` removes the link `$NEOJAC_BIN_DIR/neojac` and the whole of `$NEOJAC_HOME`, every installed version with it, and with the default `$NEOJAC_HOME` what is recorded of neojac's use. It leaves the build cache and your projects' `.jac/` directories; delete those yourself.
+`--uninstall` removes `$NEOJAC_BIN_DIR/neojac`, neojac's cache and `~/.neojac`, what is recorded of neojac's use. Of the cache it removes what neojac keeps there (its formats' directories, `store/`, `linked/`, `cross/`, `fetched/`, `browse/`), and the directory itself when that leaves it empty: a directory `NEOJAC_CACHE_DIR` names that holds other things keeps them. It leaves your projects' `.jac/` directories; delete those yourself.
 
 ## Platforms the installer does not cover
 
 | Platform | What to do |
 |---|---|
-| Windows | Each release has `neojac-<version>-windows-x86_64.zip`, built on Linux and not yet tested on Windows. The installer refuses to run under MSYS, MinGW or Cygwin and points at the zip; under WSL2 it installs the Linux release |
+| Windows | Each release has `neojac-<version>-windows-x86_64.exe.gz`, which unpacks to the one file `neojac.exe`; it is built on Linux and not yet tested on Windows. The installer refuses to run under MSYS, MinGW or Cygwin and points at that download; under WSL2 it installs the Linux release |
 | macOS on Intel | No release. A neojac on another platform builds programs for it: `--target macos-x86_64` |
 | Anything else | The installer stops with `Unsupported operating system` or `Unsupported architecture` |
 
@@ -107,10 +99,11 @@ Three more places are written when neojac runs, not when it is installed:
 
 | Message | Cause |
 |---|---|
-| `Required command not found: curl` (or `tar`) | Install the command and run the installer again |
+| `Required command not found: curl` (or `gzip`) | Install the command and run the installer again |
 | `Failed to query GitHub for the latest release.` | No connection, or the rate limit: name a version with `--version`, or set `GITHUB_TOKEN` |
-| `Failed to download ...` | The release does not exist, or has no archive for this platform |
+| `Failed to download ...` | The release does not exist, or has no neojac for this platform |
 | `Checksum verification failed.` | The download does not match the release's `.sha256`. Nothing is installed |
-| `... could not compile and run a test program on this machine.` | The release was unpacked but cannot build a program here |
+| `Failed to unpack ...` | The directory neojac goes in cannot be written, or the disk is full. The neojac that was there is as it was |
+| `... could not compile and run a test program on this machine.` | The release was installed but cannot build a program here |
 
 After installing, continue with [A first program](first-program.md) (`neojac docs first-program`).
