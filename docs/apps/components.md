@@ -106,8 +106,11 @@ The compiler lowers JSX itself, as the space's `ui` plugin says ([UI plugins and
 bundlers](ui-bindings.md#a-projects-own-ui-plugin)): under React and Preact an element is a call
 of the library's `jsx` (`<b key={k}>hi</b>` is `jsx("b", { children: "hi" }, k)`), its text a
 string as the rules above make it, and no bundler or TypeScript step reads JSX. Under Solid, the
-compiler writes JSX for Solid's own compiler, each text as a string. Attribute names are passed to
-the library as written: under React, `className`, `onClick`, `readOnly`.
+compiler writes JSX for Solid's own compiler, each text as a string. Under `dom`, the compiler
+makes each element with the DOM's own calls, and keeps current only the parts whose code reads
+state ([UI plugins and bundlers](ui-bindings.md#dom)). Attribute names are passed to the library
+as written: under React, `className`, `onClick`, `readOnly`; under `dom`, HTML's, `class`,
+`onClick`, `readonly`.
 
 <!-- example: not checked: a component is a module of a browser space, with JSX -->
 ```jac
@@ -370,8 +373,8 @@ reported as an error ([Pages](pages.md#npm-packages-and-style-sheets)). `new(cls
 
 ## Rules a ui plugin adds
 
-A fine-grained library (Solid) runs a component's body once and updates only what changed, so
-under such a `ui` plugin a body must also say outright which locals follow state:
+A fine-grained `ui` plugin (Solid, `dom`) runs a component's body once and updates only what
+changed, so under such a `ui` plugin a body must also say outright which locals follow state:
 
 | Under a fine-grained `ui` plugin | Code |
 |---|---|

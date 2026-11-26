@@ -1,6 +1,6 @@
 ---
 description: Every jac.toml key neojac reads, table by table - project, memory, check.lint, check, fmt, test, dependencies.pypi, lock.pypi, lock.npm, npm, cargo, c, pypi, extensions, wheel, packages, an abstraction's own declaration, an abstraction's binding, spaces and apps - each with its type, default and meaning, and what goes wrong.
-keywords: jac.toml, project.name, project.kind, provides.<abstraction>, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.headers, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
+keywords: jac.toml, project.name, project.kind, provides.<abstraction>, project.human_mode, project.exclude, memory.profile, check.lint, check.lint.select, check.lint.ignore, check.lint.exclude, check.exclude, fmt.exclude, fmt.notes, test.directories, test.directory, test.exclude, spaces.<space>.ui, spaces.<space>.bundler, spaces.<space>.base, spaces.<space>.headers, spaces.<space>.document, spaces.<space>.npm, npm."<directory>", apps.<app>.window, apps.<app>.profiles
 ---
 # jac.toml
 
@@ -473,11 +473,12 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `spaces.<space>.ui` | table | `plugin = "react"` on a browser, `"react_native"` on hermes, `"none"` on node | The `ui` plugin the space's JSX is compiled for, as `plugin = "<name>"`: one neojac ships (`react`, `preact`, `solid`, `react_native`, `none`), or one `[plugins]` declares. See [UI plugins and bundlers](../apps/ui-bindings.md#choosing-a-spaces-plugins) |
+| `spaces.<space>.ui` | table | `plugin = "react"` on a browser, `"react_native"` on hermes, `"none"` on node | The `ui` plugin the space's JSX is compiled for, as `plugin = "<name>"`: one neojac ships (`react`, `preact`, `solid`, `dom`, `react_native`, `none`), or one `[plugins]` declares. See [UI plugins and bundlers](../apps/ui-bindings.md#choosing-a-spaces-plugins) |
 | `spaces.<space>.bundler` | table | `plugin` is the one the space's `ui` plugin names | The `bundler` plugin that packs the space, as `plugin = "<name>"`: one neojac ships (`vite`, `expo`), or one `[plugins]` declares, whose script neojac runs on its Node |
 | `spaces.<space>.bundler.<plugin>` | table | | The settings of the space's bundler. `vite` has `config`: a configuration file, relative to the root (in the space's npm tree: `eco/web/vite.config.ts`) |
 | `spaces.<space>.base` | string | `"/"` | The URL path a browser space is served at |
 | `spaces.<space>.headers` | table | `{}` | The response headers a browser space is served with, by the app that serves it: each a header's name and its value as a string. Below |
+| `spaces.<space>.document` | table | `{}` | What the document of a browser space with no bundler holds, which the build writes: `title` (default: the space's name), `lang` (default: none written) and `noscript`, a plain text shown to a reader without script (default: none). Each a string. Below |
 | `spaces.<space>.npm` | string | the project's only tree, else the one npm tree the space holds | The npm tree (`[npm."<directory>"]`) the space's imports resolve in and its bundler runs in. Read for a native space too, whose code may import npm packages |
 
 | Code | Cause |
@@ -488,6 +489,7 @@ Settings of one space of the project's `archwire.jac`, by the space's name. They
 | E5158 | `ui` or `bundler` is a string, or the space has a `bundler_config`: the forms these had before; or the space has the table of a plugin it is not built with, or a setting its bundler does not list |
 | E1287 | `npm` names a tree `jac.toml` does not declare |
 | E1288 | The space imports from npm, `jac.toml` declares several trees, the space holds none of them, and `npm` names none |
+| E5158 | `document` is not a table, names a key other than `title`, `lang` and `noscript`, or gives one a value that is not a string, or a `lang` that is no language's tag (`en`, `pt-BR`) |
 | E5158 | `headers` is not a table; one of its names is no header's name, names a header in other letters again, or is one the server sends itself (`Connection`, `Content-Length`, `Content-Type`, `Transfer-Encoding`, `X-Content-Type-Options`); or a value is not a string of printable ASCII characters. Reported when an app that serves the space is built |
 
 ### A space's headers
@@ -514,6 +516,23 @@ asks again for the document of a new build.
 
 Under `neojac dev`, a space whose bundler serves it while it is edited (Vite) is served by that
 bundler, with its own headers, not these.
+
+### A space's document
+
+A browser space with no bundler has its document written by the build, beside its modules
+([Pages](../apps/pages.md#a-space-with-no-bundler)). `[spaces.<space>.document]` says what it
+holds besides the space's style sheets and its entry:
+
+```toml
+[spaces.web.document]
+title = "Notes"
+lang = "en"
+noscript = "Notes needs JavaScript."
+```
+
+gives `<html lang="en">`, `<title>Notes</title>` and, first in the body,
+`<noscript>Notes needs JavaScript.</noscript>`, each value escaped as HTML text. A space with a
+bundler has the document its bundler makes, which the table does not change.
 
 ## [apps.\<app\>]
 

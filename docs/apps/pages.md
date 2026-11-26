@@ -10,8 +10,8 @@ modules under `pages/`: each one is a URL, and its `page` function is what that 
 
 This page covers what makes a page and how the pages fit together. What a page returns, JSX,
 state and effects, is on [Components and JSX](components.md) (`neojac docs component`). File
-routes need the `react` plugin, the standard `ui` plugin of a browser space: a page in a space
-built with another is E1279 ([UI plugins and bundlers](ui-bindings.md)).
+routes need the `react` plugin, the standard `ui` plugin of a browser space, or `dom`: a page in a
+space built with another is E1279 ([UI plugins and bundlers](ui-bindings.md)).
 
 ## The shortest site
 
@@ -198,9 +198,12 @@ one script, `/@jac/entry`, which is the space's compiled routes and entry:
 ```
 
 The app serves the bundle. A request for a path that is not a file of the bundle, `/user/amy`,
-gets `index.html`, even with a dot in it (`/user/a.b`, `/docs/v0.39`), and the router picks the
-page in the browser. A path that names a missing file of a kind it serves (`/x.js`, `/logo.png`)
-is 404, and one that leads out of the bundle's directory, by `..` or a symbolic link, is 403. Only
+gets `index.html`, even with a dot in it (`/user/a.b`, `/docs/v0.39`), when it matches one of
+the space's routes, and the router picks the page in the browser. One that matches none (`/nope`)
+is 404, with `index.html` as its body, so the page can still say what is not there. A space with
+no file routes, whose routes the compiler does not know, answers every such path with
+`index.html`. A path that names a missing file of a kind it serves (`/x.js`, `/logo.png`) is 404,
+and one that leads out of the bundle's directory, by `..` or a symbolic link, is 403. Only
 the files under the bundle's own `assets/` are served as cached for a year, since the bundler
 names them by their content; `index.html` is sent with `Cache-Control: no-cache`, so a browser
 asks for the document of a new build. Every file is sent with `X-Content-Type-Options: nosniff`,
@@ -211,8 +214,8 @@ a program that serves files itself ([The server's words](stdjac-server.md#static
 
 ### A space with no bundler
 
-A browser space whose `ui` plugin names no bundler (`none`), and whose `jac.toml` names none, is
-served as the compiler writes it. Its modules are ES modules whose specifiers are relative
+A browser space whose `ui` plugin names no bundler (`dom`, `none`), and whose `jac.toml` names
+none, is served as the compiler writes it. Its modules are ES modules whose specifiers are relative
 (`./@jac/core.js`, `./pages/index.mjs`), so a browser loads them as they are, and the app writes
 its document itself: `index.html`, with `#root`, a `<link rel="stylesheet">` for each style sheet
 a module imports (`import "./site.css";`, copied beside the modules at its place in the project)
@@ -220,6 +223,24 @@ and one `<script type="module">` for the space's entry. Its URLs are absolute fr
 `base`, since the one document answers every route. The document holds no inline script or style,
 so the space's headers may say `script-src 'self'; style-src 'self'`. Such a space imports no npm
 package (E5272), and `@jac/bundle.json`, which the build reads, is not served.
+
+The document's title is the space's name, unless `[spaces.<space>.document]` gives one, with its
+`lang` and a `noscript` text for a reader without script
+([jac.toml](../reference/jac-toml.md#a-spaces-document)). A `dom` space served so keeps to the
+strictest policy, its pages making their elements and styles through the DOM:
+
+```toml
+[spaces.site.document]
+title = "Notes"
+lang = "en"
+noscript = "Notes needs JavaScript."
+
+[spaces.site.ui]
+plugin = "dom"
+
+[spaces.site.headers]
+Content-Security-Policy = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+```
 
 ## @jac/runtime
 
@@ -242,8 +263,12 @@ names from it as from any npm package: `import from "@jac/runtime" { Link, navig
 | `RemoteError` and its subclasses | What a failed crossing raises ([Crossings](crossings.md)) |
 | `__getLocalStorage`, `__setLocalStorage`, `__removeLocalStorage` | `localStorage`, or an in-memory store where there is none |
 
-Under any other `ui` plugin neojac ships, `@jac/runtime` has the sign-in and arrangement
-functions, the storage functions and the `RemoteError` classes, and none of the routing names.
+Under `dom` it has `Link`, `navigate`, `Navigate`, `Outlet` and `unsafe_html` as above (a page's
+route parameters are its `page` function's parameters, and React's hooks are not there), `mount`
+([UI plugins and bundlers](ui-bindings.md#dom)), and the sign-in, arrangement and storage
+functions and the `RemoteError` classes. Under any other `ui` plugin neojac ships, `@jac/runtime`
+has the sign-in and arrangement functions, the storage functions and the `RemoteError` classes,
+and none of the routing names.
 A name it does not have under the space's `ui` plugin is E1145, as a package's is.
 
 ## Calling the server
@@ -513,7 +538,7 @@ installed after a build that failed for want of it is seen by the next build.
 |---|---|
 | E1227 | A module under `pages/` with no `page` function, or `pages/layout.jac` with no `layout` |
 | E1228 | A `page` parameter that is not `name: str` or `*name: str` |
-| E1279 | A page in a space whose `ui` plugin has no file routes (any but `react`) |
+| E1279 | A page in a space whose `ui` plugin has no file routes (any but `react` and `dom`) |
 | E1210 | A page calls a function or walker of another space that is not `:pub` or `:prot` |
 | E1540 | An import of a stdjac name that is native code's (`RemoteError`, from `stdjac`): the classes are `"@jac/runtime"`'s here |
 | E1219 | An import of a package another `ui` plugin owns |

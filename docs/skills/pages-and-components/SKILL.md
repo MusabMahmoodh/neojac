@@ -1,6 +1,6 @@
 ---
 name: pages-and-components
-description: Use when adding web pages, a UI or a front end to a neojac app - a browser space with pages/ routes, components in JSX, state and effects, calling the server from a page, npm packages for the page, choosing React, Preact or Solid, and building and looking at the result.
+description: Use when adding web pages, a UI or a front end to a neojac app - a browser space with pages/ routes, components in JSX, state and effects, calling the server from a page, npm packages for the page, choosing React, Preact, Solid or dom (no npm package, no bundler), and building and looking at the result.
 ---
 # Pages and components
 
@@ -20,13 +20,20 @@ Use it to give an app a browser front end: a `browser` space, its `pages/`, comp
 neojac docs apps/pages          # routes, layout, entry, the HTML shell, @jac/runtime, signing in
 neojac docs component           # JSX, props, state, effects, refs, hooks
 neojac docs form                # forms, event handlers, onSubmit and preventDefault
-neojac docs apps/ui-bindings    # React (default), Preact, Solid, none
+neojac docs apps/ui-bindings    # React (default), Preact, Solid, dom, none
 ```
 
-File routes need the `react` plugin, the standard `ui` plugin of a browser space. Under `preact` or
-`solid` a space has no `pages/`; avoid pages under those plugins for now (the bundle fails), and
-render from the entry instead, as `neojac docs apps/ui-bindings` shows. A space's `ui` plugin is
-named in `jac.toml`: `[spaces.<space>.ui]` `plugin = "solid"`.
+File routes need the `react` plugin, the standard `ui` plugin of a browser space, or `dom`. Under
+`preact` or `solid` a space has no `pages/` (E1279): render from the entry instead, as
+`neojac docs apps/ui-bindings` shows. A space's `ui` plugin is named in `jac.toml`:
+`[spaces.<space>.ui]` `plugin = "dom"`.
+
+`dom` needs no npm package and no bundler: skip step 2 below, and the build writes the page's
+document itself, with what `[spaces.<space>.document]` says (`title`, `lang`, `noscript`). Its
+pages run under `[spaces.<space>.headers]` `Content-Security-Policy` of `script-src 'self';
+style-src 'self'`. Write attributes by HTML's names (`class`, `for`); `False` removes an
+attribute, so an enumerated one is a string (`spellcheck="false"`). Import style sheets from the
+entry (`import "./site.css";`). `neojac docs apps/ui-bindings` (section "dom") has the rest.
 
 ## Steps
 
