@@ -176,7 +176,8 @@ database = "notes"
 ```
 
 `neojac install` fetches it and pins it, and `neojac build` compiles it into the program.
-`neojac check` in the plugin's own directory holds it to its contract while you write it.
+`neojac check` of the plugin's module, in its own directory (`neojac check store.jac`), holds it to
+its contract while you write it.
 [Plugins](docs/apps/plugins.md) is the whole of it, and the standard plugins in
 [`abstractions/`](abstractions/) are working examples of each.
 
@@ -184,8 +185,8 @@ A prompt:
 
 > Using neojac, write a `store` plugin that keeps a space's graph in Postgres. Read the
 > `writing-a-plugin` skill and `neojac docs store.contract` first. Check it with
-> `neojac check` in its own directory, then bind it in a small app and show the app's data
-> surviving a restart.
+> `neojac check` of its module in its own directory, then bind it in a small app and show the
+> app's data surviving a restart.
 
 ## Learn more
 
