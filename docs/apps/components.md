@@ -434,10 +434,9 @@ def Card(title: str, children: Markup | None = None) -> Markup {
 
 with entry {
     name = "Tom & <Jerry>";
-    page = <html lang="en"><body>
-        <Card title={name}><p>Hi {name}</p><br/></Card>
-        {[<i>{n}</i> for n in [1, 2]]}
-    </body></html>;
+    page = <html lang="en">
+        <body><Card title={name}><p>Hi {name}</p><br /></Card>{[<i>{n}</i> for n in [1, 2]]}</body>
+    </html>;
     print(page);
 }
 ```
