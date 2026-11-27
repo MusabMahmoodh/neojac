@@ -260,13 +260,13 @@ neojac test <file.jac> -o <runner> [<option>...]
 | Option | What it does |
 |---|---|
 | `-k <text>` | Run only the tests whose names contain <text>; a module with none isn't built |
-| `-j <jobs>` | Build and run this many modules at once, each told it has this many processors (default: one for each core) |
+| `-j <jobs>` | Run on this many processors, which the runners' builds, the tests and the builds a test starts share (default: one for each core) |
 | `-o <runner>` | Build the one module's test runner, and don't run it |
 | `--target <platform>` | Build for another platform: macos-aarch64, macos-x86_64, linux-aarch64, linux-x86_64, windows-x86_64, wasm32-wasi |
 | `--place <directory>` | The place the program is for: the directory whose jac.toml provides the plugin of each abstraction the project leaves open (default: this machine, each abstraction's standard plugin) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
-Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and the runners are built and run in parallel.
+Runs the tests of every module under the paths given, or under jac.toml's [test] directories. Each module's tests are built into one runner, in the project's .jac/test/, and each test is a run of that runner by itself, in a directory of its own that NEOJAC_TEST_DIR names: the runners are built and the tests run in parallel.
 
 The suites of the project's own trees that jac.toml names are run after them, each in its tree's directory: a Python project's by the command [test.pypi."<directory>"] gives, with the project's .jac/venv first on PATH and what `neojac build` makes of the project first on Python's path; an npm tree's by the script [test.npm."<directory>"] names; a crate's by `neojac cargo test`, with the arguments of [test.cargo."<directory>"]. A path that is a tree's manifest runs that suite alone, and -k runs none.
 
@@ -750,6 +750,7 @@ Draw a project's architecture from its archwire.jac.
 neojac arch [<layer> | <module>] [--mermaid | --json | --text]
 neojac arch [<layer> | <module>] --svg <file> | --png <file>
 neojac arch --view spaces [--profile <profile>] [<output>]
+neojac arch [<layer> | <module>] --diff [--base <revision>] [<output>]
 ```
 
 | Option | What it does |
@@ -761,12 +762,14 @@ neojac arch --view spaces [--profile <profile>] [<output>]
 | `--text` | Print the picture on the terminal |
 | `--svg <file>` | Write the picture as an SVG |
 | `--png <file>` | Write the picture as a PNG, drawn by the browser `neojac browse` drives |
+| `--diff` | Mark what has changed since the branch this one follows: the modules whose files changed, the arrows that are new, gone or carry other names, and what takes from what changed |
+| `--base <revision>` | --diff against this git revision, in place of where the branch left its upstream (or origin's main branch) |
 | `--listen <address>` | Where the viewer is served (default: 127.0.0.1:8090) |
 | `--diagnostics <form>` | How diagnostics are written on stderr: human (the default), or json, one record a line |
 
 Run from inside a project. The picture is drawn from archwire.jac and from nothing else: its layers are the boxes, its wires the arrows, each labelled with the edge rule that admits it.
 
-With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer, a module or an arrow opens it, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
+With no output option, the picture is served as a page that follows the project as it is edited: its address is printed, a click on a layer or a module opens it, a click on an arrow lists the names it carries, and a module opened shows its code beside the picture. An output option prints one picture and exits, and refuses a project whose wiring has errors: it prints them and writes nothing.
 
 Every module archwire.jac names is read, whether or not a program loads it, and every target's wires are checked, so what is drawn holds for the whole project.
 
@@ -777,6 +780,7 @@ Every module archwire.jac names is read, whether or not a program loads it, and 
 | `neojac arch backends --text` | One layer, opened |
 | `neojac arch compiler.gen --json` | One module: what it takes and gives |
 | `neojac arch --mermaid` | A flowchart for a README or a pull request |
+| `neojac arch --diff --mermaid` | What a branch changes, for its pull request |
 | `neojac arch --view spaces --svg spaces.svg` | The spaces, as a file |
 
 Its guide: [toolchain/arch](../toolchain/arch.md) (`neojac docs toolchain/arch`).

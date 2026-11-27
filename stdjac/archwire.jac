@@ -25,12 +25,10 @@ graph layers {
     layer window { window; }
     layer signing { signing | signing_parts; }
     layer signing_pages { pages.*; }
-    """What no wire joins to the rest."""
     layer apart { jsx; }
 }
 
 graph spaces {
-    """The pages a person signs in at: a program's sign-in, a mailed link, and the return from another service."""
     space signing: browser { entry signing; signing_parts | pages.*; }
 }
 

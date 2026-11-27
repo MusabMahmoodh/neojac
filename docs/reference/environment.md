@@ -1,6 +1,6 @@
 ---
 description: Every environment variable neojac reads, sets for the programs it runs, or that a program it built reads - NEOJAC_*, the names an app may not take, color and terminal variables, SDKROOT and the installer's - with what reads each and what it does.
-keywords: environment variables, NEOJAC_STORE, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_TELEMETRY, NEOJAC_TELEMETRY_URL, DO_NOT_TRACK, CI, HOME, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
+keywords: environment variables, NEOJAC_STORE, NEOJAC_CACHE_DIR, NEOJAC_CACHE_SIZE, NEOJAC_CONFIG_DIR, XDG_CONFIG_HOME, APPDATA, NEOJAC_TELEMETRY, NEOJAC_TELEMETRY_URL, DO_NOT_TRACK, CI, HOME, NEOJAC_PROGRESS_TO, NEOJAC_RECORD_TO, NEOJAC, NEOJAC_TEST_DIR, NEOJAC_SLOTS, NEOJAC_DIAGNOSTICS_TO, NEOJAC_EXE, NEOJAC_RUST_SYSROOT, NEOJAC_PORT_TO, NEOJAC_DEPENDENCY_DIGEST, NEOJAC_BIN_DIR, NEOJAC_BROWSE_SESSION, GITHUB_TOKEN, GH_TOKEN, NO_COLOR, FORCE_COLOR, CLICOLOR_FORCE, TERM, XDG_CACHE_HOME, LOCALAPPDATA, SDKROOT, JAC_GC, JAC_THREADS, JAC_APP
 ---
 # Environment variables
 
@@ -43,6 +43,8 @@ The tools neojac carries read their own variables as they always do: `neojac pyt
 | Variable | Set by | What it is |
 |---|---|---|
 | `NEOJAC` | `neojac test`, an app's build | The path of the neojac that is running, for a test or a build step that runs the compiler itself |
+| `NEOJAC_TEST_DIR` | `neojac test`, for each test | The directory that is the test's own, where it writes its files: the same one each run, and no other test's ([test](../toolchain/test.md#a-tests-own-directory)) |
+| `NEOJAC_SLOTS` | `neojac test`, for everything it runs | The named pipe that holds the run's free processors, a byte each: a neojac started under it takes one for each further thing it runs at once and gives it back, so the tests and the builds they start share the processors the run has ([test](../toolchain/test.md#the-processors-a-run-shares)) |
 | `NEOJAC_TELEMETRY` | Every command, for everything it runs | `off`: a neojac that one runs (a build's own steps, what `neojac test` or `neojac npm` runs) is part of its run, and records nothing of its own ([telemetry](../toolchain/telemetry.md#what-a-run-is)) |
 | `NEOJAC_UPDATE_ALONGSIDE` | A command of the neojac that follows the releases, for the `neojac update` it starts alongside itself | Set: that update leaves the release ready and does not put it in place, which the next command to start alone does ([update](../toolchain/update.md#following-the-releases)) |
 | `NEOJAC_UPDATE` | `neojac update`, for the release it tries | `off`: the fetched neojac's trial build asks for nothing and replaces nothing |

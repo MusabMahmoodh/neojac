@@ -18,7 +18,7 @@ which and what each wire carries: see [Wiring modules](../language/modules-wirin
 ## Syntax
 
 ```ebnf
-graph_spaces ::= "graph" "spaces" NAME? "{" (STRING (space_decl | app_decl | package_decl) | space_decl | app_decl | package_decl)* "}"
+graph_spaces ::= "graph" "spaces" NAME? "{" (space_decl | app_decl | package_decl)* "}"
 
 space_decl ::= "space" NAME ":" (KEYWORD | NAME) "{" (("entry" wire_module_path | STRING | module_pattern ("|" module_pattern)*) ";")* "}"
 
@@ -56,20 +56,6 @@ graph spaces {
 ```
 
 `neojac fmt archwire.jac` lays a space or an app that fits on one line out on one line.
-
-A space and an app may each have a docstring before it, one line of at most 120 characters
-(E2209): it is what [`neojac arch`](../toolchain/arch.md) writes in that box of the spaces view.
-
-<!-- example: not checked: a graph spaces block is valid only in a file named archwire.jac, beside the modules it places -->
-```jac
-graph spaces {
-    """The site's pages."""
-    space site: browser { entry web; pages.*; }
-
-    """Everything the public site is."""
-    app web { serve site; }
-}
-```
 
 ## Spaces
 
