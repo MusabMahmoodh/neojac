@@ -1,5 +1,5 @@
 ---
-description: Installing a neojac release with the installer, its options, where it puts things, checking that it works, its usage statistics, and uninstalling.
+description: Installing a neojac release with the installer, its options, where it puts things, checking that it works, how it follows later releases, its usage statistics, and uninstalling.
 keywords: installer, install.sh, uninstall
 ---
 # Install
@@ -35,12 +35,17 @@ The documentation came with it. `neojac docs` prints the map of its pages, and `
 4. Unpacks it as `~/.local/bin/neojac`, in place of the neojac that was there: the file is written under another name beside it and renamed, so a neojac that is running is never a file half written.
 5. Removes what an older release's installer left in `~/.neojac`, when releases were unpacked archives: each version's directory and the link `current`. What is recorded of neojac's use stays.
 6. Builds and runs a one-line program with the installed compiler, started by its name as you will start it, with `NEOJAC_TELEMETRY=off`: the installer's build records nothing of its use. If that fails, the installer says so and exits with status 1; the file stays where it was put.
-7. Says that neojac collects anonymous usage statistics, and how to turn that off.
-8. If `~/.local/bin` is not on `PATH`, prints the line to add to your shell's profile.
+7. Makes the installed neojac the one that follows the releases (`neojac update on`), and says so. With `--version` it turns that off instead (`neojac update off`): a release installed by its version stays at it.
+8. Says that neojac collects anonymous usage statistics, and how to turn that off.
+9. If `~/.local/bin` is not on `PATH`, prints the line to add to your shell's profile.
 
 It needs `curl`, `gzip`, and `sha256sum` or `shasum`. Nothing else is installed: a release is that one file.
 
 neojac carries its runtime, its documentation and its toolchain inside itself ([What one download contains](index.md#what-one-download-contains)). It needs no configuration file and no environment variable, and it runs from wherever the file is put.
+
+## Later releases
+
+A neojac installed as the latest release follows the releases. When a build, a test run, an install or `neojac dev` starts, it asks which release is the newest, at most once a day and alongside the command, which waits for nothing. It fetches a newer release, checks it against its digest and tries it, and that release takes neojac's place when a command next starts with no other running; the command says so in one line. `neojac update` does the same at once, `neojac update <version>` takes a named release and stays at it, and `neojac update off` or `NEOJAC_UPDATE=off` leaves neojac as it is. [update](../toolchain/update.md) (`neojac docs update`) has all of it.
 
 ## Usage statistics
 
@@ -57,7 +62,7 @@ curl -fsSL https://github.com/jaseci-labs/neojac/releases/latest/download/instal
 
 | Option | What it does |
 |---|---|
-| `--version <V>` | Install release `V` (`0.1.1` or `v0.1.1`) instead of the latest |
+| `--version <V>` | Install release `V` (`0.1.1` or `v0.1.1`) instead of the latest, and stay at it: that neojac does not follow the releases until `neojac update on` |
 | `--uninstall` | Remove neojac (below) |
 | `--help`, `-h` | Print the installer's usage |
 
@@ -75,17 +80,18 @@ neojac itself reads the two that say where its cache is, and none of the others.
 ~/.local/bin/neojac
 ```
 
-That file is the install. Installing another version replaces it, so one version is installed at a time; `--version` puts a named release in its place.
+That file is the install. Installing another version replaces it, so one version is installed at a time; `--version` puts a named release in its place, and so does `neojac update`.
 
-Three more places are written when neojac runs, not when it is installed:
+Four more places are written when neojac runs, not when it is installed:
 
 - Its cache, in your per-user cache directory (`~/Library/Caches/neojac` on macOS, `$XDG_CACHE_HOME/neojac` or `~/.cache/neojac` on Linux): what builds keep, and what neojac writes out of itself the first time a tool has to read it as a file. All of it is made again when it is missing. See [The build cache](../toolchain/cache.md).
 - A `.jac/` directory in each project you build or test. See [Projects](../toolchain/projects.md).
 - `~/.neojac/telemetry/`, what is recorded of neojac's use and whether recording is on. See [telemetry](../toolchain/telemetry.md#where-it-is-kept).
+- `~/.neojac/update/`, which neojac follows the releases and when it last asked for the newest; and `.neojac.next` beside neojac, a release that is ready to take its place. See [update](../toolchain/update.md#where-it-is-kept).
 
 ## Uninstalling
 
-`--uninstall` removes `$NEOJAC_BIN_DIR/neojac`, neojac's cache and `~/.neojac`, what is recorded of neojac's use. Of the cache it removes what neojac keeps there (its formats' directories, `store/`, `linked/`, `cross/`, `fetched/`, `browse/`), and the directory itself when that leaves it empty: a directory `NEOJAC_CACHE_DIR` names that holds other things keeps them. It leaves your projects' `.jac/` directories; delete those yourself.
+`--uninstall` removes `$NEOJAC_BIN_DIR/neojac` with a release that is ready beside it, neojac's cache and `~/.neojac`, what is recorded of neojac's use and of its updates. Of the cache it removes what neojac keeps there (its formats' directories, `store/`, `linked/`, `cross/`, `fetched/`, `browse/`), and the directory itself when that leaves it empty: a directory `NEOJAC_CACHE_DIR` names that holds other things keeps them. It leaves your projects' `.jac/` directories; delete those yourself.
 
 ## Platforms the installer does not cover
 

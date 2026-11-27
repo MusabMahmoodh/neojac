@@ -1,5 +1,5 @@
 ---
-description: neojac check, what it takes (a program, a project, an app, a space), what it checks, the format of a diagnostic, the order errors are reported in, and checking a project's apps and spaces.
+description: neojac check, what it takes (a program, a project, an app, a space, a plugin or a library), what it checks, the format of a diagnostic, the order errors are reported in, and checking a project's apps and spaces.
 keywords: diagnostic, diagnostics, type-check, error format
 ---
 # check
@@ -52,6 +52,7 @@ neojac check [<app>] --space <space> [<option>...]
 | `main.jac` | The Jac program that main module starts |
 | A directory whose `archwire.jac` declares spaces | The project: every app, and every space no app holds ([below](#checking-a-project)) |
 | A directory with a `jac.toml` | The Jac project's `main.jac` |
+| A directory whose `jac.toml` is a plugin's, a library's, an abstraction's or a contract's | The package: every module of it that no other module of it imports ([below](#checking-a-package)) |
 | Nothing | The directory the command runs in, as above |
 | A name with no extension or path in it, in a project whose `archwire.jac` declares spaces | That app: each program it is |
 
@@ -201,6 +202,25 @@ svc.jac:2:12: error[E1002]: cannot return int from a function declared to return
 ```
 
 A check that ends without reporting anything says where what it printed is kept. Two checks of one project at once do not meet: each keeps its own files while it runs. See [Building apps](../apps/building.md) for spaces, apps and profiles.
+
+## Checking a package
+
+A package whose `jac.toml` says it is no program (`kind = "plugin"`, `"library"`, `"abstraction"`
+or `"contract"`) is checked by its directory, or with nothing named in it:
+
+```sh
+neojac check                       # in abstractions/store/sqlite: the plugin's modules
+neojac check libraries/sqlfile     # a library, by its directory
+```
+
+Its modules are checked as a project's modules that no space holds are: each module its
+`archwire.jac` governs that no other module of it imports, as a native program of its own, at
+once, each in a process of its own, so that what they import is checked through them. A plugin's
+check holds it to what it may import (E2233), and a module `[check] exclude` names is left out.
+A package with no Jac module to check has its `archwire.jac` judged alone. `--target`, `--memory`,
+`--lib`, `--space`, `--profile` and `--place` are options of a program's check, and a package's
+takes none of them. `neojac build` and `neojac run` refuse such a package (E5184): a program that
+uses it builds it.
 
 ## What goes wrong
 
