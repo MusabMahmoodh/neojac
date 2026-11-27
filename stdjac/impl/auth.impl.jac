@@ -73,12 +73,15 @@ impl signed(s: Session) -> dict[str, any] {
     return {"user": s.user, "token": s.token, "name": s.name};
 }
 
-impl auth_route(r: Request) -> Response {
+impl auth_route(r: Request) -> Response | None {
+    action = r.path.removeprefix("/__jac/auth").lstrip("/");
+    if r.method == "GET" and action not in ["", "me", "logout"] {
+        return None;
+    }
     if len(_auth) == 0 {
         return json_fail(500, "failed", "no accounts");
     }
     a = _auth[0];
-    action = r.path.removeprefix("/__jac/auth").lstrip("/");
     if r.method == "GET" and action == "" {
         return json_ok(asked(a.asks(r.headers)));
     }
@@ -92,19 +95,6 @@ impl auth_route(r: Request) -> Response {
     if action == "logout" {
         a.leave(r.headers);
         return json_ok(None);
-    }
-    if r.method == "GET" and action == "device" {
-        return Response(
-            ctype="text/html; charset=utf-8", body=DEVICE.encode("utf-8"), headers=PAGE_HEADERS
-        );
-    }
-    if r.method == "GET" and (action == "check" or action == "reset") {
-        return Response(
-            ctype="text/html; charset=utf-8", body=MAILED.encode("utf-8"), headers=PAGE_HEADERS
-        );
-    }
-    if r.method == "GET" {
-        return Response(ctype="text/html; charset=utf-8", body=CAME_BACK.encode("utf-8"));
     }
     b: any = None;
     try {

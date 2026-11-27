@@ -1,4 +1,6 @@
-impl static_file(top: str, path: str) -> Response {
+impl static_file(
+    top: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []
+) -> Response {
     if top == "" {
         raise ValueError("static_file needs the directory it serves");
     }
@@ -11,28 +13,114 @@ impl static_file(top: str, path: str) -> Response {
         under = False;
     }
     if not under {
-        return Response(status=403, ctype="text/plain", body=b"forbidden");
+        return page_answer("", None, None, path, headers, []);
     }
     rel: str = os.path.relpath(full, served);
-    if rel == "." or not os.path.isfile(full) {
-        ext = os.path.splitext(rel)[1].lower();
-        page = os.path.join(served, "index.html");
-        if ext in CONTENT_TYPES and ext != ".html" or not os.path.isfile(page) {
-            return Response(status=404, ctype="text/plain", body=b"not found");
+    found: bytes | None = None;
+    document: bytes | None = None;
+    if rel != "." and os.path.isfile(full) {
+        with open(full, "rb") as f {
+            found = f.read();
         }
-        full = page;
+    } elif os.path.isfile(os.path.join(served, "index.html")) {
+        with open(os.path.join(served, "index.html"), "rb") as f {
+            document = f.read();
+        }
+    }
+    return page_answer(rel.replace(os.sep, "/"), found, document, path, headers, routes);
+}
+
+impl held_file(
+    space: str, path: str, headers: dict[str, str] = {}, routes: list[str] = []
+) -> Response {
+    kept: list[str] = [];
+    for part in path.split("/") {
+        if part == ".." {
+            if len(kept) == 0 {
+                return page_answer("", None, None, path, headers, []);
+            }
+            kept.pop();
+        } elif part != "" and part != "." {
+            kept.append(part);
+        }
+    }
+    rel = "/".join(kept) if len(kept) > 0 else ".";
+    found = HELD_PAGES.get(space + "/" + rel, None) if rel != "." else None;
+    document = HELD_PAGES.get(space + "/index.html", None) if found is None else None;
+    return page_answer(rel, found, document, path, headers, routes);
+}
+
+impl page_answer(
+    rel: str,
+    found: bytes | None,
+    document: bytes | None,
+    path: str,
+    headers: dict[str, str],
+    routes: list[str],
+) -> Response {
+    sent: dict[str, str] = {"X-Content-Type-Options": "nosniff"};
+    cached = "";
+    for (name, value) in headers.items() {
+        if name.lower() == "cache-control" {
+            cached = value;
+        } else {
+            sent[name] = value;
+        }
+    }
+    if rel == "" {
+        return Response(status=403, ctype="text/plain", body=b"forbidden", headers=sent);
+    }
+    status = 200;
+    data = found;
+    if data is None {
+        ext = os.path.splitext(rel)[1].lower();
+        if ext in CONTENT_TYPES and ext != ".html" or document is None {
+            return Response(status=404, ctype="text/plain", body=b"not found", headers=sent);
+        }
+        if len(routes) > 0 and not routed(path, routes) {
+            status = 404;
+        }
+        data = document;
         rel = "index.html";
     }
-    with open(full, "rb") as f {
-        data = f.read();
-    }
-    extra: dict[str, str] = {};
-    if rel.split(os.sep)[0] == "assets" {
-        extra["Cache-Control"] = "public, max-age=31536000, immutable";
+    ext = os.path.splitext(rel)[1].lower();
+    if rel.split("/")[0] == "assets" {
+        sent["Cache-Control"] = "public, max-age=31536000, immutable";
+    } elif cached != "" {
+        sent["Cache-Control"] = cached;
+    } elif ext == ".html" {
+        sent["Cache-Control"] = "no-cache";
     }
     return Response(
-        ctype=CONTENT_TYPES.get(os.path.splitext(full)[1].lower(), "application/octet-stream"),
+        status=status,
+        ctype=CONTENT_TYPES.get(ext, "application/octet-stream"),
         body=data,
-        headers=extra,
+        headers=sent,
     );
+}
+
+impl routed(path: str, routes: list[str]) -> bool {
+    got = [urllib.parse.unquote(x) for x in path.split("/") if x != ""];
+    for r in routes {
+        segs = [x for x in r.split("/") if x != ""];
+        ok = True;
+        rest = False;
+        i = 0;
+        while i < len(segs) and ok {
+            if segs[i] == "*" {
+                rest = True;
+                break;
+            }
+            if i >= len(got) {
+                ok = False;
+            } elif not segs[i].startswith(":") and segs[i].lower() != got[i].lower() {
+                ok = False;
+            }
+            i += 1;
+        }
+        if ok and (rest or i == len(got)) {
+            return True;
+        }
+    }
+    return False;
 }
