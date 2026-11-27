@@ -1,6 +1,7 @@
 import json;
 import urllib.parse;
-import from jaclang.comptime { Kind, apply, args_type, kind, note, noted, params }
+import from jaclang.comptime { Kind, apply, args_type, kind, note, noted, params, returns }
+import from markup { Markup }
 
 enum HTTPMethod {
     GET = "GET",
@@ -11,8 +12,8 @@ comptime def restspec(
     f: Callable,
     method: HTTPMethod,
     path: str,
-    produces: str = "text/plain",
-    envelope: bool = True,
+    produces: str | None = None,
+    envelope: bool | None = None,
     headers: dict[str, str] | None = None,
 );
 
@@ -22,6 +23,7 @@ obj:pub RestRoute {
         produces: str,
         envelope: bool,
         headers: dict[str, str] | None,
+        markup: bool,
         module: str,
         name: str,
         parts: list[str],

@@ -23,8 +23,13 @@ graph layers {
     layer schedule { schedule; }
     layer static_files { static_files; }
     layer window { window; }
-    """What no wire joins to the rest."""
+    layer signing { signing | signing_parts; }
+    layer signing_pages { pages.*; }
     layer apart { jsx; }
+}
+
+graph spaces {
+    space signing: browser { entry signing; signing_parts | pages.*; }
 }
 
 graph import {
@@ -46,6 +51,7 @@ graph import {
     edge Schedule: schedule --> apps;
     edge StaticFiles: static_files --> apps;
     edge Window: window --> desktop;
+    edge Signing: signing --> signing_pages;
 
     bound ++> app | auth | files | jobs | limits | llm | mail | remote | schedule { bound }
     by ++> llm { By, ByCall, ByChoice, ByChooser, ByStreams, ByTool }
@@ -58,7 +64,7 @@ graph import {
         jobs { decode, encode },
         plan { decode },
         remote { CodecError, declares_reports, decode, encode },
-        routes { CodecError, decode },
+        routes { CodecError, decode, encode },
     ]
     plan ++> [
         app {
@@ -151,6 +157,12 @@ graph import {
     reply ++> app | auth | files { json_ok }
     routes ++> app { route_answer, route_of, routes }
     schedule ++> app { scheduled, start_schedule }
-    static_files ++> app { static_file }
+    static_files ++> app { held_file, static_file }
     window ++> desktop { run_window }
+    signing_parts ++> [
+        pages.check { Said, again_on_new_link, mailed_token, reason },
+        pages.device { Said, reason },
+        pages.index { reason },
+        pages.reset { Said, again_on_new_link, mailed_token, reason },
+    ]
 }

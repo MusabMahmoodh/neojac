@@ -844,6 +844,10 @@
           "page": "toolchain/telemetry.md"
         },
         {
+          "title": "update",
+          "page": "toolchain/update.md"
+        },
+        {
           "title": "docs and skills",
           "page": "toolchain/docs.md"
         }
@@ -956,7 +960,7 @@
               "page": "reference/diagnostics/e15-2.md"
             },
             {
-              "title": "E1615 to E1643: type parameter packs, wide text, C++ and Rust templates, C++ comparisons, C++ constructors, C++ function pointers, objects lent to C, sizeof, managed places, objects found by a field, statics written through a subclass, C++ templates deduced from a function, and several C++ functions written as one name, and @reads functions that change something",
+              "title": "E1615 to E1645: type parameter packs, wide text, C++ and Rust templates, C++ comparisons, C++ constructors, C++ function pointers, objects lent to C, sizeof, managed places, objects found by a field, statics written through a subclass, C++ templates deduced from a function, several C++ functions written as one name, @reads functions that change something, and what markup cannot hold",
               "page": "reference/diagnostics/e16.md"
             },
             {
@@ -988,7 +992,7 @@
               "page": "reference/diagnostics/e22-3.md"
             },
             {
-              "title": "E2240 to E2336: imports in code, a place's plugins, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, Python names, quoted paths, JavaScript's faces, classes over values, TypeScript faces, C tags and C++ bases",
+              "title": "E2240 to E2344: imports in code, a place's plugins, defaults, JavaScript classes, unions, bit-fields, crates, comptime if, Python names, quoted paths, JavaScript's faces, classes over values, TypeScript faces, C tags, C++ bases and a package's browser spaces",
               "page": "reference/diagnostics/e22-4.md"
             },
             {
@@ -1008,7 +1012,7 @@
               "page": "reference/diagnostics/e51.md"
             },
             {
-              "title": "E5173 to E5271: what a host makes, JSX, C calling Jac, Rust and C++ instances, a class body's try, a surrogate pair, an extension's links and entries",
+              "title": "E5173 to E5273: what a host makes, JSX, C calling Jac, a package that is no program, Rust and C++ instances, a class body's try, a surrogate pair, an extension's links and entries, a space with no bundler, React's names under the dom form",
               "page": "reference/diagnostics/e51-2.md"
             },
             {

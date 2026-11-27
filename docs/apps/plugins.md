@@ -426,8 +426,8 @@ library that plugins of two abstractions declare imports neither's contract. A p
 through nothing.
 
 The built-in words of the abstractions (`@job`, `llm` and the rest) are stdjac's too, and a
-plugin says none of them. `neojac check` of the plugin's module, in its own directory
-(`neojac check store.jac`), holds it to all of this, with no app around it.
+plugin says none of them. `neojac check` in the plugin's own directory holds each of its modules
+to all of this, with no app around it ([check](../toolchain/check.md#checking-a-package)).
 
 **What a plugin needs of the program that runs it, the program gives it.** `open` is handed the
 program as a host, an interface the contract declares and the program implements:
