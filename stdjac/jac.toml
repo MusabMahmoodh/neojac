@@ -11,3 +11,20 @@ kind = "library"
 # jsx is what a JS space's program says of JSX. neojac loads it into one, and
 # it is no program of its own: an app's check is its check.
 exclude = ["jsx.jac"]
+
+[spaces.signing]
+base = "/__jac/auth/"
+
+[spaces.signing.ui]
+plugin = "dom"
+
+[spaces.signing.document]
+title = "Signing in"
+lang = "en"
+noscript = "Signing in needs JavaScript."
+
+[spaces.signing.headers]
+Content-Security-Policy = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+X-Frame-Options = "DENY"
+Referrer-Policy = "no-referrer"
+Cache-Control = "no-store"

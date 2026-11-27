@@ -46,7 +46,7 @@ neojac run -- input.txt                   # the program in this directory, with 
 
 `neojac run` builds a program as `build` does, in its project's `.jac/build/` unless `-o` says where, then runs it with what follows `--` and exits with its status. It takes the options of a build for this machine that is then run: `-o`, `--release`, `--cpu`, `--gui`, `--monitor` and `--memory`. One it does not take is named with the command that does: ``it has no option '--lib' (`neojac build` and `neojac check` have it)``.
 
-What is no program is refused: a file of another extension (E5150), a directory with none of the manifests (E5151), a Jac project with no `main.jac` (E5152). A Python project (`pyproject.toml`), an npm package (`package.json`) and a JavaScript or TypeScript file are recognized and refused until their builds are made (E5090).
+What is no program is refused: a file of another extension (E5150), a directory with none of the manifests (E5151), a Jac project with no `main.jac` (E5152), and a plugin, a library, an abstraction or a contract, which the programs that use it build (E5184). A Python project (`pyproject.toml`), an npm package (`package.json`) and a JavaScript or TypeScript file are recognized and refused until their builds are made (E5090).
 
 ## What a build does
 
@@ -392,7 +392,7 @@ Every program is compiled with the runtime: `rt/`, Jac source that holds the bui
 - A release of neojac carries all of it inside its one file, and reads it from there ([What one download contains](../start/index.md#what-one-download-contains)). What something has to open as a file is written out into the cache the first time it is needed ([The build cache](cache.md#what-neojac-writes-out-of-itself)). There is nothing to find and nothing to name.
 - A neojac built from source carries nothing. It reads the directory `NEOJAC_STORE` names, which holds the same things under the same names (`rt/`, `lib/`, `abstractions/`, `libraries/`, `docs/`), where they stand. A checkout's build makes it, `build/store`, a directory of links: `NEOJAC_STORE=build/store build/bin/neojac build main.jac`.
 - Run without one: `this neojac carries no store, and NEOJAC_STORE names none with rt: a neojac built from source runs with NEOJAC_STORE=<its build's store directory>`.
-- `NEOJAC_STORE` set for a release replaces what the directory holds and leaves the rest as the release carries it. `rt/`, `abstractions/` and `libraries/` are one tree: the directory holds all three or none of them.
+- `NEOJAC_STORE` set for a release replaces what the directory holds and leaves the rest as the release carries it. stdjac, `rt/stdjac/`, is a part of its own: an `rt/` that holds only `stdjac/` replaces stdjac and not the runtime around it. `abstractions/` and `libraries/` are one tree, since a plugin names the libraries it declares by their place beside it: the directory holds both or neither, else the command stops and says which it has.
 - A runtime made for a different neojac is refused before anything is compiled: `the runtime at <dir> does not match this neojac: ...`, naming the entry points that differ.
 
 See [Environment variables](../reference/environment.md).

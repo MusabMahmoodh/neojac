@@ -2,12 +2,26 @@ impl restspec(
     f: Callable,
     method: HTTPMethod,
     path: str,
-    produces: str = "text/plain",
-    envelope: bool = True,
+    produces: str | None = None,
+    envelope: bool | None = None,
     headers: dict[str, str] | None = None,
 ) {
     comptime assert len(path) > 0 and path[0] == "/", "@restspec's path starts with '/'";
-    note(f, "restspec", (method, path, produces, envelope, headers));
+    markup = returns(f) == Markup;
+    note(
+        f,
+        "restspec",
+        (
+            method,
+            path,
+            produces
+                if produces is not None
+                else ("text/html; charset=utf-8" if markup else "text/plain"),
+            envelope if envelope is not None else not markup,
+            headers,
+            markup,
+        ),
+    );
 }
 
 impl routes -> list[RestRoute] {
@@ -30,6 +44,7 @@ impl routes -> list[RestRoute] {
                     produces=n.value[2],
                     envelope=n.value[3],
                     headers=sent_with,
+                    markup=n.value[5],
                     module=n.module,
                     name=n.name,
                     takes=takes,
@@ -80,6 +95,9 @@ impl route_answer(
         return (status, "application/json", reply, {});
     }
     data: any = json.loads(reply.decode("utf-8"))["data"];
+    if r.markup {
+        data = decode[Markup](data).text;
+    }
     if not isinstance(data, str) {
         print(
             f"route {r.path} failed: its function gives a {type(data).__name__}, not the str its body is",
@@ -133,8 +151,12 @@ impl route_run(
         return answer(e.path(), json.dumps({"args": given}).encode("utf-8"), caller, trusted);
     }
     try {
-        out: any = kept_call(caller, lambda -> any { return json_values(r.run(given)); });
-        return (200, json.dumps({"ok": True, "data": out}).encode("utf-8"));
+        out: any = kept_call(caller, lambda -> any { return r.run(given); });
+        if r.markup {
+            made: Markup = out;
+            out = encode(made);
+        }
+        return (200, json.dumps({"ok": True, "data": json_values(out)}).encode("utf-8"));
     } except CodecError as c {
         return reply_fail(400, "rejected", f"{r.name}: {c}");
     } except Exception as x {
